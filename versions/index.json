@@ -1,12 +1,22 @@
 {
   "schema": 1,
-  "default": "v1.8.0",
-  "latest_version": "v1.8.0",
+  "default": "v1.8.1",
+  "latest_version": "v1.8.1",
   "versions": [
+    {
+      "id": "v1.8.1",
+      "label": "脚本菜单修复、胡桃位置大小、移动端全屏壁纸",
+      "channel": "latest",
+      "released_at": "2026-07-27",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true
+    },
     {
       "id": "v1.8.0",
       "label": "Windows底层流畅优化、主题特效与默认直装",
-      "channel": "latest",
+      "channel": "history",
       "released_at": "2026-07-27",
       "apps_enhancement": true,
       "particles": true,

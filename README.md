@@ -1,6 +1,6 @@
 # Unraid Custom WebUI CSS 主题
 
-这是一个基于 **Custom WebUI CSS** 插件实现的 Unraid WebGUI 自定义主题，针对 Unraid 7.3.2 进行适配。v1.8.0 基于 Windows 底层进行流畅优化，并新增主题特效设置页（背景/粒子/胡桃）。
+这是一个基于 **Custom WebUI CSS** 插件实现的 Unraid WebGUI 自定义主题，针对 Unraid 7.3.2 进行适配。v1.8.1 在 v1.8.0 基础上修复一键菜单交互，并完善主题特效与移动端全屏壁纸。
 
 ## 效果预览
 
@@ -22,17 +22,13 @@
 bash <(curl -fsSL https://raw.githubusercontent.com/deltrivx/unraid-custom-webui-css/main/scripts/install.sh)
 ```
 
-自 **v1.8.0** 起，上述命令默认**无交互直接安装 / 升级最新版**完整主题（粒子、胡桃、主题特效）。安装后可在 WebGUI「设置 → 用户偏好 → 主题特效」中自行调整背景、粒子与吉祥物。
+上述命令进入**顶层菜单**（安装/升级、历史版本、卸载）。
 
-需要菜单（历史版本 / 卸载）时：
-
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/deltrivx/unraid-custom-webui-css/main/scripts/install.sh) menu
-```
+自 **v1.8.0** 起：选择「一键安装 / 升级最新版」时**不再询问**是否安装粒子 / 胡桃，默认完整安装；安装后可在 WebGUI「设置 → 用户偏好 → 主题特效」中自行调整背景、粒子与吉祥物。
 
 菜单选项：
 
-1. 一键安装 / 升级最新版：未安装时自动安装，已安装时自动覆盖升级。
+1. 一键安装 / 升级最新版：未安装时自动安装，已安装时自动覆盖升级（完整安装，不询问粒子/胡桃）。
 2. 查看并安装全部版本：可选择最新版或任意历史版本进行安装、降级或回滚。
 3. 一键卸载主题：删除主题文件、禁用 Custom WebUI CSS，并恢复安装前的显示设置。
 4. 退出。
@@ -124,6 +120,6 @@ CA 更新可能重建 `/usr/local/emhttp/plugins/community.applications/Apps.pag
 - `assets/ucwc-particles.js`：粒子引擎（受主题特效配置控制）。
 - `apps-enhancement.js`：应用页增强（路由隔离、侧栏、搜索建议）。
 - `ThemeEffects.page` / `theme-effects.cfg`：主题特效页与配置（v1.8.0+）。
-- `scripts/install.sh`：一键安装脚本（默认无交互直装最新版；`menu` 可选历史版本/卸载）。
+- `scripts/install.sh`：一键安装脚本（默认显示顶层菜单；安装最新版默认完整安装，不询问粒子/胡桃）。
 - `versions/index.json`：版本清单。
 - `CHANGELOG.md`：中文更新日志。

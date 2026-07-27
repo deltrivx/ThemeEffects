@@ -198,7 +198,7 @@ install_version() {
     IS_LATEST="no"
   fi
 
-  # v1.8.0+：默认完整安装，无交互询问
+  # v1.8.0+：默认完整安装粒子+胡桃（不询问）；顶层菜单仍由 show_menu 交互
   INSTALL_PARTICLES="yes"
   INSTALL_HUTAO="yes"
 
@@ -377,7 +377,7 @@ Unraid Custom WebUI CSS 主题
 当前状态：$installed
 最新版：$latest
 
-  1) 一键安装 / 升级最新版（$latest，默认无交互）
+  1) 一键安装 / 升级最新版（$latest，完整安装）
   2) 查看并安装全部版本
   3) 一键卸载主题
   4) 退出
@@ -399,12 +399,16 @@ command -v curl >/dev/null 2>&1 || { echo "缺少 curl。" >&2; exit 69; }
 command -v jq >/dev/null 2>&1 || { echo "缺少 jq。" >&2; exit 69; }
 [ -f "$DYNAMIX_CFG" ] || { echo "未找到 Unraid 显示设置文件。" >&2; exit 66; }
 
-# 无参数：直接安装最新版（取消交互）
-# 可选：install | uninstall | menu | list | install <version>
+# 顶层菜单仍交互（安装/升级、历史版本、卸载）。
+# 仅取消「是否安装粒子 / 胡桃」询问：安装最新版时默认完整安装，可在 WebGUI 主题特效中调整。
+# 可选参数：install [version] | uninstall | menu | list
 if [ "$#" -eq 0 ]; then
-  VERSION=$(fetch_index | jq -r '.latest_version')
-  echo "正在安装 / 升级最新版：$VERSION（默认完整安装，无交互）…"
-  install_version
+  [ -t 0 ] || {
+    echo "无参数时需要交互式终端以显示菜单。" >&2
+    echo "非交互环境请使用：install / install <version> / uninstall / list" >&2
+    exit 64
+  }
+  show_menu
   exit 0
 fi
 
@@ -415,7 +419,7 @@ case "$1" in
     else
       VERSION=$(fetch_index | jq -r '.latest_version')
     fi
-    echo "正在安装：$VERSION …"
+    echo "正在安装：$VERSION（完整安装，不询问粒子/胡桃）…"
     install_version
     ;;
   uninstall)
@@ -435,13 +439,14 @@ case "$1" in
       id=$(printf '%s' "$index" | jq -r ".versions[$i].id")
       label=$(printf '%s' "$index" | jq -r ".versions[$i].label")
       channel=$(printf '%s' "$index" | jq -r ".versions[$i].channel")
-      printf '%s\t%s\t%s\n' "$id" "$channel" "$label"
+      printf '%s	%s	%s
+' "$id" "$channel" "$label"
       i=$((i + 1))
     done
     ;;
   *)
     echo "用法：install.sh [install [version]|uninstall|menu|list]" >&2
-    echo "无参数时默认直接安装最新版。" >&2
+    echo "无参数时显示顶层菜单；安装最新版默认完整安装（不询问粒子/胡桃）。" >&2
     exit 64
     ;;
 esac
