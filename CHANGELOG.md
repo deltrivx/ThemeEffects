@@ -1,5 +1,35 @@
 # 更新日志
 
+## v1.8.2 - 2026-07-27
+
+### 概述
+
+在 v1.8.1 基础上完善移动端全屏壁纸与一键安装体验；壁纸以真实 DOM 层铺满视口，状态栏颜色与壁纸顶部采样协调。
+
+### 壁纸 / 移动端
+
+- 恢复并强化 **DOM 壁纸层** `#ucwc-wallpaper`（按 screen / visualViewport 过扫描铺满）
+- 壁纸顶色采样写入 `theme-color` / `--ucwc-status-color`，减轻系统状态栏纯黑割裂
+- `viewport-fit=cover` 与 iOS `black-translucent` 状态栏样式
+- 取消错误的「仅对齐 1.7.1 html fixed」中间方案
+
+### 安装脚本
+
+- **无额外参数即可用**：交互终端显示菜单；非交互直接完整安装最新版（全部功能）
+- 安装默认完整功能（粒子 / 胡桃 / 主题特效），不询问；可在 WebGUI 主题特效中关闭
+
+### 主题特效（延续）
+
+- 胡桃大小 / 位置；关闭胡桃不误藏粒子
+- 应用后强制刷新当前页
+- 在线图库 / 自定义图库API 文案
+
+### 校验
+
+- style.md5: `3697bbcb07f0941a09d285ed27dd1456`
+- apps-enhancement.js.md5: `52a22e3d4ae738864ecc30c52dba89c3`
+- ucwc-particles.js.md5: `ee94ac8fcee19195944d268c0dcc754c`
+
 ## v1.8.1 - 2026-07-27
 
 ### 概述

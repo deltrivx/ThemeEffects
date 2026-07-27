@@ -398,17 +398,17 @@ EOF
 command -v curl >/dev/null 2>&1 || { echo "缺少 curl。" >&2; exit 69; }
 command -v jq >/dev/null 2>&1 || { echo "缺少 jq。" >&2; exit 69; }
 [ -f "$DYNAMIX_CFG" ] || { echo "未找到 Unraid 显示设置文件。" >&2; exit 66; }
-
-# 顶层菜单仍交互（安装/升级、历史版本、卸载）。
-# 仅取消「是否安装粒子 / 胡桃」询问：安装最新版时默认完整安装，可在 WebGUI 主题特效中调整。
+# 无参数即可用：交互终端显示菜单；非交互（curl|bash）直接完整安装最新版（全部功能）。
+# 安装默认完整功能（粒子/胡桃等），不询问；可在 WebGUI 主题特效中关闭。
 # 可选参数：install [version] | uninstall | menu | list
 if [ "$#" -eq 0 ]; then
-  [ -t 0 ] || {
-    echo "无参数时需要交互式终端以显示菜单。" >&2
-    echo "非交互环境请使用：install / install <version> / uninstall / list" >&2
-    exit 64
-  }
-  show_menu
+  if [ -t 0 ]; then
+    show_menu
+  else
+    VERSION=$(fetch_index | jq -r '.latest_version')
+    echo "一键完整安装：$VERSION（含全部功能，无需额外参数）…"
+    install_version
+  fi
   exit 0
 fi
 
@@ -439,14 +439,13 @@ case "$1" in
       id=$(printf '%s' "$index" | jq -r ".versions[$i].id")
       label=$(printf '%s' "$index" | jq -r ".versions[$i].label")
       channel=$(printf '%s' "$index" | jq -r ".versions[$i].channel")
-      printf '%s	%s	%s
-' "$id" "$channel" "$label"
+      printf '%s\t%s\t%s\n' "$id" "$channel" "$label"
       i=$((i + 1))
     done
     ;;
   *)
     echo "用法：install.sh [install [version]|uninstall|menu|list]" >&2
-    echo "无参数时显示顶层菜单；安装最新版默认完整安装（不询问粒子/胡桃）。" >&2
+    echo "无参数：交互终端显示菜单；非交互直接完整安装最新版（全部功能）。" >&2
     exit 64
     ;;
 esac
