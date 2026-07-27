@@ -10,6 +10,9 @@ OPTIONS_FILE="$PERSIST_DIR/unraid-custom-webui-css.options"
 CA_PAGE="/usr/local/emhttp/plugins/community.applications/Apps.page"
 LOADER_PAGE="$PERSIST_DIR/CustomCSS_Loader.page"
 LOADER_RUNTIME="$RUNTIME_DIR/CustomCSS_Loader.page"
+THEME_FX_PAGE="$PERSIST_DIR/ThemeEffects.page"
+THEME_FX_RUNTIME="$RUNTIME_DIR/ThemeEffects.page"
+THEME_FX_CFG="$PERSIST_DIR/theme-effects.cfg"
 CA_MARK_START='<!-- unraid-custom-webui-css:apps-enhancement:start -->'
 CA_MARK_END='<!-- unraid-custom-webui-css:apps-enhancement:end -->'
 LOADER_MARK_START='<!-- unraid-custom-webui-css:apps-enhancement:start -->'
@@ -25,6 +28,7 @@ VERSION=""
 INSTALL_PARTICLES="yes"
 INSTALL_HUTAO="yes"
 IS_LATEST="no"
+THEME_EFFECTS="false"
 
 download() {
   curl -4 -fsSL --connect-timeout 10 --max-time 180 --retry 2 "$@"
@@ -50,7 +54,6 @@ set_display_value() {
 }
 
 apply_display_settings() {
-  # Backup original display values once; never truncate an existing multi-key state file.
   if [ ! -f "$STATE_FILE" ]; then
     {
       printf 'theme=%s\n' "$(read_display_value theme)"
@@ -59,7 +62,6 @@ apply_display_settings() {
       printf 'background=%s\n' "$(read_display_value background)"
     } > "$STATE_FILE"
   else
-    # Ensure the four display keys exist without wiping other notes/backups.
     for key in theme header headermetacolor background; do
       if ! grep -q "^${key}=" "$STATE_FILE" 2>/dev/null; then
         printf '%s=%s\n' "$key" "$(read_display_value "$key")" >> "$STATE_FILE"
@@ -82,58 +84,12 @@ restore_display_settings() {
   rm -f "$STATE_FILE"
 }
 
-ask_yn() {
-  # Prompt on stderr so command substitution only captures yes/no.
-  # $1 is the interactive prompt text (usually ends with [Y/n]：)
-  prompt=$1
-  attempt=0
-  while [ "$attempt" -lt 2 ]; do
-    printf '%s' "$prompt" >&2
-    read -r ans || ans=""
-    ans=$(printf '%s' "$ans" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')
-    case "$ans" in
-      ''|y|yes) printf '%s\n' yes; return 0 ;;
-      n|no) printf '%s\n' no; return 0 ;;
-    esac
-    printf '%s\n' "请输入 Y 或 N。" >&2
-    attempt=$((attempt + 1))
-  done
-  printf '%s\n' yes
-}
-
-prompt_optional_components() {
-  INSTALL_PARTICLES="yes"
-  INSTALL_HUTAO="yes"
-  [ "$IS_LATEST" = "yes" ] || return 0
-
-  cat <<EOF
-
-可选组件（直接回车 = 安装）：
-
-[1/2] 是否安装粒子特效？
-  安装：背景更有层次，视觉更好看
-  取消：页面更轻，流畅度提升更明显
-EOF
-  INSTALL_PARTICLES=$(ask_yn "  请选择 [Y/n]：")
-
-  cat <<EOF
-
-[2/2] 是否安装胡桃吉祥物？
-  安装：右下角有个吉祥物陪着你
-  取消：少加载一张大图，流畅度略有提升、界面更干净
-EOF
-  INSTALL_HUTAO=$(ask_yn "  请选择 [Y/n]：")
-  echo
-}
-
 strip_css_block() {
   file=$1
   start=$2
   end=$3
   [ -f "$file" ] || return 0
-  # Delete inclusive marker range; tolerate missing markers.
   if grep -Fq "$start" "$file" && grep -Fq "$end" "$file"; then
-    # Use awk for portable block strip
     awk -v s="$start" -v e="$end" '
       $0 == s { skip=1; next }
       $0 == e { skip=0; next }
@@ -162,9 +118,6 @@ remove_apps_enhancement() {
 }
 
 inject_loader_enhancement() {
-  # Prefer CustomCSS_Loader.page (site-wide, works for route class sync).
-  # Fall back to Apps.page if loader is missing.
-  # remove_apps_enhancement already deleted old marks + JS; reinstall JS and inject once.
   install -m 0644 "$tmp/apps-enhancement.js" "$PERSIST_DIR/assets/apps-enhancement.js"
   install -m 0644 "$PERSIST_DIR/assets/apps-enhancement.js" "$RUNTIME_DIR/assets/apps-enhancement.js"
 
@@ -178,10 +131,8 @@ EOF
   if [ -f "$LOADER_PAGE" ]; then
     printf '\n%s\n' "$snippet" >> "$LOADER_PAGE"
     if [ -f "$LOADER_RUNTIME" ]; then
-      # Keep runtime loader in sync (marks already stripped by remove_apps_enhancement).
       printf '\n%s\n' "$snippet" >> "$LOADER_RUNTIME"
     else
-      # First install path: mirror persist loader into runtime if runtime dir exists.
       mkdir -p "$RUNTIME_DIR"
       cp -a "$LOADER_PAGE" "$LOADER_RUNTIME" 2>/dev/null || true
     fi
@@ -196,14 +147,40 @@ remove_hutao_assets() {
   rm -f "$PERSIST_DIR/assets/hutao.gif" "$RUNTIME_DIR/assets/hutao.gif"
 }
 
+remove_theme_effects() {
+  rm -f \
+    "$THEME_FX_PAGE" "$THEME_FX_RUNTIME" \
+    "$THEME_FX_CFG" \
+    "$PERSIST_DIR/assets/ucwc-particles.js" \
+    "$RUNTIME_DIR/assets/ucwc-particles.js" \
+    "$PERSIST_DIR/assets/background-1.jpg" \
+    "$RUNTIME_DIR/assets/background-1.jpg" \
+    "$PERSIST_DIR/assets/background-2.jpg" \
+    "$RUNTIME_DIR/assets/background-2.jpg" \
+    "$PERSIST_DIR/assets/background-custom.jpg" \
+    "$RUNTIME_DIR/assets/background-custom.jpg" \
+    "$PERSIST_DIR/assets/background-dynamic.jpg" \
+    "$RUNTIME_DIR/assets/background-dynamic.jpg"
+}
+
 write_options() {
   {
     printf 'version=%s\n' "$VERSION"
     printf 'particles=%s\n' "$INSTALL_PARTICLES"
     printf 'hutao=%s\n' "$INSTALL_HUTAO"
+    printf 'theme_effects=%s\n' "$THEME_EFFECTS"
     printf 'updated_at=%s\n' "$(date +%Y%m%d-%H%M%S)"
     printf 'source=deltrivx/unraid-custom-webui-css\n'
   } > "$OPTIONS_FILE"
+}
+
+install_pair() {
+  src=$1
+  dst_f=$2
+  dst_r=$3
+  [ -f "$src" ] || return 0
+  install -m 0644 "$src" "$dst_f"
+  install -m 0644 "$src" "$dst_r"
 }
 
 install_version() {
@@ -219,15 +196,27 @@ install_version() {
     IS_LATEST="yes"
   else
     IS_LATEST="no"
-    INSTALL_PARTICLES="yes"
-    INSTALL_HUTAO="no"
   fi
 
-  prompt_optional_components
+  # v1.8.0+：默认完整安装，无交互询问
+  INSTALL_PARTICLES="yes"
+  INSTALL_HUTAO="yes"
 
-  # Historical packages do not ship hutao; force off.
-  if [ "$IS_LATEST" != "yes" ]; then
+  apps_enhancement=$(printf '%s' "$index" | jq -r --arg version "$VERSION" \
+    '.versions[] | select(.id == $version) | .apps_enhancement // false')
+  THEME_EFFECTS=$(printf '%s' "$index" | jq -r --arg version "$VERSION" \
+    '.versions[] | select(.id == $version) | .theme_effects // false')
+  has_hutao=$(printf '%s' "$index" | jq -r --arg version "$VERSION" \
+    '.versions[] | select(.id == $version) | .hutao // false')
+  has_particles=$(printf '%s' "$index" | jq -r --arg version "$VERSION" \
+    '.versions[] | select(.id == $version) | .particles // false')
+
+  # 历史版本：无胡桃包则强制关闭；粒子按索引
+  if [ "$has_hutao" != "true" ]; then
     INSTALL_HUTAO="no"
+  fi
+  if [ "$has_particles" != "true" ]; then
+    INSTALL_PARTICLES="yes"
   fi
 
   base="$REPO_RAW/versions/$VERSION"
@@ -239,8 +228,6 @@ install_version() {
   download -o "$tmp/style-black.css" "$base/style-black.css"
   download -o "$tmp/assets/background.jpg" "$base/assets/background.jpg"
 
-  apps_enhancement=$(printf '%s' "$index" | jq -r --arg version "$VERSION" \
-    '.versions[] | select(.id == $version) | .apps_enhancement // false')
   if [ "$apps_enhancement" = "true" ]; then
     download -o "$tmp/apps-enhancement.js" "$base/apps-enhancement.js"
   fi
@@ -249,11 +236,23 @@ install_version() {
     download -o "$tmp/assets/hutao.gif" "$base/assets/hutao.gif"
   fi
 
-  if [ "$INSTALL_PARTICLES" != "yes" ]; then
-    strip_css_block "$tmp/style.css" "$PARTICLES_START" "$PARTICLES_END"
+  if [ "$THEME_EFFECTS" = "true" ]; then
+    download -o "$tmp/ThemeEffects.page" "$base/ThemeEffects.page"
+    download -o "$tmp/CustomCSS_Loader.page" "$base/CustomCSS_Loader.page"
+    download -o "$tmp/theme-effects.cfg" "$base/theme-effects.cfg"
+    download -o "$tmp/assets/background-1.jpg" "$base/assets/background-1.jpg"
+    download -o "$tmp/assets/background-2.jpg" "$base/assets/background-2.jpg"
+    download -o "$tmp/assets/ucwc-particles.js" "$base/assets/ucwc-particles.js"
   fi
-  if [ "$INSTALL_HUTAO" != "yes" ]; then
-    strip_css_block "$tmp/style.css" "$HUTAO_START" "$HUTAO_END"
+
+  # 主题特效由 cfg 控制时，CSS 内粒子/胡桃块保留，运行时再开关
+  if [ "$THEME_EFFECTS" != "true" ]; then
+    if [ "$INSTALL_PARTICLES" != "yes" ]; then
+      strip_css_block "$tmp/style.css" "$PARTICLES_START" "$PARTICLES_END"
+    fi
+    if [ "$INSTALL_HUTAO" != "yes" ]; then
+      strip_css_block "$tmp/style.css" "$HUTAO_START" "$HUTAO_END"
+    fi
   fi
 
   install -m 0644 "$tmp/style.css" "$PERSIST_DIR/style.css"
@@ -272,34 +271,59 @@ install_version() {
     remove_hutao_assets
   fi
 
+  if [ "$THEME_EFFECTS" = "true" ]; then
+    install_pair "$tmp/ThemeEffects.page" "$THEME_FX_PAGE" "$THEME_FX_RUNTIME"
+    install_pair "$tmp/CustomCSS_Loader.page" "$LOADER_PAGE" "$LOADER_RUNTIME"
+    # 仅首次写入默认 cfg，避免覆盖用户已调设置
+    if [ ! -f "$THEME_FX_CFG" ]; then
+      install -m 0644 "$tmp/theme-effects.cfg" "$THEME_FX_CFG"
+    else
+      # 补齐缺失键
+      while IFS='=' read -r k v; do
+        [ -n "$k" ] || continue
+        case "$k" in \#*) continue ;; esac
+        if ! grep -q "^${k}=" "$THEME_FX_CFG" 2>/dev/null; then
+          printf '%s=%s\n' "$k" "$v" >> "$THEME_FX_CFG"
+        fi
+      done < "$tmp/theme-effects.cfg"
+    fi
+    install_pair "$tmp/assets/background-1.jpg" "$PERSIST_DIR/assets/background-1.jpg" "$RUNTIME_DIR/assets/background-1.jpg"
+    install_pair "$tmp/assets/background-2.jpg" "$PERSIST_DIR/assets/background-2.jpg" "$RUNTIME_DIR/assets/background-2.jpg"
+    install_pair "$tmp/assets/ucwc-particles.js" "$PERSIST_DIR/assets/ucwc-particles.js" "$RUNTIME_DIR/assets/ucwc-particles.js"
+  fi
+
   remove_apps_enhancement
   if [ "$apps_enhancement" = "true" ]; then
     inject_loader_enhancement
   fi
   apply_display_settings
   write_options
-  # Soft-update state metadata keys without clobbering display backups / notes.
   {
-    grep -vE '^(version|particles|hutao|apps_enhancement|updated_at|source)=' "$STATE_FILE" 2>/dev/null || true
+    grep -vE '^(version|particles|hutao|apps_enhancement|theme_effects|updated_at|source)=' "$STATE_FILE" 2>/dev/null || true
     printf 'version=%s\n' "$VERSION"
     printf 'particles=%s\n' "$INSTALL_PARTICLES"
     printf 'hutao=%s\n' "$INSTALL_HUTAO"
     printf 'apps_enhancement=%s\n' "$apps_enhancement"
+    printf 'theme_effects=%s\n' "$THEME_EFFECTS"
     printf 'updated_at=%s\n' "$(date +%Y%m%d-%H%M%S)"
     printf 'source=deltrivx/unraid-custom-webui-css\n'
   } > "$STATE_FILE.tmp"
   mv "$STATE_FILE.tmp" "$STATE_FILE"
 
-  particles_label="已跳过"
-  hutao_label="已跳过"
-  [ "$INSTALL_PARTICLES" = "yes" ] && particles_label="已启用"
-  [ "$INSTALL_HUTAO" = "yes" ] && hutao_label="已启用"
+  particles_label="已启用"
+  hutao_label="已启用"
+  [ "$INSTALL_PARTICLES" = "yes" ] || particles_label="已跳过"
+  [ "$INSTALL_HUTAO" = "yes" ] || hutao_label="已跳过"
 
   echo "已安装：主题 $VERSION"
   echo "  粒子特效：$particles_label"
   echo "  胡桃吉祥物：$hutao_label"
+  if [ "$THEME_EFFECTS" = "true" ]; then
+    echo "  主题特效页：已安装（设置 → 用户偏好 → 主题特效）"
+  fi
   echo "显示主题和标题背景已设为黑色，页眉文字已设为白色。"
-  echo "请强制刷新 Unraid WebGUI。"
+  echo "可在 WebGUI「设置 → 用户偏好 → 主题特效」中自行调整背景、粒子与吉祥物。"
+  echo "请强制刷新 Unraid WebGUI（Ctrl+F5）。"
 }
 
 select_and_install_version() {
@@ -336,6 +360,7 @@ uninstall_theme() {
     "$RUNTIME_DIR/assets/background.jpg"
   remove_hutao_assets
   remove_apps_enhancement
+  remove_theme_effects
   rm -f "$OPTIONS_FILE"
   printf 'SERVICE="disabled"\n' > "$PERSIST_DIR/custom.css.cfg"
   restore_display_settings
@@ -350,8 +375,9 @@ show_menu() {
   cat <<EOF
 Unraid Custom WebUI CSS 主题
 当前状态：$installed
+最新版：$latest
 
-  1) 一键安装 / 升级最新版（$latest）
+  1) 一键安装 / 升级最新版（$latest，默认无交互）
   2) 查看并安装全部版本
   3) 一键卸载主题
   4) 退出
@@ -368,15 +394,54 @@ EOF
   esac
 }
 
-[ "$#" -eq 0 ] || {
-  echo "此脚本仅使用交互菜单，不接受命令行参数。" >&2
-  exit 64
-}
-
 [ "$(id -u)" -eq 0 ] || { echo "请使用 root 用户运行。" >&2; exit 77; }
 command -v curl >/dev/null 2>&1 || { echo "缺少 curl。" >&2; exit 69; }
 command -v jq >/dev/null 2>&1 || { echo "缺少 jq。" >&2; exit 69; }
 [ -f "$DYNAMIX_CFG" ] || { echo "未找到 Unraid 显示设置文件。" >&2; exit 66; }
-[ -t 0 ] || { echo "请在交互式 Unraid 终端中运行。" >&2; exit 64; }
 
-show_menu
+# 无参数：直接安装最新版（取消交互）
+# 可选：install | uninstall | menu | list | install <version>
+if [ "$#" -eq 0 ]; then
+  VERSION=$(fetch_index | jq -r '.latest_version')
+  echo "正在安装 / 升级最新版：$VERSION（默认完整安装，无交互）…"
+  install_version
+  exit 0
+fi
+
+case "$1" in
+  install)
+    if [ "$#" -ge 2 ]; then
+      VERSION=$2
+    else
+      VERSION=$(fetch_index | jq -r '.latest_version')
+    fi
+    echo "正在安装：$VERSION …"
+    install_version
+    ;;
+  uninstall)
+    uninstall_theme
+    ;;
+  menu)
+    [ -t 0 ] || { echo "menu 需要交互式终端。" >&2; exit 64; }
+    show_menu
+    ;;
+  list)
+    index=$(fetch_index)
+    count=$(printf '%s' "$index" | jq '.versions | length')
+    latest=$(printf '%s' "$index" | jq -r '.latest_version')
+    echo "latest=$latest"
+    i=0
+    while [ "$i" -lt "$count" ]; do
+      id=$(printf '%s' "$index" | jq -r ".versions[$i].id")
+      label=$(printf '%s' "$index" | jq -r ".versions[$i].label")
+      channel=$(printf '%s' "$index" | jq -r ".versions[$i].channel")
+      printf '%s\t%s\t%s\n' "$id" "$channel" "$label"
+      i=$((i + 1))
+    done
+    ;;
+  *)
+    echo "用法：install.sh [install [version]|uninstall|menu|list]" >&2
+    echo "无参数时默认直接安装最新版。" >&2
+    exit 64
+    ;;
+esac

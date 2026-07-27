@@ -1,6 +1,6 @@
 # Unraid Custom WebUI CSS 主题
 
-这是一个基于 **Custom WebUI CSS** 插件实现的 Unraid WebGUI 自定义主题，针对 Unraid 7.3.2 进行适配。主题包含赛博朋克背景、玻璃拟态模块、导航与模块圆角，以及新版 Community Applications 页面兼容样式。
+这是一个基于 **Custom WebUI CSS** 插件实现的 Unraid WebGUI 自定义主题，针对 Unraid 7.3.2 进行适配。v1.8.0 基于 Windows 底层进行流畅优化，并新增主题特效设置页（背景/粒子/胡桃）。
 
 ## 效果预览
 
@@ -22,19 +22,31 @@
 bash <(curl -fsSL https://raw.githubusercontent.com/deltrivx/unraid-custom-webui-css/main/scripts/install.sh)
 ```
 
-脚本提供四个选项：
+自 **v1.8.0** 起，上述命令默认**无交互直接安装 / 升级最新版**完整主题（粒子、胡桃、主题特效）。安装后可在 WebGUI「设置 → 用户偏好 → 主题特效」中自行调整背景、粒子与吉祥物。
+
+需要菜单（历史版本 / 卸载）时：
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/deltrivx/unraid-custom-webui-css/main/scripts/install.sh) menu
+```
+
+菜单选项：
 
 1. 一键安装 / 升级最新版：未安装时自动安装，已安装时自动覆盖升级。
 2. 查看并安装全部版本：可选择最新版或任意历史版本进行安装、降级或回滚。
 3. 一键卸载主题：删除主题文件、禁用 Custom WebUI CSS，并恢复安装前的显示设置。
 4. 退出。
 
-安装 **最新版** 时会额外询问两项可选组件（直接回车 = 安装）：
+也可直接：
 
-- 是否安装粒子特效：安装更好看；取消则页面更轻、更流畅。
-- 是否安装胡桃吉祥物：安装后有吉祥物陪伴；取消则少加载大图、略更流畅。
+```bash
+# 安装指定版本
+bash <(curl -fsSL https://raw.githubusercontent.com/deltrivx/unraid-custom-webui-css/main/scripts/install.sh) install v1.7.1
+# 卸载
+bash <(curl -fsSL https://raw.githubusercontent.com/deltrivx/unraid-custom-webui-css/main/scripts/install.sh) uninstall
+```
 
-历史版本安装不会弹出上述选项。安装 `v1.6.0` 及后续支持版本时，脚本还会安装独立的应用页增强文件 `apps-enhancement.js`（侧栏、路由隔离、搜索建议）。脚本不会覆盖完整 CA 页面，优先向 Custom WebUI CSS Loader 注入带标记的脚本引用；重复升级会自动去重，回滚历史版本或卸载主题时会自动移除。
+安装 `v1.6.0` 及后续支持版本时，脚本还会安装独立的应用页增强文件 `apps-enhancement.js`（侧栏、路由隔离、搜索建议）。脚本不会覆盖完整 CA 页面，优先向 Custom WebUI CSS Loader 注入带标记的脚本引用；重复升级会自动去重，回滚历史版本或卸载主题时会自动移除。
 
 ## 自动显示设置
 
@@ -55,10 +67,16 @@ Header custom background color: #000000
 /boot/config/plugins/custom.css/
 ├── style.css
 ├── style-black.css
+├── ThemeEffects.page
+├── CustomCSS_Loader.page
+├── theme-effects.cfg
 └── assets/
     ├── background.jpg
+    ├── background-1.jpg
+    ├── background-2.jpg
     ├── apps-enhancement.js
-    └── hutao.gif          # 可选（最新版安装胡桃时）
+    ├── ucwc-particles.js
+    └── hutao.gif
 ```
 
 脚本同步维护持久目录与 WebGUI 运行目录，只管理本仓库的主题与增强文件。应用页增强仅在版本索引标记支持时启用；安装历史版本会自动撤销。
@@ -91,19 +109,21 @@ ls -lh /usr/local/emhttp/plugins/custom.css/assets/background.jpg
 
 ### 如何彻底清除主题
 
-重新执行同一条一键命令，选择 `3) 一键卸载主题`。无需使用额外命令。
+执行：`bash <(curl -fsSL https://raw.githubusercontent.com/deltrivx/unraid-custom-webui-css/main/scripts/install.sh) uninstall`。
 
 ### 更新 Community Applications 后增强失效
 
-CA 更新可能重建 `/usr/local/emhttp/plugins/community.applications/Apps.page`。重新执行同一条一键命令并选择 `1) 一键安装 / 升级最新版`，脚本会重新添加唯一的增强加载标记。
+CA 更新可能重建 `/usr/local/emhttp/plugins/community.applications/Apps.page`。重新执行一键安装命令，脚本会重新添加唯一的增强加载标记。
 
 ## 文件说明
 
 - `style.css`：主题主样式。
 - `style-black.css`：黑色主题兼容样式。
-- `assets/background.jpg`：主题背景。
-- `assets/hutao.gif`：胡桃吉祥物（可选组件）。
+- `assets/background.jpg` / `background-1.jpg` / `background-2.jpg`：主题背景与本地壁纸。
+- `assets/hutao.gif`：胡桃吉祥物。
+- `assets/ucwc-particles.js`：粒子引擎（受主题特效配置控制）。
 - `apps-enhancement.js`：应用页增强（路由隔离、侧栏、搜索建议）。
-- `scripts/install.sh`：统一交互脚本（最新版支持粒子/胡桃可选安装）。
+- `ThemeEffects.page` / `theme-effects.cfg`：主题特效页与配置（v1.8.0+）。
+- `scripts/install.sh`：一键安装脚本（默认无交互直装最新版；`menu` 可选历史版本/卸载）。
 - `versions/index.json`：版本清单。
 - `CHANGELOG.md`：中文更新日志。

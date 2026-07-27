@@ -1,0 +1,405 @@
+Menu="UserPreferences"
+Title="主题特效"
+Icon="magic"
+Tag="magic"
+---
+<?php
+/* unraid-custom-webui-css: 主题特效
+ * 粒子 + 胡桃 + 背景。
+ * CSRF：完全交给 Unraid BodyInlineJS 注入（与 CustomCSS.page 一致），本页不写 csrf 字段。
+ */
+$fx_path = "/boot/config/plugins/custom.css/theme-effects.cfg";
+$assets_f = "/boot/config/plugins/custom.css/assets";
+$assets_r = "/usr/local/emhttp/plugins/custom.css/assets";
+$log_path = "/tmp/ucwc-theme-fx-save.log";
+$msg = "";
+$force_reload = false;
+$f1 = "background-1.jpg";
+$f2 = "background-2.jpg";
+$fc = "background-custom.jpg";
+$fd = "background-dynamic.jpg";
+
+function ucwc_fx_defaults() {
+    return [
+        "PARTICLES" => "no",
+        "PARTICLES_COUNT" => "60",
+        "HUTAO" => "yes",
+        "REDUCE_MOTION" => "no",
+        "BG_MODE" => "local",
+        "BG_LOCAL_SLOT" => "1",
+        "BG_GALLERY" => "photo",
+        "BG_CUSTOM_API" => "",
+    ];
+}
+
+function ucwc_fx_load($path) {
+    $d = ucwc_fx_defaults();
+    if (is_file($path)) {
+        $raw = @parse_ini_file($path);
+        if (is_array($raw)) {
+            foreach ($d as $k => $v) {
+                if (isset($raw[$k]) && $raw[$k] !== "") $d[$k] = (string)$raw[$k];
+            }
+        }
+    }
+    $d["PARTICLES"] = ($d["PARTICLES"] === "yes") ? "yes" : "no";
+    $d["HUTAO"] = ($d["HUTAO"] === "no") ? "no" : "yes";
+    $d["REDUCE_MOTION"] = ($d["REDUCE_MOTION"] === "yes") ? "yes" : "no";
+    $n = intval($d["PARTICLES_COUNT"]);
+    if ($n < 30) $n = 30;
+    if ($n > 120) $n = 120;
+    $d["PARTICLES_COUNT"] = (string)$n;
+    $d["BG_MODE"] = ($d["BG_MODE"] === "dynamic") ? "dynamic" : "local";
+    if (!in_array($d["BG_LOCAL_SLOT"], ["1", "2", "custom"], true)) $d["BG_LOCAL_SLOT"] = "1";
+    if (!in_array($d["BG_GALLERY"], ["photo", "anime", "gufeng", "custom"], true)) $d["BG_GALLERY"] = "photo";
+    $d["BG_CUSTOM_API"] = trim((string)$d["BG_CUSTOM_API"]);
+    return $d;
+}
+
+function ucwc_fx_save($path, $fx) {
+    $keys = ["PARTICLES","PARTICLES_COUNT","HUTAO","REDUCE_MOTION","BG_MODE","BG_LOCAL_SLOT","BG_GALLERY","BG_CUSTOM_API"];
+    $lines = [];
+    foreach ($keys as $k) {
+        $lines[] = $k . '="' . str_replace(['\\', '"'], ['\\\\', '\\"'], (string)$fx[$k]) . '"';
+    }
+    $lines[] = "";
+    $ok = @file_put_contents($path, implode("\n", $lines)) !== false;
+    if ($ok) @chmod($path, 0644);
+    return $ok;
+}
+
+function ucwc_has($file) {
+    return is_file($file) && @filesize($file) > 0;
+}
+
+function ucwc_chmod_pub($file) {
+    if (is_file($file)) @chmod($file, 0644);
+}
+
+function ucwc_write_image($data, $dst_f, $dst_r) {
+    if (@file_put_contents($dst_f, $data) === false) return false;
+    @chmod($dst_f, 0644);
+    @copy($dst_f, $dst_r);
+    @chmod($dst_r, 0644);
+    return true;
+}
+
+function ucwc_sync_pair($src, $dst_f, $dst_r) {
+    if (!ucwc_has($src)) return false;
+    if (!@copy($src, $dst_f)) return false;
+    @chmod($dst_f, 0644);
+    @copy($dst_f, $dst_r);
+    @chmod($dst_r, 0644);
+    return true;
+}
+
+function ucwc_is_image_bytes($data) {
+    if ($data === false || $data === null || strlen($data) < 24 || strlen($data) > 15 * 1024 * 1024) return false;
+    $h = substr($data, 0, 12);
+    if (substr($h, 0, 3) === "\xFF\xD8\xFF") return true;
+    if (substr($h, 0, 8) === "\x89PNG\r\n\x1a\n") return true;
+    if (substr($h, 0, 6) === "GIF87a" || substr($h, 0, 6) === "GIF89a") return true;
+    if (substr($h, 0, 4) === "RIFF" && substr($data, 8, 4) === "WEBP") return true;
+    return false;
+}
+
+function ucwc_gallery_url($gallery, $custom) {
+    if ($gallery === "anime") return "https://cdn.seovx.com/d/?mom=302";
+    if ($gallery === "gufeng") return "https://cdn.seovx.com/ha/?mom=302";
+    if ($gallery === "custom") return trim((string)$custom);
+    return "https://cdn.seovx.com/?mom=302";
+}
+
+function ucwc_fetch_dynamic($url, $dst_f, $dst_r) {
+    $url = trim($url);
+    if ($url === "" || !preg_match('#^https?://#i', $url)) return "在线图库地址无效（需 http/https）。";
+    if (!function_exists("curl_init")) return "服务器缺少 curl 扩展。";
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_MAXREDIRS => 5,
+        CURLOPT_CONNECTTIMEOUT => 8,
+        CURLOPT_TIMEOUT => 25,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => 0,
+        CURLOPT_USERAGENT => "UCWC-ThemeEffects/1.0",
+        CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+        CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+    ]);
+    $data = curl_exec($ch);
+    $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $err = curl_error($ch);
+    curl_close($ch);
+    if ($data === false || $data === "") return "拉取失败：" . ($err !== "" ? $err : "空响应");
+    if ($code >= 400) return "拉取失败 HTTP " . $code;
+    if (!ucwc_is_image_bytes($data)) return "返回内容不是有效图片。";
+    if (!ucwc_write_image($data, $dst_f, $dst_r)) return "写入 background-dynamic.jpg 失败。";
+    return "";
+}
+
+function ucwc_handle_upload($file, $dst_f, $dst_r) {
+    if (!isset($file) || !is_array($file) || ($file["error"] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) return "";
+    if (($file["error"] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) return "上传失败，错误码 " . (int)$file["error"];
+    $tmp = $file["tmp_name"] ?? "";
+    if ($tmp === "" || !is_uploaded_file($tmp)) return "上传临时文件无效。";
+    if (($file["size"] ?? 0) > 15 * 1024 * 1024) return "自定义壁纸不能超过 15MB。";
+    $data = @file_get_contents($tmp);
+    if (!ucwc_is_image_bytes($data)) return "仅支持 jpg / png / webp / gif。";
+    if (!ucwc_write_image($data, $dst_f, $dst_r)) return "保存 background-custom.jpg 失败。";
+    return "";
+}
+
+function ucwc_log($path, $line) {
+    @file_put_contents($path, date("c") . " " . $line . "\n", FILE_APPEND);
+}
+
+@mkdir($assets_f, 0755, true);
+@mkdir($assets_r, 0755, true);
+foreach ([$f1, $f2, $fc, $fd, "background.jpg"] as $bn) {
+    ucwc_chmod_pub("$assets_f/$bn");
+    ucwc_chmod_pub("$assets_r/$bn");
+}
+
+if (!ucwc_has("$assets_f/$f1") && ucwc_has("$assets_f/background.jpg")) {
+    ucwc_sync_pair("$assets_f/background.jpg", "$assets_f/$f1", "$assets_r/$f1");
+}
+
+// 与 CustomCSS.page 一致：任意 POST 即处理（CSRF 已由 Unraid 前置校验）
+if (!empty($_POST)) {
+    $post_keys = implode(",", array_keys($_POST));
+    $has_csrf = isset($_POST["csrf_token"]) ? "1" : "0";
+    $csrf_len = isset($_POST["csrf_token"]) ? strlen((string)$_POST["csrf_token"]) : 0;
+    ucwc_log($log_path, "browser-post keys={$post_keys} csrf={$has_csrf} csrf_len={$csrf_len}");
+
+    $fx = ucwc_fx_defaults();
+    $fx["PARTICLES"] = (($_POST["PARTICLES"] ?? "no") === "yes") ? "yes" : "no";
+    $fx["HUTAO"] = (($_POST["HUTAO"] ?? "yes") === "no") ? "no" : "yes";
+    $fx["REDUCE_MOTION"] = (($_POST["REDUCE_MOTION"] ?? "no") === "yes") ? "yes" : "no";
+    $n = intval($_POST["PARTICLES_COUNT"] ?? 60);
+    if ($n < 30) $n = 30;
+    if ($n > 120) $n = 120;
+    $fx["PARTICLES_COUNT"] = (string)$n;
+    $fx["BG_MODE"] = (($_POST["BG_MODE"] ?? "local") === "dynamic") ? "dynamic" : "local";
+    $slot = (string)($_POST["BG_LOCAL_SLOT"] ?? "1");
+    $fx["BG_LOCAL_SLOT"] = in_array($slot, ["1", "2", "custom"], true) ? $slot : "1";
+    $gal = (string)($_POST["BG_GALLERY"] ?? "photo");
+    $fx["BG_GALLERY"] = in_array($gal, ["photo", "anime", "gufeng", "custom"], true) ? $gal : "photo";
+    $fx["BG_CUSTOM_API"] = trim((string)($_POST["BG_CUSTOM_API"] ?? ""));
+
+    $err = "";
+    if ($fx["BG_MODE"] === "local" && $fx["BG_LOCAL_SLOT"] === "1") {
+        if (!ucwc_has("$assets_f/$f1") && !ucwc_has("$assets_r/$f1")) {
+            if (ucwc_has("$assets_f/background.jpg")) {
+                ucwc_sync_pair("$assets_f/background.jpg", "$assets_f/$f1", "$assets_r/$f1");
+            } elseif (ucwc_has("$assets_r/background.jpg")) {
+                ucwc_sync_pair("$assets_r/background.jpg", "$assets_f/$f1", "$assets_r/$f1");
+            }
+        }
+        if (!ucwc_has("$assets_f/$f1") && !ucwc_has("$assets_r/$f1")) {
+            $err = "本地壁纸1 不存在（assets/background-1.jpg）。";
+        } else {
+            if (ucwc_has("$assets_f/$f1") && !ucwc_has("$assets_r/$f1")) @copy("$assets_f/$f1", "$assets_r/$f1");
+            ucwc_chmod_pub("$assets_f/$f1");
+            ucwc_chmod_pub("$assets_r/$f1");
+        }
+    }
+
+    if ($err === "" && $fx["BG_MODE"] === "local" && $fx["BG_LOCAL_SLOT"] === "2") {
+        if (!ucwc_has("$assets_f/$f2") && !ucwc_has("$assets_r/$f2")) {
+            $err = "本地壁纸2 不存在（assets/background-2.jpg）。";
+        } else {
+            if (ucwc_has("$assets_f/$f2") && !ucwc_has("$assets_r/$f2")) @copy("$assets_f/$f2", "$assets_r/$f2");
+            ucwc_chmod_pub("$assets_f/$f2");
+            ucwc_chmod_pub("$assets_r/$f2");
+        }
+    }
+
+    if ($err === "" && $fx["BG_MODE"] === "local" && $fx["BG_LOCAL_SLOT"] === "custom") {
+        $err = ucwc_handle_upload($_FILES["BG_UPLOAD"] ?? null, "$assets_f/$fc", "$assets_r/$fc");
+        if ($err === "" && !ucwc_has("$assets_f/$fc") && !ucwc_has("$assets_r/$fc")) {
+            $err = "请先选择并上传自定义本地壁纸。";
+        }
+    }
+
+    if ($err === "" && $fx["BG_MODE"] === "dynamic") {
+        $url = ucwc_gallery_url($fx["BG_GALLERY"], $fx["BG_CUSTOM_API"]);
+        $err = ucwc_fetch_dynamic($url, "$assets_f/$fd", "$assets_r/$fd");
+    }
+
+    $saved = ucwc_fx_save($fx_path, $fx);
+    ucwc_log($log_path, "browser-saved saved=" . ($saved ? "1" : "0") . " err=" . ($err === "" ? "-" : $err) . " " . json_encode($fx, JSON_UNESCAPED_UNICODE));
+
+    if ($saved && $err === "") {
+        $force_reload = true;
+        $msg = "主题特效已保存，正在刷新页面…";
+    } elseif (!$saved) {
+        $msg = "写入 theme-effects.cfg 失败。";
+    } else {
+        $msg = $err . "（配置已记录，但资源未就绪）";
+    }
+} elseif (isset($_GET["applied"]) && $_GET["applied"] === "1") {
+    $msg = "主题特效已应用并生效。";
+}
+
+$fx = ucwc_fx_load($fx_path);
+$count = intval($fx["PARTICLES_COUNT"]);
+$has_wp1 = ucwc_has("$assets_f/$f1") || ucwc_has("$assets_r/$f1") || ucwc_has("$assets_f/background.jpg");
+$has_wp2 = ucwc_has("$assets_f/$f2") || ucwc_has("$assets_r/$f2");
+$has_custom = ucwc_has("$assets_f/$fc") || ucwc_has("$assets_r/$fc");
+$has_dyn = ucwc_has("$assets_f/$fd") || ucwc_has("$assets_r/$fd");
+?>
+<?if ($force_reload):?>
+<script>
+// 同窗口刷新，避免跨 frame 跳转打断会话；不碰 csrf
+setTimeout(function () {
+  window.location.href = "/Settings/ThemeEffects?applied=1&_ts=" + Date.now();
+}, 80);
+</script>
+<?endif;?>
+
+<script>
+(function () {
+  function hideRow(el, hide) {
+    if (!el) return;
+    var n = el;
+    for (var i = 0; i < 8 && n; i++) {
+      if (n.tagName === "TR" || n.tagName === "DL") {
+        n.style.display = hide ? "none" : "";
+        return;
+      }
+      n = n.parentNode;
+    }
+  }
+  function findForm() {
+    var forms = document.querySelectorAll("form");
+    for (var i = 0; i < forms.length; i++) {
+      if (forms[i].querySelector('select[name="BG_MODE"]')) return forms[i];
+    }
+    return null;
+  }
+  function syncUi() {
+    try {
+      var mode = document.querySelector('select[name="BG_MODE"]');
+      var slot = document.querySelector('select[name="BG_LOCAL_SLOT"]');
+      var gal = document.querySelector('select[name="BG_GALLERY"]');
+      var upload = document.querySelector('input[name="BG_UPLOAD"]');
+      var api = document.querySelector('input[name="BG_CUSTOM_API"]');
+      var isLocal = !mode || mode.value === "local";
+      hideRow(slot, !isLocal);
+      hideRow(upload, !(isLocal && slot && slot.value === "custom"));
+      hideRow(gal, isLocal);
+      hideRow(api, !(!isLocal && gal && gal.value === "custom"));
+      var range = document.querySelector('input[name="PARTICLES_COUNT"]');
+      var countVal = document.getElementById("ucwc-count-val");
+      if (range && countVal) countVal.textContent = String(range.value);
+    } catch (e) {}
+  }
+  function bind() {
+    try {
+      var form = findForm();
+      if (form) {
+        // 仅在有文件时才用 multipart，避免无谓的 multipart 表单差异
+        form.addEventListener("submit", function () {
+          var file = form.querySelector('input[name="BG_UPLOAD"]');
+          if (file && file.files && file.files.length > 0) {
+            form.enctype = "multipart/form-data";
+          } else {
+            form.removeAttribute("enctype");
+            try { form.enctype = "application/x-www-form-urlencoded"; } catch (e) {}
+          }
+        });
+      }
+      ["BG_MODE", "BG_LOCAL_SLOT", "BG_GALLERY"].forEach(function (name) {
+        var el = document.querySelector('select[name="' + name + '"]');
+        if (el) el.addEventListener("change", syncUi);
+      });
+      var range = document.querySelector('input[name="PARTICLES_COUNT"]');
+      if (range) {
+        range.addEventListener("input", syncUi);
+        range.addEventListener("change", syncUi);
+      }
+      syncUi();
+    } catch (e) {}
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bind);
+  else bind();
+})();
+</script>
+
+<div markdown="1">
+<?if ($msg):?>
+<span class="green"><?= htmlspecialchars($msg) ?></span>
+<?endif;?>
+</div>
+
+<form markdown="1" method="POST" action="/Settings/ThemeEffects">
+
+背景模式:
+: <select name="BG_MODE" size="1">
+  <?=mk_option($fx["BG_MODE"], "local", "本地壁纸")?>
+  <?=mk_option($fx["BG_MODE"], "dynamic", "在线图库")?>
+  </select>
+
+> 切换选项不会立即改背景；必须点「应用」。
+
+本地壁纸:
+: <select name="BG_LOCAL_SLOT" size="1">
+  <?=mk_option($fx["BG_LOCAL_SLOT"], "1", "本地壁纸1")?>
+  <?=mk_option($fx["BG_LOCAL_SLOT"], "2", "本地壁纸2")?>
+  <?=mk_option($fx["BG_LOCAL_SLOT"], "custom", "自定义本地壁纸")?>
+  </select>
+
+> assets：background-1.jpg / background-2.jpg / background-custom.jpg。<?= $has_wp1 ? "壁纸1就绪 " : "壁纸1缺失 " ?><?= $has_wp2 ? "壁纸2就绪" : "壁纸2缺失" ?>
+
+自定义本地壁纸:
+: <input type="file" name="BG_UPLOAD" accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif">
+
+> 上传到 assets/background-custom.jpg（≤15MB）。<?= $has_custom ? "已有自定义。" : "尚未上传。" ?>
+
+云端图库:
+: <select name="BG_GALLERY" size="1">
+  <?=mk_option($fx["BG_GALLERY"], "photo", "写真图库")?>
+  <?=mk_option($fx["BG_GALLERY"], "anime", "二次元图库")?>
+  <?=mk_option($fx["BG_GALLERY"], "gufeng", "古风图库")?>
+  <?=mk_option($fx["BG_GALLERY"], "custom", "自定义图库API")?>
+  </select>
+
+> 在线图库模式在应用时拉取并保存为 background-dynamic.jpg。<?= $has_dyn ? "（已有缓存）" : "" ?>
+
+自定义图库API:
+: <input type="text" name="BG_CUSTOM_API" maxlength="500" value="<?=htmlspecialchars($fx["BG_CUSTOM_API"])?>" style="width:min(560px,100%);" placeholder="https://example.com/random.jpg">
+
+> 仅 http/https。
+
+背景粒子特效:
+: <select name="PARTICLES" size="1">
+  <?=mk_option($fx["PARTICLES"], "no", "关闭")?>
+  <?=mk_option($fx["PARTICLES"], "yes", "开启")?>
+  </select>
+
+粒子数量:
+: <span style="display:inline-flex;align-items:center;gap:10px;max-width:420px;width:100%;">
+    <input type="range" name="PARTICLES_COUNT" min="30" max="120" step="5" value="<?=$count?>" style="flex:1;min-width:160px;">
+    <span class="mono" id="ucwc-count-val"><?=$count?></span>
+  </span>
+
+减少动效:
+: <select name="REDUCE_MOTION" size="1">
+  <?=mk_option($fx["REDUCE_MOTION"], "no", "否")?>
+  <?=mk_option($fx["REDUCE_MOTION"], "yes", "是")?>
+  </select>
+
+胡桃吉祥物:
+: <select name="HUTAO" size="1">
+  <?=mk_option($fx["HUTAO"], "yes", "开启")?>
+  <?=mk_option($fx["HUTAO"], "no", "关闭")?>
+  </select>
+
+&nbsp;
+: <span class="buttons-spaced">
+    <input type="submit" name="SAVE_THEME_FX" value="应用">
+    <input type="button" value="完成" onclick="done()">
+  </span>
+
+</form>
