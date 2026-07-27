@@ -27,7 +27,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/deltrivx/unraid-custom-webui
 菜单选项：
 
 1. 一键安装 / 升级最新版（完整安装）
-2. 查看并安装全部版本
+2. 查看并安装指定版本
 3. 一键卸载主题
 4. 退出
 

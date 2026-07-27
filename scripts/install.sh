@@ -378,7 +378,7 @@ Unraid Custom WebUI CSS 主题
 最新版：$latest
 
   1) 一键安装 / 升级最新版（$latest，完整安装）
-  2) 查看并安装全部版本
+  2) 查看并安装指定版本
   3) 一键卸载主题
   4) 退出
 EOF
