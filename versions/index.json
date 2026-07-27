@@ -1,12 +1,22 @@
 {
   "schema": 1,
-  "default": "v1.8.2",
-  "latest_version": "v1.8.2",
+  "default": "v1.8.3",
+  "latest_version": "v1.8.3",
   "versions": [
+    {
+      "id": "v1.8.3",
+      "label": "WebUI版本管理、背景模糊、设置收藏心型定位与发光",
+      "channel": "latest",
+      "released_at": "2026-07-28",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true
+    },
     {
       "id": "v1.8.2",
       "label": "壁纸DOM全屏、状态栏配色、一键无参完整安装",
-      "channel": "latest",
+      "channel": "history",
       "released_at": "2026-07-27",
       "apps_enhancement": true,
       "particles": true,

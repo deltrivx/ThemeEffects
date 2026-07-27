@@ -1,5 +1,37 @@
 # 更新日志
 
+## v1.8.3 - 2026-07-28
+
+### 概述
+
+在 v1.8.2 基础上完善主题特效 WebUI 版本管理、背景模糊，并修复设置/工具页收藏心型位置与发光效果。
+
+### 主题特效 / 版本管理
+
+- **检测更新 / 更新日志**：应用行提供版本检测与 changelog；可从日志中安装指定版本
+- **一键卸载**入口保留在更新日志面板（不再单独「版本回退」按钮）
+- 服务端 `ucwc-update.php` 支持 Outgoing Proxy、读操作用 GET、写操作 CSRF
+- 表单动态显示/隐藏整行（背景模式 / 粒子 / 胡桃），不再预留空白行
+- 新增 **背景模糊** 开关（`BG_BLUR`），位于背景粒子特效上方
+
+### 设置 / 工具收藏心型
+
+- 修复 `i.favo` 落在图标中心的问题，固定到磁贴右上角
+- 心型增加与磁贴图标同系的霓虹发光与体积阴影
+
+### 其它
+
+- Theme Effects 外置 `ucwc-theme-fx.js/css`，避免 Unraid markdown 破坏选择器
+- 粒子开关关闭时同步隐藏数量与减少动效子项
+
+### 校验
+
+- style.md5: `e0764ca85acb5e29f85bc25c12ea4cc8`
+- apps-enhancement.js.md5: `93d49aa72a6969c2eeaa090a5e909801`
+- ucwc-particles.js.md5: `c1c986fe956f76f081e1b34837957d18`
+- ucwc-theme-fx.js.md5: `a5db792959ed066e2cade252b1d3e8c8`
+- ucwc-theme-fx.css.md5: `fa1c6ec2a2acccc31b8dc6b9c4a9e0ea`
+
 ## v1.8.2 - 2026-07-27
 
 ### 概述

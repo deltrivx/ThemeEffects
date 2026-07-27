@@ -151,8 +151,14 @@ remove_theme_effects() {
   rm -f \
     "$THEME_FX_PAGE" "$THEME_FX_RUNTIME" \
     "$THEME_FX_CFG" \
+    "$PERSIST_DIR/ucwc-update.php" \
+    "$RUNTIME_DIR/ucwc-update.php" \
     "$PERSIST_DIR/assets/ucwc-particles.js" \
     "$RUNTIME_DIR/assets/ucwc-particles.js" \
+    "$PERSIST_DIR/assets/ucwc-theme-fx.js" \
+    "$RUNTIME_DIR/assets/ucwc-theme-fx.js" \
+    "$PERSIST_DIR/assets/ucwc-theme-fx.css" \
+    "$RUNTIME_DIR/assets/ucwc-theme-fx.css" \
     "$PERSIST_DIR/assets/background-1.jpg" \
     "$RUNTIME_DIR/assets/background-1.jpg" \
     "$PERSIST_DIR/assets/background-2.jpg" \
@@ -243,6 +249,22 @@ install_version() {
     download -o "$tmp/assets/background-1.jpg" "$base/assets/background-1.jpg"
     download -o "$tmp/assets/background-2.jpg" "$base/assets/background-2.jpg"
     download -o "$tmp/assets/ucwc-particles.js" "$base/assets/ucwc-particles.js"
+    # 主题特效页 UI + 版本管理 API（优先版本包，回退仓库根）
+    for f in ucwc-update.php assets/ucwc-theme-fx.js assets/ucwc-theme-fx.css; do
+      bn=$(basename "$f")
+      dir=$(dirname "$f")
+      mkdir -p "$tmp/$dir"
+      if download -o "$tmp/$f" "$base/$f"; then
+        :
+      elif download -o "$tmp/$f" "$REPO_RAW/$f"; then
+        :
+      elif download -o "$tmp/$f" "$REPO_RAW/assets-$bn" 2>/dev/null; then
+        :
+      else
+        echo "警告：未找到 $f，相关 WebUI 功能可能不可用。" >&2
+        rm -f "$tmp/$f"
+      fi
+    done
   fi
 
   # 主题特效由 cfg 控制时，CSS 内粒子/胡桃块保留，运行时再开关
@@ -274,6 +296,9 @@ install_version() {
   if [ "$THEME_EFFECTS" = "true" ]; then
     install_pair "$tmp/ThemeEffects.page" "$THEME_FX_PAGE" "$THEME_FX_RUNTIME"
     install_pair "$tmp/CustomCSS_Loader.page" "$LOADER_PAGE" "$LOADER_RUNTIME"
+    if [ -f "$tmp/ucwc-update.php" ]; then
+      install_pair "$tmp/ucwc-update.php" "$PERSIST_DIR/ucwc-update.php" "$RUNTIME_DIR/ucwc-update.php"
+    fi
     # 仅首次写入默认 cfg，避免覆盖用户已调设置
     if [ ! -f "$THEME_FX_CFG" ]; then
       install -m 0644 "$tmp/theme-effects.cfg" "$THEME_FX_CFG"
@@ -290,6 +315,12 @@ install_version() {
     install_pair "$tmp/assets/background-1.jpg" "$PERSIST_DIR/assets/background-1.jpg" "$RUNTIME_DIR/assets/background-1.jpg"
     install_pair "$tmp/assets/background-2.jpg" "$PERSIST_DIR/assets/background-2.jpg" "$RUNTIME_DIR/assets/background-2.jpg"
     install_pair "$tmp/assets/ucwc-particles.js" "$PERSIST_DIR/assets/ucwc-particles.js" "$RUNTIME_DIR/assets/ucwc-particles.js"
+    if [ -f "$tmp/assets/ucwc-theme-fx.js" ]; then
+      install_pair "$tmp/assets/ucwc-theme-fx.js" "$PERSIST_DIR/assets/ucwc-theme-fx.js" "$RUNTIME_DIR/assets/ucwc-theme-fx.js"
+    fi
+    if [ -f "$tmp/assets/ucwc-theme-fx.css" ]; then
+      install_pair "$tmp/assets/ucwc-theme-fx.css" "$PERSIST_DIR/assets/ucwc-theme-fx.css" "$RUNTIME_DIR/assets/ucwc-theme-fx.css"
+    fi
   fi
 
   remove_apps_enhancement
