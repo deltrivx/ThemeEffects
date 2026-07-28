@@ -1,5 +1,38 @@
 # 更新日志
 
+## v1.8.3-3 - 2026-07-28
+
+### 概述
+
+在 v1.8.3-2 基础上完善主题特效：安装进度动态显示、吉祥物自定义与模糊、粒子数量滑条修复。
+
+### 版本管理 / 安装进度
+
+- 安装 / 重装 / 卸载改为异步任务（`job_id`），前端轮询 `job_status`
+- 更新面板内进度条、百分比、阶段文案与滚动日志（参考 Docker 更新体验）
+- 版本号校验支持 `v1.8.3-N` 后缀
+
+### 吉祥物
+
+- 文案统一：吉祥物开关 / 类型 / 大小 / 位置 / 模糊
+- 新增 **吉祥物类型**（默认胡桃 / 自定义 GIF）
+- 自定义吉祥物：本地上传 GIF（`mascot-custom.gif`），参考自定义壁纸流程
+- **吉祥物模糊**：对角色本身 `filter: blur`（与背景模糊同理），非底板毛玻璃
+
+### 粒子
+
+- 修复粒子数量滑条几乎无效：去掉面积 auto-cap，按 30–120 生效（移动端 ×0.7）
+
+### 校验
+
+- style.md5: `ad6978eeab3ca8fbeca0da244aa0edea`
+- apps-enhancement.js.md5: `93d49aa72a6969c2eeaa090a5e909801`
+- ucwc-particles.js.md5: `25d1ae731047c5dd35b0932f3ccb8ab6`
+- ucwc-theme-fx.js.md5: `1b804045e030d9be5692b21fce15a24b`
+- ucwc-theme-fx.css.md5: `58741671a1eafbe12105344a787d13ba`
+- ucwc-theme-fx-save.php.md5: `7f5dadaab8798c535509b8fa218e7c30`
+- ucwc-update.php.md5: `12619661fb655702089b45b69c33e042`
+
 ## v1.8.3-2 - 2026-07-28
 
 ### 概述

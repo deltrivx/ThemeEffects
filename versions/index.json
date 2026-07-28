@@ -1,12 +1,22 @@
 {
   "schema": 1,
-  "default": "v1.8.3-2",
-  "latest_version": "v1.8.3-2",
+  "default": "v1.8.3-3",
+  "latest_version": "v1.8.3-3",
   "versions": [
+    {
+      "id": "v1.8.3-3",
+      "label": "安装进度动态显示、吉祥物自定义与模糊、粒子数量修复",
+      "channel": "latest",
+      "released_at": "2026-07-28",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true
+    },
     {
       "id": "v1.8.3-2",
       "label": "主题特效应用可靠性、仪表盘开关粉线修复、1.8.3布局恢复",
-      "channel": "latest",
+      "channel": "history",
       "released_at": "2026-07-28",
       "apps_enhancement": true,
       "particles": true,
