@@ -1,12 +1,22 @@
 {
   "schema": 1,
-  "default": "v2.4.0",
-  "latest_version": "v2.4.0",
+  "default": "v2.4.1",
+  "latest_version": "v2.4.1",
   "versions": [
+    {
+      "id": "v2.4.1",
+      "label": "正式版：Docker/VM 底空、Beta 检查门槛、上传文案同行对齐",
+      "channel": "latest",
+      "released_at": "2026-07-29",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true
+    },
     {
       "id": "v2.4.0",
       "label": "正式版：仪表盘关闭磁贴/图标、性能档位实改配置、去 GPU_ACCEL",
-      "channel": "latest",
+      "channel": "history",
       "released_at": "2026-07-29",
       "apps_enhancement": true,
       "particles": true,

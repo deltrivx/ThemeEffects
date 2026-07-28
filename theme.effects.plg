@@ -2,19 +2,21 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "theme.effects">
 <!ENTITY author    "deltrivx">
-<!ENTITY version   "2026.07.29">
+<!ENTITY version   "2026.07.29a">
 <!ENTITY launch    "Settings/ThemeEffects">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY flash     "/boot/config/plugins/&name;">
 <!ENTITY github    "deltrivx/ThemeEffects">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/theme.effects.plg">
 <!ENTITY installSH "https://raw.githubusercontent.com/&github;/main/scripts/install.sh">
-<!ENTITY ver       "v2.4.0">
+<!ENTITY ver       "v2.4.1">
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" icon="magic" support="https://github.com/&github;">
 
 <CHANGES>
 ## Theme Effects
+###2026.07.29a
+- v2.4.1: fourth stable — docker/vm bottom gap, beta check floor, upload layout
 ###2026.07.29
 - v2.4.0: third stable — dash close-tile/icons, perf profile rewrites effects, drop GPU_ACCEL
 ###2026.07.28
