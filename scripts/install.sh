@@ -84,7 +84,8 @@ IS_LATEST="no"
 THEME_EFFECTS="false"
 
 download() {
-  curl -4 -fsSL --connect-timeout 10 --max-time 180 --retry 2 "$@"
+  # Large assets (hutao.gif ~3MB, wallpapers) need headroom on slow links
+  curl -4 -fsSL --connect-timeout 15 --max-time 300 --retry 4 "$@"
 }
 
 fetch_index() {
