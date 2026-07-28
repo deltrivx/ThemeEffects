@@ -346,19 +346,12 @@ install_version() {
   } > "$STATE_FILE.tmp"
   mv "$STATE_FILE.tmp" "$STATE_FILE"
 
-  particles_label="已启用"
-  hutao_label="已启用"
-  [ "$INSTALL_PARTICLES" = "yes" ] || particles_label="已跳过"
-  [ "$INSTALL_HUTAO" = "yes" ] || hutao_label="已跳过"
-
   echo "已安装：主题 $VERSION"
-  echo "  粒子特效：$particles_label"
-  echo "  胡桃吉祥物：$hutao_label"
   if [ "$THEME_EFFECTS" = "true" ]; then
     echo "  主题特效页：已安装（设置 → 用户偏好 → 主题特效）"
   fi
   echo "显示主题和标题背景已设为黑色，页眉文字已设为白色。"
-  echo "可在 WebGUI「设置 → 用户偏好 → 主题特效」中自行调整背景、粒子与吉祥物。"
+  echo "可在 WebGUI「设置 → 用户偏好 → 主题特效」中调整各项开关。"
   echo "请强制刷新 Unraid WebGUI（Ctrl+F5）。"
 }
 
@@ -413,7 +406,7 @@ Unraid Custom WebUI CSS 主题
 当前状态：$installed
 最新版：$latest
 
-  1) 一键安装 / 升级最新版（$latest，完整安装）
+  1) 一键安装 / 升级最新版（$latest）
   2) 查看并安装指定版本
   3) 一键卸载主题
   4) 退出
@@ -434,15 +427,14 @@ EOF
 command -v curl >/dev/null 2>&1 || { echo "缺少 curl。" >&2; exit 69; }
 command -v jq >/dev/null 2>&1 || { echo "缺少 jq。" >&2; exit 69; }
 [ -f "$DYNAMIX_CFG" ] || { echo "未找到 Unraid 显示设置文件。" >&2; exit 66; }
-# 无参数即可用：交互终端显示菜单；非交互（curl|bash）直接完整安装最新版（全部功能）。
-# 安装默认完整功能（粒子/胡桃等），不询问；可在 WebGUI 主题特效中关闭。
+# 无参数即可用：交互终端显示菜单；非交互（curl|bash）直接安装最新版。
 # 可选参数：install [version] | uninstall | menu | list
 if [ "$#" -eq 0 ]; then
   if [ -t 0 ]; then
     show_menu
   else
     VERSION=$(fetch_index | jq -r '.latest_version')
-    echo "一键完整安装：$VERSION（含全部功能，无需额外参数）…"
+    echo "正在安装：$VERSION…"
     install_version
   fi
   exit 0
@@ -455,7 +447,7 @@ case "$1" in
     else
       VERSION=$(fetch_index | jq -r '.latest_version')
     fi
-    echo "正在安装：$VERSION（完整安装）…"
+    echo "正在安装：$VERSION…"
     install_version
     ;;
   uninstall)
@@ -481,7 +473,7 @@ case "$1" in
     ;;
   *)
     echo "用法：install.sh [install [version]|uninstall|menu|list]" >&2
-    echo "无参数：交互终端显示菜单；非交互直接完整安装最新版（全部功能）。" >&2
+    echo "无参数：交互终端显示菜单；非交互直接安装最新版。" >&2
     exit 64
     ;;
 esac

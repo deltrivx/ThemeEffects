@@ -1,12 +1,22 @@
 {
   "schema": 1,
-  "default": "v1.8.3-14",
-  "latest_version": "v1.8.3-14",
+  "default": "v1.8.3-15",
+  "latest_version": "v1.8.3-15",
   "versions": [
+    {
+      "id": "v1.8.3-15",
+      "label": "上传大小旁注、安装去完整安装文案",
+      "channel": "latest",
+      "released_at": "2026-07-28",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true
+    },
     {
       "id": "v1.8.3-14",
       "label": "标题黑条、版本挂主标题右侧、去安装于/完成提示",
-      "channel": "latest",
+      "channel": "history",
       "released_at": "2026-07-28",
       "apps_enhancement": true,
       "particles": true,
