@@ -1,12 +1,22 @@
 {
   "schema": 1,
-  "default": "v1.8.3-11",
-  "latest_version": "v1.8.3-11",
+  "default": "v1.8.3-12",
+  "latest_version": "v1.8.3-12",
   "versions": [
+    {
+      "id": "v1.8.3-12",
+      "label": "标题居中、吉祥物冻结帧、分段隔离复测",
+      "channel": "latest",
+      "released_at": "2026-07-28",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true
+    },
     {
       "id": "v1.8.3-11",
       "label": "吉祥物闪烁修复、版本栏pill、分段应用",
-      "channel": "latest",
+      "channel": "history",
       "released_at": "2026-07-28",
       "apps_enhancement": true,
       "particles": true,
