@@ -1,5 +1,39 @@
 # 更新日志
 
+## v1.8.3-2 - 2026-07-28
+
+### 概述
+
+在 v1.8.3 基础上修复主题特效「应用」可靠性与移动端仪表盘多余粉线，并恢复主题特效页为 GitHub 1.8.3 风格 markdown 布局。
+
+### 主题特效 / 应用
+
+- 新增独立 AJAX 保存端点 `ucwc-theme-fx-save.php`，避免整页 POST 被 nginx/php-fpm 挂起
+- 设置类保存默认使用 `application/x-www-form-urlencoded`；仅实际上传自定义壁纸时走 multipart
+- 严格登录页判定，消除误报「未登录」；保存成功后立即 `?applied=1` 刷新生效
+- BodyInlineJS 下「应用」按钮可点（`.lock` + 延迟解锁）；粒子滑条变更可触发应用
+- 恢复 **markdown 表单布局**（选项宽度 / `buttons-spaced` 按钮行与 v1.8.3 一致）
+- 去掉背景模式下「修改后需点应用才生效」提示
+
+### 仪表盘 / 移动端
+
+- 修复 Docker / 虚拟机磁贴开关旁粉色竖线：`span.apps.button` / `span.vms.button` 不再套用主题 `.button` 四边渐变框
+- 恢复 Unraid `icon-*` 与 FontAwesome 字体，避免磁贴图标被 Rajdhani 覆盖成异常字形
+- 磁贴标题中文不再强制 Orbitron 全大写
+
+### 安装脚本
+
+- 安装主题特效时同步部署 `ucwc-theme-fx-save.php`
+
+### 校验
+
+- style.md5: `75338f0d2b3343bd686e02058cbb0f3f`
+- apps-enhancement.js.md5: `93d49aa72a6969c2eeaa090a5e909801`
+- ucwc-particles.js.md5: `c1c986fe956f76f081e1b34837957d18`
+- ucwc-theme-fx.js.md5: `97881c48f525b3dabcf0da9bd16317b0`
+- ucwc-theme-fx.css.md5: `fa1c6ec2a2acccc31b8dc6b9c4a9e0ea`
+- ucwc-theme-fx-save.php.md5: `2cb84bd3451386ecfb37413c79200858`
+
 ## v1.8.3 - 2026-07-28
 
 ### 概述

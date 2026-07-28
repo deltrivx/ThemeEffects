@@ -153,6 +153,8 @@ remove_theme_effects() {
     "$THEME_FX_CFG" \
     "$PERSIST_DIR/ucwc-update.php" \
     "$RUNTIME_DIR/ucwc-update.php" \
+    "$PERSIST_DIR/ucwc-theme-fx-save.php" \
+    "$RUNTIME_DIR/ucwc-theme-fx-save.php" \
     "$PERSIST_DIR/assets/ucwc-particles.js" \
     "$RUNTIME_DIR/assets/ucwc-particles.js" \
     "$PERSIST_DIR/assets/ucwc-theme-fx.js" \
@@ -249,8 +251,8 @@ install_version() {
     download -o "$tmp/assets/background-1.jpg" "$base/assets/background-1.jpg"
     download -o "$tmp/assets/background-2.jpg" "$base/assets/background-2.jpg"
     download -o "$tmp/assets/ucwc-particles.js" "$base/assets/ucwc-particles.js"
-    # 主题特效页 UI + 版本管理 API（优先版本包，回退仓库根）
-    for f in ucwc-update.php assets/ucwc-theme-fx.js assets/ucwc-theme-fx.css; do
+    # 主题特效页 UI + AJAX 保存 + 版本管理 API（优先版本包，回退仓库根）
+    for f in ucwc-update.php ucwc-theme-fx-save.php assets/ucwc-theme-fx.js assets/ucwc-theme-fx.css; do
       bn=$(basename "$f")
       dir=$(dirname "$f")
       mkdir -p "$tmp/$dir"
@@ -298,6 +300,9 @@ install_version() {
     install_pair "$tmp/CustomCSS_Loader.page" "$LOADER_PAGE" "$LOADER_RUNTIME"
     if [ -f "$tmp/ucwc-update.php" ]; then
       install_pair "$tmp/ucwc-update.php" "$PERSIST_DIR/ucwc-update.php" "$RUNTIME_DIR/ucwc-update.php"
+    fi
+    if [ -f "$tmp/ucwc-theme-fx-save.php" ]; then
+      install_pair "$tmp/ucwc-theme-fx-save.php" "$PERSIST_DIR/ucwc-theme-fx-save.php" "$RUNTIME_DIR/ucwc-theme-fx-save.php"
     fi
     # 仅首次写入默认 cfg，避免覆盖用户已调设置
     if [ ! -f "$THEME_FX_CFG" ]; then

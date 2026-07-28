@@ -1,6 +1,6 @@
 # Unraid Custom WebUI CSS 主题
 
-这是一个基于 **Custom WebUI CSS** 插件实现的 Unraid WebGUI 自定义主题，针对 Unraid 7.3.2 进行适配。v1.8.3 增加主题特效页 WebUI 版本管理与背景模糊，并修复设置/工具收藏心型位置与发光。
+这是一个基于 **Custom WebUI CSS** 插件实现的 Unraid WebGUI 自定义主题，针对 Unraid 7.3.2 进行适配。v1.8.3-2 修复主题特效「应用」可靠性与移动端仪表盘 Docker/虚拟机开关旁粉线，并恢复主题特效页 1.8.3 风格布局。
 
 ## 效果预览
 
@@ -55,12 +55,16 @@ Header custom background color: #000000
 ├── ThemeEffects.page
 ├── CustomCSS_Loader.page
 ├── theme-effects.cfg
+├── ucwc-update.php
+├── ucwc-theme-fx-save.php
 └── assets/
     ├── background.jpg
     ├── background-1.jpg
     ├── background-2.jpg
     ├── apps-enhancement.js
     ├── ucwc-particles.js
+    ├── ucwc-theme-fx.js
+    ├── ucwc-theme-fx.css
     └── hutao.gif
 ```
 
