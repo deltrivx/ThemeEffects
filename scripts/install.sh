@@ -206,7 +206,7 @@ install_version() {
     IS_LATEST="no"
   fi
 
-  # v1.8.0+：默认完整安装粒子+胡桃（不询问）；顶层菜单仍由 show_menu 交互
+  # 一律完整安装（粒子+吉祥物+主题特效能力），不询问；仅当包内无对应资源时静默跳过下载
   INSTALL_PARTICLES="yes"
   INSTALL_HUTAO="yes"
 
@@ -219,12 +219,12 @@ install_version() {
   has_particles=$(printf '%s' "$index" | jq -r --arg version "$VERSION" \
     '.versions[] | select(.id == $version) | .particles // false')
 
-  # 历史版本：无胡桃包则强制关闭；粒子按索引
-  if [ "$has_hutao" != "true" ]; then
+  # 极旧包无资源时才关闭对应能力（不向用户询问）
+  if [ "$has_hutao" = "false" ]; then
     INSTALL_HUTAO="no"
   fi
-  if [ "$has_particles" != "true" ]; then
-    INSTALL_PARTICLES="yes"
+  if [ "$has_particles" = "false" ]; then
+    INSTALL_PARTICLES="no"
   fi
 
   base="$REPO_RAW/versions/$VERSION"
@@ -455,7 +455,7 @@ case "$1" in
     else
       VERSION=$(fetch_index | jq -r '.latest_version')
     fi
-    echo "正在安装：$VERSION（完整安装，不询问粒子/胡桃）…"
+    echo "正在安装：$VERSION（完整安装）…"
     install_version
     ;;
   uninstall)
