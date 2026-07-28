@@ -1,28 +1,81 @@
 #!/bin/sh
 set -eu
 
-REPO_RAW="https://raw.githubusercontent.com/deltrivx/unraid-custom-webui-css/main"
-PERSIST_DIR="/boot/config/plugins/custom.css"
-RUNTIME_DIR="/usr/local/emhttp/plugins/custom.css"
+REPO_RAW="https://raw.githubusercontent.com/deltrivx/ThemeEffects/main"
+PERSIST_DIR="/boot/config/plugins/theme.effects"
+RUNTIME_DIR="/usr/local/emhttp/plugins/theme.effects"
 DYNAMIX_CFG="/boot/config/plugins/dynamix/dynamix.cfg"
-STATE_FILE="$PERSIST_DIR/unraid-custom-webui-css.state"
-OPTIONS_FILE="$PERSIST_DIR/unraid-custom-webui-css.options"
+STATE_FILE="$PERSIST_DIR/ThemeEffects.state"
+OPTIONS_FILE="$PERSIST_DIR/ThemeEffects.options"
 CA_PAGE="/usr/local/emhttp/plugins/community.applications/Apps.page"
-LOADER_PAGE="$PERSIST_DIR/CustomCSS_Loader.page"
-LOADER_RUNTIME="$RUNTIME_DIR/CustomCSS_Loader.page"
+LOADER_PAGE="$PERSIST_DIR/ThemeEffects_Loader.page"
+LOADER_RUNTIME="$RUNTIME_DIR/ThemeEffects_Loader.page"
 THEME_FX_PAGE="$PERSIST_DIR/ThemeEffects.page"
 THEME_FX_RUNTIME="$RUNTIME_DIR/ThemeEffects.page"
 THEME_FX_CFG="$PERSIST_DIR/theme-effects.cfg"
-CA_MARK_START='<!-- unraid-custom-webui-css:apps-enhancement:start -->'
-CA_MARK_END='<!-- unraid-custom-webui-css:apps-enhancement:end -->'
-LOADER_MARK_START='<!-- unraid-custom-webui-css:apps-enhancement:start -->'
-LOADER_MARK_END='<!-- unraid-custom-webui-css:apps-enhancement:end -->'
-OLD_SIDEBAR_MARK_START='<!-- unraid-custom-webui-css:apps-mobile-sidebar-fix:start -->'
-OLD_SIDEBAR_MARK_END='<!-- unraid-custom-webui-css:apps-mobile-sidebar-fix:end -->'
-PARTICLES_START='/* unraid-custom-webui-css:particles:start */'
-PARTICLES_END='/* unraid-custom-webui-css:particles:end */'
-HUTAO_START='/* ===== unraid-custom-webui-css:hutao-mascot:start ===== */'
-HUTAO_END='/* ===== unraid-custom-webui-css:hutao-mascot:end ===== */'
+CA_MARK_START='<!-- ThemeEffects:apps-enhancement:start -->'
+CA_MARK_END='<!-- ThemeEffects:apps-enhancement:end -->'
+LOADER_MARK_START='<!-- ThemeEffects:apps-enhancement:start -->'
+LOADER_MARK_END='<!-- ThemeEffects:apps-enhancement:end -->'
+OLD_SIDEBAR_MARK_START='<!-- ThemeEffects:apps-mobile-sidebar-fix:start -->'
+OLD_SIDEBAR_MARK_END='<!-- ThemeEffects:apps-mobile-sidebar-fix:end -->'
+PARTICLES_START='/* ThemeEffects:particles:start */'
+PARTICLES_END='/* ThemeEffects:particles:end */'
+HUTAO_START='/* ===== ThemeEffects:hutao-mascot:start ===== */'
+HUTAO_END='/* ===== ThemeEffects:hutao-mascot:end ===== */'
+
+LEGACY_DIR="/boot/config/plugins/custom.css"
+LEGACY_RUNTIME="/usr/local/emhttp/plugins/custom.css"
+
+# One-time move of theme data from parasitic custom.css install → theme.effects
+migrate_from_legacy_custom_css() {
+  [ -d "$LEGACY_DIR" ] || return 0
+  mkdir -p "$PERSIST_DIR/assets" "$RUNTIME_DIR/assets"
+
+  if [ -f "$LEGACY_DIR/theme-effects.cfg" ] && [ ! -f "$THEME_FX_CFG" ]; then
+    install -m 0644 "$LEGACY_DIR/theme-effects.cfg" "$THEME_FX_CFG"
+    echo "已迁移主题特效配置：custom.css → theme.effects"
+  fi
+
+  for f in background-custom.jpg background-dynamic.jpg mascot-custom.gif \
+           background-1.jpg background-2.jpg background.jpg hutao.gif; do
+    if [ -f "$LEGACY_DIR/assets/$f" ] && [ ! -f "$PERSIST_DIR/assets/$f" ]; then
+      install -m 0644 "$LEGACY_DIR/assets/$f" "$PERSIST_DIR/assets/$f"
+      install -m 0644 "$PERSIST_DIR/assets/$f" "$RUNTIME_DIR/assets/$f" 2>/dev/null || true
+    fi
+  done
+
+  if [ -f "$LEGACY_DIR/unraid-custom-webui-css.state" ] && [ ! -f "$STATE_FILE" ]; then
+    cp -a "$LEGACY_DIR/unraid-custom-webui-css.state" "$STATE_FILE" 2>/dev/null || true
+  fi
+  if [ -f "$LEGACY_DIR/ThemeEffects.state" ] && [ ! -f "$STATE_FILE" ]; then
+    cp -a "$LEGACY_DIR/ThemeEffects.state" "$STATE_FILE" 2>/dev/null || true
+  fi
+
+  # Remove parasitic theme files so Buttons does not double-inject
+  rm -f \
+    "$LEGACY_DIR/ThemeEffects.page" "$LEGACY_RUNTIME/ThemeEffects.page" \
+    "$LEGACY_DIR/CustomCSS_Loader.page" "$LEGACY_RUNTIME/CustomCSS_Loader.page" \
+    "$LEGACY_DIR/ThemeEffects_Loader.page" "$LEGACY_RUNTIME/ThemeEffects_Loader.page" \
+    "$LEGACY_DIR/ucwc-update.php" "$LEGACY_RUNTIME/ucwc-update.php" \
+    "$LEGACY_DIR/ucwc-theme-fx-save.php" "$LEGACY_RUNTIME/ucwc-theme-fx-save.php" \
+    "$LEGACY_DIR/theme-effects.cfg" \
+    "$LEGACY_DIR/ucwc-auth-request.conf" \
+    "$LEGACY_DIR/ucwc-upload.ini" \
+    "$LEGACY_DIR/assets/ucwc-particles.js" "$LEGACY_RUNTIME/assets/ucwc-particles.js" \
+    "$LEGACY_DIR/assets/ucwc-theme-fx.js" "$LEGACY_RUNTIME/assets/ucwc-theme-fx.js" \
+    "$LEGACY_DIR/assets/ucwc-theme-fx.css" "$LEGACY_RUNTIME/assets/ucwc-theme-fx.css" \
+    "$LEGACY_DIR/assets/apps-enhancement.js" "$LEGACY_RUNTIME/assets/apps-enhancement.js"
+
+  if [ -f "$LEGACY_DIR/style.css" ] && grep -qE "ThemeEffects:theme-effects|ucwc-mascot|#ucwc-particles" "$LEGACY_DIR/style.css" 2>/dev/null; then
+    mv -f "$LEGACY_DIR/style.css" "$LEGACY_DIR/style.css.bak-theme-effects" 2>/dev/null || true
+    mv -f "$LEGACY_RUNTIME/style.css" "$LEGACY_RUNTIME/style.css.bak-theme-effects" 2>/dev/null || true
+    if [ -f "$LEGACY_DIR/custom.css.cfg" ]; then
+      printf 'SERVICE="disabled"\n' > "$LEGACY_DIR/custom.css.cfg"
+    fi
+    echo "已停用 custom.css 中的寄生主题样式（备份为 style.css.bak-theme-effects）。"
+  fi
+}
 
 VERSION=""
 INSTALL_PARTICLES="yes"
@@ -123,7 +176,7 @@ inject_loader_enhancement() {
 
   snippet=$(cat <<EOF
 $LOADER_MARK_START
-<script src="/plugins/custom.css/assets/apps-enhancement.js?v=$VERSION"></script>
+<script src="/plugins/theme.effects/assets/apps-enhancement.js?v=$VERSION"></script>
 $LOADER_MARK_END
 EOF
 )
@@ -139,7 +192,7 @@ EOF
   elif [ -f "$CA_PAGE" ]; then
     printf '\n%s\n' "$snippet" >> "$CA_PAGE"
   else
-    echo "未检测到 CustomCSS_Loader / Community Applications，已跳过应用页增强注入。"
+    echo "未检测到 ThemeEffects_Loader / Community Applications，已跳过应用页增强注入。"
   fi
 }
 
@@ -178,7 +231,7 @@ write_options() {
     printf 'hutao=%s\n' "$INSTALL_HUTAO"
     printf 'theme_effects=%s\n' "$THEME_EFFECTS"
     printf 'updated_at=%s\n' "$(date +%Y%m%d-%H%M%S)"
-    printf 'source=deltrivx/unraid-custom-webui-css\n'
+    printf 'source=deltrivx/ThemeEffects\n'
   } > "$OPTIONS_FILE"
 }
 
@@ -228,10 +281,11 @@ install_version() {
   fi
 
   base="$REPO_RAW/versions/$VERSION"
-  tmp=$(mktemp -d /tmp/unraid-custom-webui-css.XXXXXX)
+  tmp=$(mktemp -d /tmp/ThemeEffects.XXXXXX)
   trap 'rm -rf "$tmp"' EXIT INT TERM
 
   mkdir -p "$tmp/assets" "$PERSIST_DIR/assets" "$RUNTIME_DIR/assets"
+  migrate_from_legacy_custom_css
   download -o "$tmp/style.css" "$base/style.css"
   download -o "$tmp/style-black.css" "$base/style-black.css"
   download -o "$tmp/assets/background.jpg" "$base/assets/background.jpg"
@@ -246,13 +300,13 @@ install_version() {
 
   if [ "$THEME_EFFECTS" = "true" ]; then
     download -o "$tmp/ThemeEffects.page" "$base/ThemeEffects.page"
-    download -o "$tmp/CustomCSS_Loader.page" "$base/CustomCSS_Loader.page"
+    download -o "$tmp/ThemeEffects_Loader.page" "$base/ThemeEffects_Loader.page"
     download -o "$tmp/theme-effects.cfg" "$base/theme-effects.cfg"
     download -o "$tmp/assets/background-1.jpg" "$base/assets/background-1.jpg"
     download -o "$tmp/assets/background-2.jpg" "$base/assets/background-2.jpg"
     download -o "$tmp/assets/ucwc-particles.js" "$base/assets/ucwc-particles.js"
     # 主题特效页 UI + AJAX 保存 + 版本管理 API（优先版本包，回退仓库根）
-    for f in ucwc-update.php ucwc-theme-fx-save.php assets/ucwc-theme-fx.js assets/ucwc-theme-fx.css; do
+    for f in ucwc-update.php ucwc-theme-fx-save.php ucwc-auth-request.conf assets/ucwc-theme-fx.js assets/ucwc-theme-fx.css; do
       bn=$(basename "$f")
       dir=$(dirname "$f")
       mkdir -p "$tmp/$dir"
@@ -282,7 +336,20 @@ install_version() {
   install -m 0644 "$tmp/style.css" "$PERSIST_DIR/style.css"
   install -m 0644 "$tmp/style-black.css" "$PERSIST_DIR/style-black.css"
   install -m 0644 "$tmp/assets/background.jpg" "$PERSIST_DIR/assets/background.jpg"
-  printf 'SERVICE="enabled"\n' > "$PERSIST_DIR/custom.css.cfg"
+  printf 'SERVICE="enabled"\n' > "$PERSIST_DIR/theme.effects.cfg"
+  # Also place auth/upload helpers on flash for Loader reinject
+  if [ -f "$tmp/ucwc-auth-request.conf" ]; then
+    install -m 0644 "$tmp/ucwc-auth-request.conf" "$PERSIST_DIR/ucwc-auth-request.conf"
+  elif download -o "$PERSIST_DIR/ucwc-auth-request.conf" "$REPO_RAW/ucwc-auth-request.conf" 2>/dev/null; then
+    :
+  fi
+  if [ ! -f "$PERSIST_DIR/ucwc-upload.ini" ]; then
+    printf '%s\n' \
+      '; ThemeEffects: wallpaper upload limits' \
+      'upload_max_filesize = 12M' \
+      'post_max_size = 16M' \
+      'max_file_uploads = 20' > "$PERSIST_DIR/ucwc-upload.ini"
+  fi
 
   install -m 0644 "$PERSIST_DIR/style.css" "$RUNTIME_DIR/style.css"
   install -m 0644 "$PERSIST_DIR/style-black.css" "$RUNTIME_DIR/style-black.css"
@@ -297,7 +364,7 @@ install_version() {
 
   if [ "$THEME_EFFECTS" = "true" ]; then
     install_pair "$tmp/ThemeEffects.page" "$THEME_FX_PAGE" "$THEME_FX_RUNTIME"
-    install_pair "$tmp/CustomCSS_Loader.page" "$LOADER_PAGE" "$LOADER_RUNTIME"
+    install_pair "$tmp/ThemeEffects_Loader.page" "$LOADER_PAGE" "$LOADER_RUNTIME"
     if [ -f "$tmp/ucwc-update.php" ]; then
       install_pair "$tmp/ucwc-update.php" "$PERSIST_DIR/ucwc-update.php" "$RUNTIME_DIR/ucwc-update.php"
     fi
@@ -326,6 +393,9 @@ install_version() {
     if [ -f "$tmp/assets/ucwc-theme-fx.css" ]; then
       install_pair "$tmp/assets/ucwc-theme-fx.css" "$PERSIST_DIR/assets/ucwc-theme-fx.css" "$RUNTIME_DIR/assets/ucwc-theme-fx.css"
     fi
+    if [ -f "$tmp/ucwc-auth-request.conf" ]; then
+      install -m 0644 "$tmp/ucwc-auth-request.conf" "$PERSIST_DIR/ucwc-auth-request.conf"
+    fi
   fi
 
   remove_apps_enhancement
@@ -342,7 +412,7 @@ install_version() {
     printf 'apps_enhancement=%s\n' "$apps_enhancement"
     printf 'theme_effects=%s\n' "$THEME_EFFECTS"
     printf 'updated_at=%s\n' "$(date +%Y%m%d-%H%M%S)"
-    printf 'source=deltrivx/unraid-custom-webui-css\n'
+    printf 'source=deltrivx/ThemeEffects\n'
   } > "$STATE_FILE.tmp"
   mv "$STATE_FILE.tmp" "$STATE_FILE"
 
@@ -390,10 +460,16 @@ uninstall_theme() {
   remove_hutao_assets
   remove_apps_enhancement
   remove_theme_effects
-  rm -f "$OPTIONS_FILE"
-  printf 'SERVICE="disabled"\n' > "$PERSIST_DIR/custom.css.cfg"
+  rm -f \
+    "$LOADER_PAGE" "$LOADER_RUNTIME" \
+    "$PERSIST_DIR/theme.effects.cfg" \
+    "$RUNTIME_DIR/theme.effects.cfg" \
+    "$OPTIONS_FILE"
+  printf 'SERVICE="disabled"\n' > "$PERSIST_DIR/theme.effects.cfg" 2>/dev/null || true
   restore_display_settings
-  rmdir "$PERSIST_DIR/assets" "$RUNTIME_DIR/assets" 2>/dev/null || true
+  # Runtime tree can go; keep flash user uploads unless empty
+  rm -rf "$RUNTIME_DIR"
+  rmdir "$PERSIST_DIR/assets" 2>/dev/null || true
   echo "主题已卸载，安装前的显示设置已恢复。请强制刷新 Unraid WebGUI。"
 }
 
@@ -402,7 +478,7 @@ show_menu() {
   installed="未安装"
   [ -f "$PERSIST_DIR/style.css" ] && installed="已安装"
   cat <<EOF
-Unraid Custom WebUI CSS 主题
+Theme Effects（主题特效）— 独立插件 theme.effects
 当前状态：$installed
 最新版：$latest
 

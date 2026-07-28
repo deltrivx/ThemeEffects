@@ -7,7 +7,7 @@ require_once "$docroot/plugins/dynamix/include/Wrappers.php";
 /* Wallpaper upload limits: plugin-scoped drop-in (not /boot/config/go).
 	 * Idempotent + least privilege: only copy if missing or content differs. */
 	(function () {
-	    $src = '/boot/config/plugins/custom.css/ucwc-upload.ini';
+	    $src = '/boot/config/plugins/theme.effects/ucwc-upload.ini';
 	    $dst = '/etc/php.d/ucwc-upload.ini';
 	    if (!is_file($src)) return;
 	    $need = !is_file($dst);
@@ -25,7 +25,7 @@ require_once "$docroot/plugins/dynamix/include/Wrappers.php";
 	/* Re-apply nginx auth-request CONTENT_LENGTH clear after rc.nginx rebuilds locations.conf.
 	 * Large multipart uploads (custom mascot/wallpaper) otherwise hang on「应用中…」(504). */
 	(function () {
-	    $src = '/boot/config/plugins/custom.css/ucwc-auth-request.conf';
+	    $src = '/boot/config/plugins/theme.effects/ucwc-auth-request.conf';
 	    $loc = '/etc/nginx/conf.d/locations.conf';
 	    $marker = 'ucwc-auth-fix';
 	    $block =
@@ -90,13 +90,13 @@ require_once "$docroot/plugins/dynamix/include/Wrappers.php";
 	    );
 	})();
 
-	$web_css = '/plugins/custom.css/style.css';
-$local_css = '/usr/local/emhttp/plugins/custom.css/style.css';
-$web_black_css = '/plugins/custom.css/style-black.css';
-$local_black_css = '/usr/local/emhttp/plugins/custom.css/style-black.css';
-$fx_path = '/boot/config/plugins/custom.css/theme-effects.cfg';
+	$web_css = '/plugins/theme.effects/style.css';
+$local_css = '/usr/local/emhttp/plugins/theme.effects/style.css';
+$web_black_css = '/plugins/theme.effects/style-black.css';
+$local_black_css = '/usr/local/emhttp/plugins/theme.effects/style-black.css';
+$fx_path = '/boot/config/plugins/theme.effects/theme-effects.cfg';
 $unraid_theme_cfg = '/boot/config/plugins/dynamix/dynamix.cfg';
-$rt = '/usr/local/emhttp/plugins/custom.css/assets';
+$rt = '/usr/local/emhttp/plugins/theme.effects/assets';
 
 $fx = [
     'PARTICLES' => 'no',
@@ -135,11 +135,11 @@ $fx_hutao_pos = in_array($fx['HUTAO_POS'], ['tl', 'tr', 'bl', 'br'], true) ? $fx
 $fx_hutao_type = (($fx['HUTAO_TYPE'] ?? 'hutao') === 'custom') ? 'custom' : 'hutao';
 // CSS var scale: small 0.78 / medium 1 / large 1.28
 $hutao_scale = ($fx_hutao_size === 'small') ? '0.78' : (($fx_hutao_size === 'large') ? '1.28' : '1');
-$mascot_url = '/plugins/custom.css/assets/hutao.gif';
+$mascot_url = '/plugins/theme.effects/assets/hutao.gif';
 if ($fx_hutao_type === 'custom') {
     $custom_gif = $rt . '/mascot-custom.gif';
     if (is_file($custom_gif) && filesize($custom_gif) > 0) {
-        $mascot_url = '/plugins/custom.css/assets/mascot-custom.gif?v=' . filemtime($custom_gif);
+        $mascot_url = '/plugins/theme.effects/assets/mascot-custom.gif?v=' . filemtime($custom_gif);
     } else {
         // Fallback to built-in if custom missing
         $fx_hutao_type = 'hutao';
@@ -147,7 +147,7 @@ if ($fx_hutao_type === 'custom') {
 }
 
 // 壁纸仅本地 assets 根目录
-$bg_url = '/plugins/custom.css/assets/background-1.jpg';
+$bg_url = '/plugins/theme.effects/assets/background-1.jpg';
 $bg_mode = ($fx['BG_MODE'] === 'dynamic') ? 'dynamic' : 'local';
 $bg_slot = in_array($fx['BG_LOCAL_SLOT'], ['1', '2', 'custom'], true) ? $fx['BG_LOCAL_SLOT'] : '1';
 $pick = '';
@@ -197,8 +197,8 @@ if ($pick !== '' && is_file($pick) && function_exists('imagecreatefromjpeg')) {
     }
 }
 
-$settings = parse_plugin_cfg("custom.css");
-if (($settings['SERVICE'] ?? "disabled") === "enabled") {
+$settings = parse_plugin_cfg("theme.effects");
+if (($settings['SERVICE'] ?? "enabled") === "enabled") {
     if (file_exists($local_css)) {
         $ver = filemtime($local_css);
         ?>
@@ -214,7 +214,7 @@ if (($settings['SERVICE'] ?? "disabled") === "enabled") {
     }
 }
 ?>
-<!-- unraid-custom-webui-css:theme-effects:start -->
+<!-- ThemeEffects:theme-effects:start -->
 <meta name="theme-color" content="<?= htmlspecialchars($ucwc_status_color, ENT_QUOTES) ?>">
 <meta name="msapplication-navbutton-color" content="<?= htmlspecialchars($ucwc_status_color, ENT_QUOTES) ?>">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -285,7 +285,7 @@ window.__UCWC_THEME__ = {
     }
     setClass(mascotEl, 'ucwc-mascot-off', false);
     mascotEl.removeAttribute('hidden');
-    var url = t.mascot_url || '/plugins/custom.css/assets/hutao.gif';
+    var url = t.mascot_url || '/plugins/theme.effects/assets/hutao.gif';
     // Only set src when URL actually changes — reassignment restarts GIF (flicker).
     if (url && mascotSrcLocked !== url) {
       mascotSrcLocked = url;
@@ -604,14 +604,14 @@ window.__UCWC_THEME__ = {
   })();
 })();
 </script>
-<?php if ($load_particles && is_file('/usr/local/emhttp/plugins/custom.css/assets/ucwc-particles.js')):
-  $pver = filemtime('/usr/local/emhttp/plugins/custom.css/assets/ucwc-particles.js');
+<?php if ($load_particles && is_file('/usr/local/emhttp/plugins/theme.effects/assets/ucwc-particles.js')):
+  $pver = filemtime('/usr/local/emhttp/plugins/theme.effects/assets/ucwc-particles.js');
 ?>
-<script src="/plugins/custom.css/assets/ucwc-particles.js?v=<?=$pver?>"></script>
+<script src="/plugins/theme.effects/assets/ucwc-particles.js?v=<?=$pver?>"></script>
 <?php endif; ?>
-<!-- unraid-custom-webui-css:theme-effects:end -->
+<!-- ThemeEffects:theme-effects:end -->
 
 
-<!-- unraid-custom-webui-css:apps-enhancement:start -->
-<script src="/plugins/custom.css/assets/apps-enhancement.js?v=v1.8.3-15"></script>
-<!-- unraid-custom-webui-css:apps-enhancement:end -->
+<!-- ThemeEffects:apps-enhancement:start -->
+<script src="/plugins/theme.effects/assets/apps-enhancement.js?v=v2.0.0-beta"></script>
+<!-- ThemeEffects:apps-enhancement:end -->

@@ -1,12 +1,22 @@
 {
   "schema": 1,
-  "default": "v1.8.3-15",
-  "latest_version": "v1.8.3-15",
+  "default": "v2.0.0-beta",
+  "latest_version": "v2.0.0-beta",
   "versions": [
+    {
+      "id": "v2.0.0-beta",
+      "label": "独立插件 theme.effects，解除 Custom WebUI CSS 依赖",
+      "channel": "latest",
+      "released_at": "2026-07-28",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true
+    },
     {
       "id": "v1.8.3-15",
       "label": "上传大小旁注、安装去完整安装文案",
-      "channel": "latest",
+      "channel": "history",
       "released_at": "2026-07-28",
       "apps_enhancement": true,
       "particles": true,

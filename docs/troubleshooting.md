@@ -2,10 +2,10 @@
 
 ## The style does not load
 
-Check that the Custom WebUI CSS plugin is installed and enabled:
+Check that the Theme Effects plugin is installed and enabled:
 
 ```bash
-cat /boot/config/plugins/custom.css/custom.css.cfg
+cat /boot/config/plugins/theme.effects/theme.effects.cfg
 ```
 
 Expected:
@@ -17,8 +17,8 @@ SERVICE="enabled"
 Then verify that the runtime files exist:
 
 ```bash
-ls -la /usr/local/emhttp/plugins/custom.css/
-ls -la /usr/local/emhttp/plugins/custom.css/assets/
+ls -la /usr/local/emhttp/plugins/theme.effects/
+ls -la /usr/local/emhttp/plugins/theme.effects/assets/
 ```
 
 ## Background image is missing
@@ -26,8 +26,8 @@ ls -la /usr/local/emhttp/plugins/custom.css/assets/
 Verify both copies of the image:
 
 ```bash
-ls -lh /boot/config/plugins/custom.css/assets/background.jpg
-ls -lh /usr/local/emhttp/plugins/custom.css/assets/background.jpg
+ls -lh /boot/config/plugins/theme.effects/assets/background.jpg
+ls -lh /usr/local/emhttp/plugins/theme.effects/assets/background.jpg
 ```
 
 ## Text is hard to read
@@ -43,4 +43,4 @@ Windows/Linux: Ctrl + F5
 macOS: Command + Shift + R
 ```
 
-If the old style still appears, disable and re-enable Custom WebUI CSS, then refresh again.
+If the old style still appears, disable and re-enable Theme Effects, then refresh again.
