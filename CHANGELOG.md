@@ -1,5 +1,22 @@
 # 更新日志
 
+## v1.8.3-4 - 2026-07-28
+
+### 概述
+
+修复主题特效页安装进度卡在 3%：Web 请求不再同步访问 GitHub，安装任务立即排队到 CLI 后台。
+
+### 修复
+
+- `install_*` 立刻返回 `job_id`（毫秒级），准备/下载/安装在 `nohup php` 中执行
+- 避免单 worker php-fpm 被占用导致 auth-request 504、前端永远停在「启动任务 3%」
+- curl 优先 IPv4；前端提交超时与进度轮询重试
+
+### 校验
+
+- ucwc-update.php.md5: `a1c41d66ac05b59bf6263899d14c732f`
+- ucwc-theme-fx.js.md5: `b9df34c1aaec0bb5e76e9d4962c0cf0e`
+
 ## v1.8.3-3 - 2026-07-28
 
 ### 概述

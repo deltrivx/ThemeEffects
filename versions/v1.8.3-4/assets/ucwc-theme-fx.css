@@ -1,0 +1,157 @@
+/* Theme Effects page — version bar + modal (external to avoid Unraid markdown mangling #selectors) */
+#ucwc-ver-bar {
+  margin: 8px 0 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 13px;
+  line-height: 1.5;
+}
+#ucwc-ver-bar .ucwc-muted { opacity: 0.75; }
+
+#ucwc-panel-mask {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99980;
+  background: rgba(0, 0, 0, 0.55);
+}
+#ucwc-panel {
+  display: none;
+  position: fixed;
+  z-index: 99990;
+  left: 50%;
+  top: 8%;
+  transform: translateX(-50%);
+  width: min(720px, 94vw);
+  max-height: 84vh;
+  overflow: auto;
+  background: #1b1e24;
+  color: #eee;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+  padding: 16px 18px 18px;
+}
+#ucwc-panel h3 { margin: 0 0 10px; font-size: 16px; }
+#ucwc-panel .ucwc-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+#ucwc-panel .ucwc-close {
+  float: right;
+  cursor: pointer;
+  opacity: 0.8;
+  border: 0;
+  background: transparent;
+  color: #ccc;
+  font-size: 18px;
+  line-height: 1;
+}
+#ucwc-panel pre,
+#ucwc-panel .ucwc-log {
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  max-height: 280px;
+  overflow: auto;
+}
+#ucwc-panel .ucwc-ver-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  margin: 0 0 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  cursor: pointer;
+}
+#ucwc-panel .ucwc-ver-item.active {
+  border-color: #5af;
+  background: rgba(80, 160, 255, 0.15);
+}
+#ucwc-panel .ucwc-chip {
+  display: inline-block;
+  margin: 2px 4px 0 0;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.1);
+}
+#ucwc-panel .ucwc-warn { color: #f6c177; margin: 8px 0; }
+#ucwc-panel .ucwc-err { color: #f88; margin: 8px 0; }
+#ucwc-panel .ucwc-ok { color: #8d8; margin: 8px 0; }
+#ucwc-panel.busy { opacity: 0.95; }
+#ucwc-panel.busy .ucwc-panel-actions input { pointer-events: none; opacity: 0.6; }
+#ucwc-progress-wrap { margin-top: 10px; }
+#ucwc-progress-wrap .ucwc-progress {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+#ucwc-progress-wrap .ucwc-progress-bar {
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #5af, #8cf, #5af);
+  background-size: 200% 100%;
+  transition: width 0.35s ease;
+  animation: ucwc-progress-shine 1.2s linear infinite;
+}
+#ucwc-progress-wrap .ucwc-progress-meta {
+  margin: 6px 0 8px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+@keyframes ucwc-progress-shine {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Collapse hidden form rows completely (no reserved blank) */
+tr.ucwc-row-hidden,
+dt.ucwc-row-hidden,
+dd.ucwc-row-hidden,
+dl.ucwc-row-hidden,
+blockquote.ucwc-row-hidden,
+.ucwc-row-hidden {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  visibility: hidden !important;
+  overflow: hidden !important;
+  line-height: 0 !important;
+  max-height: 0 !important;
+  gap: 0 !important;
+}
+tr.ucwc-row-hidden > td,
+tr.ucwc-row-hidden > th {
+  display: none !important;
+  height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  line-height: 0 !important;
+}
+/* Unraid: each field is its own <dl>; hide must kill dl+dl margin gap */
+dl.ucwc-row-hidden + dl,
+dl + dl.ucwc-row-hidden {
+  margin-top: 0 !important;
+}
+form dl.ucwc-row-hidden,
+form blockquote.ucwc-row-hidden.inline_help {
+  display: none !important;
+}
