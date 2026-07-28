@@ -1,6 +1,6 @@
 # Unraid Custom WebUI CSS 主题
 
-这是一个基于 **Custom WebUI CSS** 插件实现的 Unraid WebGUI 自定义主题，针对 Unraid 7.3.2 进行适配。v1.8.3-10 修复自定义吉祥物/壁纸「应用中」卡住；含图标守卫与仪表盘脉冲关闭。
+这是一个基于 **Custom WebUI CSS** 插件实现的 Unraid WebGUI 自定义主题，针对 Unraid 7.3.2 进行适配。v1.8.3-11：吉祥物闪烁修复、版本栏 pill、背景/粒子/吉祥物分段应用。
 
 ## 效果预览
 

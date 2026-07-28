@@ -1,5 +1,22 @@
 # 更新日志
 
+## v1.8.3-11 - 2026-07-28
+
+### 概述
+
+自定义吉祥物最小化再打开闪烁修复；主题特效页「检测更新 / 更新日志」移至版本栏右侧 pill 按钮；背景 / 粒子 / 吉祥物分段独立「应用」。
+
+### 修复与改进
+
+- 吉祥物改为真实 `<img id="ucwc-mascot">` 层（不再用 `html::before` 背景 GIF），避免标签页隐藏/恢复时解码重启闪烁；`src` 仅在 URL 变化时设置
+- 版本栏右侧放置「检测更新」「更新日志」，样式对齐应用页搜索条 DockerHub/Apps pill
+- 背景 / 粒子 / 吉祥物各段独立「应用 + 完成」；保存支持 `UCWC_SECTION` 部分合并，互不覆盖
+
+### 校验
+
+- 分段 apply：`particles` / `mascot` / `bg` 均 `ok:true` 且保留其他段配置
+- ThemeEffects 页含 `ucwc-pill-btn`、三段 `ucwc-btn-save-*`；Dashboard Loader 含 `ensureMascot`
+
 ## v1.8.3-10 - 2026-07-28
 
 ### 概述
