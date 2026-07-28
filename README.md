@@ -1,6 +1,6 @@
 # Unraid Custom WebUI CSS 主题
 
-这是一个基于 **Custom WebUI CSS** 插件实现的 Unraid WebGUI 自定义主题，针对 Unraid 7.3.2 进行适配。v1.8.3-7 修复其他设备仪表盘 Docker 无图标闪烁；含安装 GET+csrf 入队、进度条下日志与自动重试。
+这是一个基于 **Custom WebUI CSS** 插件实现的 Unraid WebGUI 自定义主题，针对 Unraid 7.3.2 进行适配。v1.8.3-8 关闭仪表盘 Docker/VM 状态脉冲（无图标旁不再一直闪）；含图标回退与安装进度修复。
 
 ## 效果预览
 

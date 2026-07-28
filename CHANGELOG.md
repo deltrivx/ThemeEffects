@@ -1,5 +1,22 @@
 # 更新日志
 
+## v1.8.3-8 - 2026-07-28
+
+### 概述
+
+根据用户视频确认：仪表盘「一直闪」主要是无彩色图标旁绿色「已启动」三角的 `pulse` 呼吸光；全视口关闭 Docker/VM 磁贴状态脉冲。
+
+### 修复
+
+- 仪表盘 / Docker / VM 磁贴上 `.fa-play/.fa-square/.fa-pause` 取消 `animation: pulse`，改为静态微光
+- FA 剪影图标（无 PNG 时的 `i.img`）去掉 filter/animation，避免与脉冲叠闪
+- 保留 v1.8.3-7 的 PNG 尺寸锁定与 onerror 一次回退
+
+### 校验
+
+- style.md5: `0241ac18668cefbd4f650036b1d14807`
+- apps-enhancement.js.md5: `535d0ef245d30081b5ac2c22bee35994`
+
 ## v1.8.3-7 - 2026-07-28
 
 ### 概述
