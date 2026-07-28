@@ -1,12 +1,22 @@
 {
   "schema": 1,
-  "default": "v2.0.0-beta3",
-  "latest_version": "v2.0.0-beta3",
+  "default": "v2.1.0-beta",
+  "latest_version": "v2.1.0-beta",
   "versions": [
+    {
+      "id": "v2.1.0-beta",
+      "label": "字体颜色可配置、自定义壁纸状态预览",
+      "channel": "latest",
+      "released_at": "2026-07-28",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true
+    },
     {
       "id": "v2.0.0-beta3",
       "label": "设置磁贴长标签移动端换行、自定义壁纸/吉祥物复测",
-      "channel": "latest",
+      "channel": "beta",
       "released_at": "2026-07-28",
       "apps_enhancement": true,
       "particles": true,

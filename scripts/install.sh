@@ -387,6 +387,12 @@ install_version() {
     fi
     install_pair "$tmp/assets/background-1.jpg" "$PERSIST_DIR/assets/background-1.jpg" "$RUNTIME_DIR/assets/background-1.jpg"
     install_pair "$tmp/assets/background-2.jpg" "$PERSIST_DIR/assets/background-2.jpg" "$RUNTIME_DIR/assets/background-2.jpg"
+    # Preserve user custom wallpaper / mascot / dynamic cache across upgrades
+    for uf in background-custom.jpg mascot-custom.gif background-dynamic.jpg; do
+      if [ -f "$PERSIST_DIR/assets/$uf" ]; then
+        install -m 0644 "$PERSIST_DIR/assets/$uf" "$RUNTIME_DIR/assets/$uf" 2>/dev/null || true
+      fi
+    done
     install_pair "$tmp/assets/ucwc-particles.js" "$PERSIST_DIR/assets/ucwc-particles.js" "$RUNTIME_DIR/assets/ucwc-particles.js"
     if [ -f "$tmp/assets/ucwc-theme-fx.js" ]; then
       install_pair "$tmp/assets/ucwc-theme-fx.js" "$PERSIST_DIR/assets/ucwc-theme-fx.js" "$RUNTIME_DIR/assets/ucwc-theme-fx.js"
