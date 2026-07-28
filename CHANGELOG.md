@@ -1,5 +1,21 @@
 # 更新日志
 
+## v1.8.3-9 - 2026-07-28
+
+### 概述
+
+修复 iStoreOS / FnOS 等虚拟机自定义图标消失：图标守卫不再把合法的 `/mnt/user/icons/` 路径预替换成问号。
+
+### 修复
+
+- `/mnt/user/…`、`/mnt/user0/…`、`/boot/config/plugins/…` 视为可加载 Web 路径，仅在真实 onerror 后回退
+- 虚拟机磁贴回退使用 `linux.png` 而非 Docker 问号图
+- 保留无图标 pulse 关闭与 PNG 尺寸锁定
+
+### 校验
+
+- apps-enhancement.js.md5: `816ebf4c0fb9dfa2557349abceae817d`
+
 ## v1.8.3-8 - 2026-07-28
 
 ### 概述
