@@ -2,21 +2,23 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "theme.effects">
 <!ENTITY author    "deltrivx">
-<!ENTITY version   "2026.07.28h">
+<!ENTITY version   "2026.07.29">
 <!ENTITY launch    "Settings/ThemeEffects">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY flash     "/boot/config/plugins/&name;">
 <!ENTITY github    "deltrivx/ThemeEffects">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/theme.effects.plg">
 <!ENTITY installSH "https://raw.githubusercontent.com/&github;/main/scripts/install.sh">
-<!ENTITY ver       "v2.3.0">
+<!ENTITY ver       "v2.4.0">
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" icon="magic" support="https://github.com/&github;">
 
 <CHANGES>
 ## Theme Effects
+###2026.07.29
+- v2.4.0: third stable — dash close-tile/icons, perf profile rewrites effects, drop GPU_ACCEL
 ###2026.07.28
-- v2.3.0: second stable — upload hints, Unraid fileTree, font preview, GPU/perf, first-run optimize
+- v2.3.0: second stable — upload hints, Unraid fileTree, font preview, perf, first-run optimize
 - v2.2.0: first stable 2.x — blur perf, blur levels, dual upload, SERVICE toggle
 - v2.1.2-beta: font phase3 — custom family name + local woff2/ttf upload
 - v2.1.1-beta / v2.1.0-beta: fonts, colors, title size

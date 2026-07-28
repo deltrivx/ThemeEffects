@@ -1,5 +1,21 @@
 # 更新日志
 
+## v2.4.0 - 2026-07-29
+
+### 概述
+**第三个 2.x 正式版**。仪表盘磁贴控件与关闭按钮布局修正；性能档位真正改写主题特效配置；移除无效 GPU_ACCEL；加固部分保存与首次优化 toast。
+
+### 变更
+- **仪表盘图标统一**：标题区 stop/reboot/power 与 cog/wrench/chevron 等统一 **1.8rem**
+- **关闭磁贴位置**：由 `td` 首行挪到各模块 **右侧图标组最前**；解锁排序时与其它控件同行；缺 `tile-header-right-controls` 的模块（如无 autofan 风扇）自动创建容器
+- **关闭磁贴常显修复**：不再对 `i.tile` / `fa-close` 强制 `display:inline-flex`，尊重原版 `i.tile{display:none}` 与 LockButton
+- **性能档位真正生效**：修复设置页「应用」把 `perf` 段误判为 `all` 的 bug；`PERF_PROFILE=low|balanced|high` 点应用时直接改写粒子/减少动效/模糊等级等配置（`auto` 仅运行时软调节）
+- **移除 GPU_ACCEL**：客户端无实质减负；UI/配置/保存键清理，保留性能档位与首次建议
+- **首次优化 toast**：`CLIENT_OPTIMIZED` 可持久；quietSave 默认仅写 perf 段，避免冲掉其它设置
+- **部分保存安全**：缺失 POST 键不再把 PARTICLES/HUTAO/BG_BLUR 等打回默认
+- 版本号：**v2.4.0**（stable / latest）
+
+
 ## v2.3.0 - 2026-07-28
 
 ### 概述
