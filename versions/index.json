@@ -1,12 +1,22 @@
 {
   "schema": 1,
-  "default": "v2.1.2-beta",
-  "latest_version": "v2.1.2-beta",
+  "default": "v2.2.0",
+  "latest_version": "v2.2.0",
   "versions": [
+    {
+      "id": "v2.2.0",
+      "label": "正式版：模糊性能优化、模糊等级、双路上传、运行时总开关",
+      "channel": "latest",
+      "released_at": "2026-07-28",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true
+    },
     {
       "id": "v2.1.2-beta",
       "label": "字体三期：自定义字族名、本地字体上传",
-      "channel": "latest",
+      "channel": "beta",
       "released_at": "2026-07-28",
       "apps_enhancement": true,
       "particles": true,
