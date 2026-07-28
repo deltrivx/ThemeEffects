@@ -1,12 +1,22 @@
 {
   "schema": 1,
-  "default": "v1.8.3-6",
-  "latest_version": "v1.8.3-6",
+  "default": "v1.8.3-7",
+  "latest_version": "v1.8.3-7",
   "versions": [
+    {
+      "id": "v1.8.3-7",
+      "label": "修复仪表盘Docker无图标闪烁（其他设备）",
+      "channel": "latest",
+      "released_at": "2026-07-28",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true
+    },
     {
       "id": "v1.8.3-6",
       "label": "浏览器安装GET+csrf入队回退、进度条下日志",
-      "channel": "latest",
+      "channel": "history",
       "released_at": "2026-07-28",
       "apps_enhancement": true,
       "particles": true,

@@ -1,6 +1,6 @@
 # Unraid Custom WebUI CSS 主题
 
-这是一个基于 **Custom WebUI CSS** 插件实现的 Unraid WebGUI 自定义主题，针对 Unraid 7.3.2 进行适配。v1.8.3-6 修复浏览器安装入队（GET+csrf 回退）；日志在进度条下、失败自动重试、无弹窗。
+这是一个基于 **Custom WebUI CSS** 插件实现的 Unraid WebGUI 自定义主题，针对 Unraid 7.3.2 进行适配。v1.8.3-7 修复其他设备仪表盘 Docker 无图标闪烁；含安装 GET+csrf 入队、进度条下日志与自动重试。
 
 ## 效果预览
 
