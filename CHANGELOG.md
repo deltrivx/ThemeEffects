@@ -1,5 +1,23 @@
 # 更新日志
 
+## v1.8.3-6 - 2026-07-28
+
+### 概述
+
+修复浏览器安装 POST 无法到达 PHP（auth-request 卡住）时永远停在 3%：支持带 CSRF 的 GET 入队，前端奇偶次重试切换 GET/POST。
+
+### 修复
+
+- `install_*` 允许 `GET + csrf_token` 立即入队（与 `check_update` 同路径，更不易卡在 POST auth）
+- 前端安装提交：奇数次 GET+csrf，偶数次 POST；失败日志写在进度条下并自动重试
+- 保留 1.8.3-5 的无弹窗进度日志、索引短缓存、后台多路径拉起
+
+### 校验
+
+- ucwc-update.php.md5: `9f9963acbd3f4b45fc0af664054ede0f`
+- ucwc-theme-fx.js.md5: `87778801e7b130b6d86757a64863ea88`
+- ucwc-theme-fx.css.md5: `debe9d109d5a7d8cf66fe7fe7822b958`
+
 ## v1.8.3-5 - 2026-07-28
 
 ### 概述

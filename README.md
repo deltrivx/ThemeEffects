@@ -1,6 +1,6 @@
 # Unraid Custom WebUI CSS 主题
 
-这是一个基于 **Custom WebUI CSS** 插件实现的 Unraid WebGUI 自定义主题，针对 Unraid 7.3.2 进行适配。v1.8.3-5 强化安装进度（日志在进度条下、失败自动重试、无弹窗）；含吉祥物类型/自定义 GIF/模糊与粒子数量修复。
+这是一个基于 **Custom WebUI CSS** 插件实现的 Unraid WebGUI 自定义主题，针对 Unraid 7.3.2 进行适配。v1.8.3-6 修复浏览器安装入队（GET+csrf 回退）；日志在进度条下、失败自动重试、无弹窗。
 
 ## 效果预览
 
