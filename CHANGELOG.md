@@ -1,5 +1,26 @@
 # 更新日志
 
+## v1.8.3-10 - 2026-07-28
+
+### 概述
+
+修复主题特效「自定义吉祥物 / 自定义壁纸」点击「应用」后长期卡在「应用中…」：大文件 multipart 上传时 nginx `auth_request` 子请求继承 `CONTENT_LENGTH`，PHP-FPM 空等 body → 504。
+
+### 修复
+
+- nginx：为 `/auth-request.php` 清空 `CONTENT_LENGTH` 并强制 `REQUEST_METHOD GET`（`ucwc-auth-request.conf`）
+- 持久化：片段写入 flash；`ThemeEffects` / `CustomCSS_Loader` 在 `rc.nginx` 重建 `locations.conf` 后自动回注并 `HUP` webGUI nginx
+- AJAX：有吉祥物或壁纸文件时一律 `FormData` multipart（此前仅壁纸走 multipart）
+- 上传：流式 `move_uploaded_file` + 头部 magic 校验，避免多 MB `file_get_contents`
+- 前端：应用/上传超时（45s / 120s）与 502/504/413 明确提示，失败后恢复「应用」按钮
+
+### 校验
+
+- 约 5.1MB 自定义 GIF 上传：`HTTP 200`，约 1.5s，`HUTAO_TYPE=custom`
+- 模拟 wipe `locations.conf` → 打开任意页（Loader）回注 → 再次大文件上传成功
+- ucwc-theme-fx.js.md5: `c3898ea5b00e3a77df54e4afba66dcf3`
+- ucwc-theme-fx-save.php.md5: `550ff38f73af3b3bac28b555a76ac02e`
+
 ## v1.8.3-9 - 2026-07-28
 
 ### 概述

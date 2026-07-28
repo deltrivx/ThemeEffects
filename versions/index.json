@@ -1,12 +1,22 @@
 {
   "schema": 1,
-  "default": "v1.8.3-9",
-  "latest_version": "v1.8.3-9",
+  "default": "v1.8.3-10",
+  "latest_version": "v1.8.3-10",
   "versions": [
+    {
+      "id": "v1.8.3-10",
+      "label": "修复自定义吉祥物/壁纸应用中卡住（nginx auth-request）",
+      "channel": "latest",
+      "released_at": "2026-07-28",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true
+    },
     {
       "id": "v1.8.3-9",
       "label": "修复虚拟机/mnt自定义图标被误替换",
-      "channel": "latest",
+      "channel": "history",
       "released_at": "2026-07-28",
       "apps_enhancement": true,
       "particles": true,

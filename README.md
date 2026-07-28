@@ -1,6 +1,6 @@
 # Unraid Custom WebUI CSS 主题
 
-这是一个基于 **Custom WebUI CSS** 插件实现的 Unraid WebGUI 自定义主题，针对 Unraid 7.3.2 进行适配。v1.8.3-9 修复虚拟机自定义图标（/mnt/user/icons）被误替换；含仪表盘状态脉冲关闭与安装进度修复。
+这是一个基于 **Custom WebUI CSS** 插件实现的 Unraid WebGUI 自定义主题，针对 Unraid 7.3.2 进行适配。v1.8.3-10 修复自定义吉祥物/壁纸「应用中」卡住；含图标守卫与仪表盘脉冲关闭。
 
 ## 效果预览
 
