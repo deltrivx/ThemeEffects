@@ -1,5 +1,25 @@
 # 更新日志
 
+## v1.8.3-5 - 2026-07-28
+
+### 概述
+
+修复 WebUI 安装仍卡 3% / 失败时弹窗：安装状态与错误一律写在进度条下方日志；入队失败自动重试；版本索引短缓存减轻 php-fpm 压力。
+
+### 修复
+
+- 安装路径去掉 `alert`：成功/失败/超时均写入进度条下 `#ucwc-out` 日志
+- 提交安装请求失败（超时、504、空响应等）最多自动重试 4 次，并提示 auth-request/fpm 繁忙原因
+- `check_update` 对 `versions/index.json` 做 45s 磁盘缓存，降低并发 GitHub 占用 worker
+- 后台任务拉起增加 `exec`/`proc_open`/`popen` 回退；入队写 hit/enqueue 诊断日志
+- 进度 UI 单一 `ucwc-progress-wrap`，避免重复 `#ucwc-out` 把日志写到隐藏节点
+
+### 校验
+
+- ucwc-update.php.md5: `0e6ae20a7b8b1fc26f7237e7930848ea`
+- ucwc-theme-fx.js.md5: `951ebc5188f7defe8237ea7029bb50e3`
+- ucwc-theme-fx.css.md5: `debe9d109d5a7d8cf66fe7fe7822b958`
+
 ## v1.8.3-4 - 2026-07-28
 
 ### 概述

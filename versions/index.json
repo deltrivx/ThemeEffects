@@ -1,12 +1,22 @@
 {
   "schema": 1,
-  "default": "v1.8.3-4",
-  "latest_version": "v1.8.3-4",
+  "default": "v1.8.3-5",
+  "latest_version": "v1.8.3-5",
   "versions": [
+    {
+      "id": "v1.8.3-5",
+      "label": "安装日志在进度条下、失败自动重试、无弹窗",
+      "channel": "latest",
+      "released_at": "2026-07-28",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true
+    },
     {
       "id": "v1.8.3-4",
       "label": "修复安装卡在3%：后台排队+不阻塞Web进程",
-      "channel": "latest",
+      "channel": "history",
       "released_at": "2026-07-28",
       "apps_enhancement": true,
       "particles": true,
