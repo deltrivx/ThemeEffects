@@ -5,7 +5,7 @@
   "versions": [
     {
       "id": "v1.8.3-13",
-      "label": "标题统一、上传大小提示、取消更新日志完整安装",
+      "label": "标题统一、上传大小提示、更新日志保留与完整安装",
       "channel": "latest",
       "released_at": "2026-07-28",
       "apps_enhancement": true,

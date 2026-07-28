@@ -5,7 +5,7 @@ Tag="magic"
 ---
 <?php
 /* unraid-custom-webui-css: 主题特效
- * 粒子 + 胡桃 + 背景 + 版本管理（检测更新 → 完整安装）。
+ * 粒子 + 胡桃 + 背景 + 版本管理（检测更新 / 更新日志；安装完整覆盖）。
  * CSRF：完全交给 Unraid BodyInlineJS 注入（与 CustomCSS.page 一致），本页不写 csrf 字段。
  */
 $fx_path = "/boot/config/plugins/custom.css/theme-effects.cfg";
@@ -810,6 +810,7 @@ window.__UCWC_FX_BOOT__ = {
   </div>
   <div class="ucwc-ver-actions" role="group" aria-label="版本操作">
     <button type="button" id="ucwc-btn-check" class="ucwc-pill-btn" title="检测主题更新">检测更新</button>
+    <button type="button" id="ucwc-btn-log" class="ucwc-pill-btn" title="查看更新日志">更新日志</button>
   </div>
 </div>
 

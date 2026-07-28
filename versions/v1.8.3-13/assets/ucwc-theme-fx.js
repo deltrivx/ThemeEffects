@@ -889,7 +889,7 @@
     var c = [];
     if (v.channel === "latest") c.push("最新");
     if (v.id && v.id === LOCAL_VERSION) c.push("当前");
-    // 完整包：不再展示粒子/胡桃等历史可选能力标签（一律完整安装）
+    // 完整安装：不再展示粒子/胡桃等历史分项能力标签
     return c
       .map(function (x) {
         return '<span class="ucwc-chip">' + esc(x) + "</span>";
@@ -1041,12 +1041,11 @@
     if (latestMeta.released_at) html += "（" + esc(latestMeta.released_at) + "）";
     html += "<br>" + chips(latestMeta || {}) + "</p>";
     if (data.update_available) {
-      html +=
-        '<p class="ucwc-ok">发现新版本。升级将完整安装最新包（全部功能，不再分项询问）。</p>';
+      html += '<p class="ucwc-ok">发现新版本，可升级到最新版（完整安装）。</p>';
     } else if (local.installed) {
-      html += '<p class="ucwc-ok">已是最新版。仍可重新完整安装以修复文件。</p>';
+      html += '<p class="ucwc-ok">已是最新版。仍可重新安装最新包以修复文件。</p>';
     } else {
-      html += '<p class="ucwc-warn">本地未检测到主题安装，可一键完整安装最新版。</p>';
+      html += '<p class="ucwc-warn">本地未检测到主题安装，可一键安装最新版。</p>';
     }
     // 进度/日志由 ensureProgressUi 统一创建在进度条下方，避免重复 id 导致日志写到隐藏节点
     body.innerHTML = html;
@@ -1065,7 +1064,94 @@
     actions.appendChild(btn2);
   }
 
-  // 更新日志面板已取消：安装统一走「检测更新 → 完整安装最新版」，不再分版本询问粒子/胡桃。
+  function showChangelog(data, preselect) {
+    openPanel("更新日志");
+    cache.versions = data.versions || [];
+    cache.latest = data.latest_version || "";
+    var sel =
+      preselect ||
+      (data.selected && data.selected.id) ||
+      cache.latest ||
+      (cache.versions[0] && cache.versions[0].id) ||
+      "";
+    cache.selected = sel;
+    renderChangelog();
+  }
+
+  function renderChangelog() {
+    var versions = cache.versions || [];
+    var sel = cache.selected;
+    var cur = null;
+    var list = versions
+      .map(function (v) {
+        if (v.id === sel) cur = v;
+        var cls = "ucwc-ver-item" + (v.id === sel ? " active" : "");
+        return (
+          '<button type="button" class="' +
+          cls +
+          '" data-id="' +
+          esc(v.id) +
+          '"><strong>' +
+          esc(v.id) +
+          "</strong> · " +
+          esc(v.released_at || "") +
+          "<br>" +
+          esc(v.label || "") +
+          "<br>" +
+          chips(v) +
+          "</button>"
+        );
+      })
+      .join("");
+    var log = (cur && (cur.changelog || cur.label)) || "暂无该版本说明。";
+    body.innerHTML =
+      '<div style="display:grid;grid-template-columns:minmax(200px,42%) 1fr;gap:12px">' +
+      '<div style="max-height:360px;overflow:auto">' +
+      list +
+      "</div>" +
+      '<div><div class="ucwc-log">' +
+      esc(log) +
+      "</div></div></div>";
+    Array.prototype.forEach.call(body.querySelectorAll(".ucwc-ver-item"), function (el) {
+      el.addEventListener("click", function () {
+        cache.selected = el.getAttribute("data-id");
+        renderChangelog();
+      });
+    });
+    actions.innerHTML = "";
+    var go = document.createElement("input");
+    go.type = "button";
+    go.value = "安装此版本";
+    go.addEventListener("click", function () {
+      var id = cache.selected || "";
+      if (!id) return;
+      // 完整安装：不再提示粒子/胡桃分项或「无主题特效」等过时信息
+      if (!window.confirm("确定安装 " + id + " ？将完整覆盖当前主题文件。")) return;
+      runInstall("install_version", id);
+    });
+    actions.appendChild(go);
+
+    var un = document.createElement("input");
+    un.type = "button";
+    un.value = "一键卸载主题";
+    un.addEventListener("click", function () {
+      if (
+        !window.confirm(
+          "确定卸载主题？\n将删除主题文件、恢复 Dynamix 显示设置，本「主题特效」页也会消失。"
+        )
+      )
+        return;
+      if (!window.confirm("再次确认：卸载后需用终端一键脚本才能重装。继续？")) return;
+      runInstall("uninstall", "");
+    });
+    actions.appendChild(un);
+
+    var c = document.createElement("input");
+    c.type = "button";
+    c.value = "关闭";
+    c.addEventListener("click", closePanel);
+    actions.appendChild(c);
+  }
 
   function ensureProgressUi(resetLog) {
     // Drop stray duplicates so log always sits under the progress bar
@@ -1350,7 +1436,18 @@
           body.innerHTML = '<p class="ucwc-err">' + esc(e.message || e) + "</p>";
         });
     });
-    // 更新日志入口已移除；安装仅通过检测更新完整安装最新版。
+    wire("ucwc-btn-log", function () {
+      openPanel("更新日志");
+      body.innerHTML = "<p>正在加载更新日志…</p>";
+      actions.innerHTML = "";
+      api("changelog")
+        .then(function (d) {
+          showChangelog(d);
+        })
+        .catch(function (e) {
+          body.innerHTML = '<p class="ucwc-err">' + esc(e.message || e) + "</p>";
+        });
+    });
   }
 
   function bootAll() {

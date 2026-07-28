@@ -1,6 +1,6 @@
 # Unraid Custom WebUI CSS 主题
 
-这是一个基于 **Custom WebUI CSS** 插件实现的 Unraid WebGUI 自定义主题，针对 Unraid 7.3.2 进行适配。v1.8.3-13：标题统一、上传大小提示、取消更新日志与完整安装。
+这是一个基于 **Custom WebUI CSS** 插件实现的 Unraid WebGUI 自定义主题，针对 Unraid 7.3.2 进行适配。v1.8.3-13：标题统一、上传大小提示、更新日志保留、完整安装去过时分项。
 
 ## 效果预览
 
