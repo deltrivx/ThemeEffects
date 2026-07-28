@@ -1,4 +1,16 @@
 # 更新日志
+## v2.0.0-beta3 - 2026-07-28
+
+### 概述
+修复设置/工具页移动端长标签（如 Auto Update Applications）不换行；复测自定义壁纸与自定义 GIF 吉祥物。
+
+### 变更
+- Settings/Tools 磁贴：`.PanelText` 强制 `white-space: normal` + 断词
+- 移动端（≤900px）：`.Panels` 横向滑动保留，但去掉会继承到标签的 `nowrap`
+- Users 磁贴同步允许长用户名换行
+- 移动端（≤720px）：全局 settings 表单 `dt` 换行；`span.inner` 固定 137px 改为可收缩换行
+- 版本号：**v2.0.0-beta3**
+
 ## v2.0.0-beta2 - 2026-07-28
 
 ### 概述

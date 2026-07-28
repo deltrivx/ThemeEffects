@@ -2,24 +2,23 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "theme.effects">
 <!ENTITY author    "deltrivx">
-<!ENTITY version   "2026.07.28b">
+<!ENTITY version   "2026.07.28c">
 <!ENTITY launch    "Settings/ThemeEffects">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY flash     "/boot/config/plugins/&name;">
 <!ENTITY github    "deltrivx/ThemeEffects">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/theme.effects.plg">
 <!ENTITY installSH "https://raw.githubusercontent.com/&github;/main/scripts/install.sh">
-<!ENTITY ver       "v2.0.0-beta2">
+<!ENTITY ver       "v2.0.0-beta3">
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" icon="magic" support="https://github.com/&github;">
 
 <CHANGES>
 ## Theme Effects
 ###2026.07.28
+- v2.0.0-beta3: mobile Settings tile long-label wrap (Auto Update Applications)
+- v2.0.0-beta2: check update/beta wording, particles label
 - v2.0.0-beta: standalone plugin (no Custom WebUI CSS dependency)
-- Plugin dir: theme.effects
-- Global Buttons loader + Theme Effects settings page
-- Migrate from legacy custom.css parasitic install
 </CHANGES>
 
 <!-- Prepare dirs -->
