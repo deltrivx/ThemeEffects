@@ -84,8 +84,24 @@ INSTALL_HUTAO="yes"
 IS_LATEST="no"
 THEME_EFFECTS="false"
 
+progress() {
+  # $1=建议百分比 $2=阶段 $3=说明 — Web 安装 UI 会解析这些行
+  echo "[进度 $1%] $2：$3"
+}
+
 download() {
   # Large assets (hutao.gif ~3MB, wallpapers) need headroom on slow links
+  # Echo target before silent curl so long downloads don't look stuck
+  _ucwc_dl_url=""
+  for _ucwc_a in "$@"; do
+    case "$_ucwc_a" in
+      http://*|https://*) _ucwc_dl_url="$_ucwc_a" ;;
+    esac
+  done
+  if [ -n "$_ucwc_dl_url" ]; then
+    _ucwc_bn=$(basename "$_ucwc_dl_url" | sed 's/[?].*$//')
+    echo "下载文件：$_ucwc_bn"
+  fi
   curl -4 -fsSL --connect-timeout 15 --max-time 300 --retry 4 "$@"
 }
 
@@ -288,21 +304,27 @@ install_version() {
   tmp=$(mktemp -d /tmp/ThemeEffects.XXXXXX)
   trap 'rm -rf "$tmp"' EXIT INT TERM
 
+  echo "正在安装 $VERSION …"
+  progress 20 "准备安装" "创建临时目录并迁移旧配置"
   mkdir -p "$tmp/assets" "$PERSIST_DIR/assets" "$RUNTIME_DIR/assets"
   migrate_from_legacy_custom_css
+  progress 28 "下载文件" "主题样式与壁纸"
   download -o "$tmp/style.css" "$base/style.css"
   download -o "$tmp/style-black.css" "$base/style-black.css"
   download -o "$tmp/assets/background.jpg" "$base/assets/background.jpg"
 
   if [ "$apps_enhancement" = "true" ]; then
+    progress 36 "下载文件" "应用页增强脚本"
     download -o "$tmp/apps-enhancement.js" "$base/apps-enhancement.js"
   fi
 
   if [ "$INSTALL_HUTAO" = "yes" ]; then
+    progress 42 "下载文件" "吉祥物 GIF（体积较大，可能需数十秒）"
     download -o "$tmp/assets/hutao.gif" "$base/assets/hutao.gif"
   fi
 
   if [ "$THEME_EFFECTS" = "true" ]; then
+    progress 52 "下载文件" "主题特效页面与资源"
     download -o "$tmp/ThemeEffects.page" "$base/ThemeEffects.page"
     download -o "$tmp/ThemeEffects_Loader.page" "$base/ThemeEffects_Loader.page"
     download -o "$tmp/theme-effects.cfg" "$base/theme-effects.cfg"
@@ -328,6 +350,7 @@ install_version() {
     done
   fi
 
+  progress 70 "写入主题文件" "安装样式与资源到插件目录"
   # 主题特效由 cfg 控制时，CSS 内粒子/胡桃块保留，运行时再开关
   if [ "$THEME_EFFECTS" != "true" ]; then
     if [ "$INSTALL_PARTICLES" != "yes" ]; then
@@ -437,6 +460,7 @@ install_version() {
   } > "$STATE_FILE.tmp"
   mv "$STATE_FILE.tmp" "$STATE_FILE"
 
+  progress 92 "收尾" "写入状态并应用显示设置"
   echo "已安装：主题 $VERSION"
   if [ "$THEME_EFFECTS" = "true" ]; then
     echo "  主题特效页：已安装（设置 → 用户偏好 → 主题特效）"

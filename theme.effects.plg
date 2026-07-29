@@ -2,19 +2,21 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "theme.effects">
 <!ENTITY author    "deltrivx">
-<!ENTITY version   "2026.07.29f">
+<!ENTITY version   "2026.07.29g">
 <!ENTITY launch    "Settings/ThemeEffects">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY flash     "/boot/config/plugins/&name;">
 <!ENTITY github    "deltrivx/ThemeEffects">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/theme.effects.plg">
 <!ENTITY installSH "https://raw.githubusercontent.com/&github;/main/scripts/install.sh">
-<!ENTITY ver       "v2.5.0-Beta3">
+<!ENTITY ver       "v2.5.0">
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" icon="magic" support="https://github.com/&github;">
 
 <CHANGES>
 ## Theme Effects
+###2026.07.29g
+- v2.5.0: mouse FX stable (glow/ring/trail/spark), install %, check switch
 ###2026.07.29b
 - v2.4.2: restore 1.8.x Docker/VM float layout & spacing
 ###2026.07.29a

@@ -1,8 +1,19 @@
 {
   "schema": 1,
-  "default": "v2.4.3",
-  "latest_version": "v2.4.3",
+  "default": "v2.5.0",
+  "latest_version": "v2.5.0",
   "versions": [
+    {
+      "id": "v2.5.0",
+      "label": "正式版：鼠标特效（柔光/光环/光迹/星火）",
+      "channel": "latest",
+      "released_at": "2026-07-29",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true,
+      "mouse_fx": true
+    },
     {
       "id": "v2.5.0-Beta3",
       "label": "Beta3：Beta 检查文案、分段应用提示、鼠标颜色控件",
@@ -39,7 +50,7 @@
     {
       "id": "v2.4.3",
       "label": "正式版：恢复代码编辑器输入对齐（CodeMirror/Ace/Monaco）",
-      "channel": "latest",
+      "channel": "history",
       "released_at": "2026-07-29",
       "apps_enhancement": true,
       "particles": true,
