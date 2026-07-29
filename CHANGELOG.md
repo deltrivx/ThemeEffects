@@ -1,5 +1,16 @@
 # 更新日志
 
+## v2.6.0-Beta19 - 2026-07-30
+
+### 概述
+**Beta19**：移动端卡片固定最大宽度；跨页/刷新按上次进度续播；进仪表盘不再轮询闪过多首歌曲。
+
+### 变更
+- **移动端定宽**：`≤720px` 卡片 `max-width:420px` 居中，纵向排列且不再被无限拉宽
+- **续播进度**：`pendingSeekTo` + metadata/seeked 后再播放；禁止 playAt 早期把进度写成 0；流地址去掉每次 `Date.now()` 强刷
+- **消除轮询闪歌**：list 返回先钉住会话曲目再渲染；`resumeAttempted`/`resumeLockId` 防重复 playAt；mount 不再二次触发 resume
+- 版本号：**v2.6.0-Beta19**（beta）；正式 latest 仍为 **v2.5.1**
+
 ## v2.6.0-Beta18 - 2026-07-30
 
 ### 概述

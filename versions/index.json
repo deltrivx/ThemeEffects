@@ -4,6 +4,19 @@
   "latest_version": "v2.5.1",
   "versions": [
     {
+      "id": "v2.6.0-Beta19",
+      "label": "Beta19：移动端定宽、跨页/刷新按进度续播、消除进页轮询闪歌",
+      "channel": "beta",
+      "released_at": "2026-07-30",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true,
+      "mouse_fx": true,
+      "music": true,
+      "ota": true
+    },
+    {
       "id": "v2.6.0-Beta18",
       "label": "Beta18：封面显示、移动端自动排列、位置记忆、刷新按进度续播",
       "channel": "beta",
