@@ -86,12 +86,13 @@ THEME_EFFECTS="false"
 
 progress() {
   # $1=建议百分比 $2=阶段 $3=说明 — Web 安装 UI 会解析这些行
-  echo "[进度 $1%] $2：$3"
+  # 必须写 stderr：download 常被 $(...) 捕获 stdout（如 fetch_index）
+  echo "[进度 $1%] $2：$3" >&2
 }
 
 download() {
   # Large assets (hutao.gif ~3MB, wallpapers) need headroom on slow links
-  # Echo target before silent curl so long downloads don't look stuck
+  # Progress goes to stderr only — stdout must stay pure for curl body / -o files
   _ucwc_dl_url=""
   for _ucwc_a in "$@"; do
     case "$_ucwc_a" in
@@ -100,13 +101,15 @@ download() {
   done
   if [ -n "$_ucwc_dl_url" ]; then
     _ucwc_bn=$(basename "$_ucwc_dl_url" | sed 's/[?].*$//')
-    echo "下载文件：$_ucwc_bn"
+    echo "下载文件：$_ucwc_bn" >&2
   fi
   curl -4 -fsSL --connect-timeout 15 --max-time 300 --retry 4 "$@"
 }
 
 fetch_index() {
-  download "$REPO_RAW/versions/index.json"
+  # 直连 curl，避免 download 进度行污染 JSON（兼容旧 download 误打 stdout）
+  curl -4 -fsSL --connect-timeout 15 --max-time 60 --retry 3 \
+    "$REPO_RAW/versions/index.json"
 }
 
 read_display_value() {
