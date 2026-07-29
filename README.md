@@ -3,7 +3,7 @@
 独立 Unraid WebGUI 主题插件（**不依赖** Custom WebUI CSS）。仓库：[deltrivx/ThemeEffects](https://github.com/deltrivx/ThemeEffects)
 
 当前正式版：**v2.5.1**（OTA/全量更新）；`latest_version` 指向 **v2.5.1**  
-最新 Beta：**v2.6.0-Beta7**（本地 LRC 歌词滚动高亮 + Beta6 能力）
+最新 Beta：**v2.6.0-Beta8**（全站续播强化 + 自定义指针条件显示 + LRC）
 
 ## 功能
 
@@ -50,7 +50,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/deltrivx/ThemeEffects/main/s
 - 指定版本：`bash scripts/install.sh install v2.4.3`
 - 正式版 OTA：`bash scripts/install.sh install v2.5.1 ota`（默认，可省略 `ota`）
 - 正式版全量：`bash scripts/install.sh install v2.5.1 full`
-- 音乐 / 指针 Beta：`bash scripts/install.sh install v2.6.0-Beta7 ota`
+- 音乐 / 指针 Beta：`bash scripts/install.sh install v2.6.0-Beta8 ota`
 - 环境变量：`UCWC_INSTALL_MODE=ota|full`
 
 ### 插件方式
