@@ -1,0 +1,1161 @@
+Menu="Buttons:100"
+Link="nav-user"
+---
+<?php
+require_once "$docroot/plugins/dynamix/include/Wrappers.php";
+
+/* Wallpaper upload limits: plugin-scoped drop-in (not /boot/config/go).
+	 * Idempotent + least privilege: only copy if missing or content differs. */
+	(function () {
+	    $src = '/boot/config/plugins/theme.effects/ucwc-upload.ini';
+	    $dst = '/etc/php.d/ucwc-upload.ini';
+	    if (!is_file($src)) return;
+	    $need = !is_file($dst);
+	    if (!$need) {
+	        $a = @file_get_contents($src);
+	        $b = @file_get_contents($dst);
+	        $need = ($a !== false && $a !== $b);
+	    }
+	    if ($need) {
+	        @mkdir('/etc/php.d', 0755, true);
+	        if (@copy($src, $dst)) @chmod($dst, 0644);
+	    }
+	})();
+
+	/* Re-apply nginx auth-request CONTENT_LENGTH clear after rc.nginx rebuilds locations.conf.
+	 * Large multipart uploads (custom mascot/wallpaper) otherwise hang on「应用中…」(504). */
+	(function () {
+	    $src = '/boot/config/plugins/theme.effects/ucwc-auth-request.conf';
+	    $loc = '/etc/nginx/conf.d/locations.conf';
+	    $marker = 'ucwc-auth-fix';
+	    $block =
+	        "#\n" .
+	        "# {$marker}: large multipart POST hangs because auth subrequest inherits CONTENT_LENGTH\n" .
+	        "# and PHP-FPM waits for a body that never arrives → 504 → browser stuck on 应用中…\n" .
+	        "#\n" .
+	        "location = /auth-request.php {\n" .
+	        "    internal;\n" .
+	        "    include fastcgi_params;\n" .
+	        "    fastcgi_param CONTENT_LENGTH \"\";\n" .
+	        "    fastcgi_param REQUEST_METHOD GET;\n" .
+	        "}\n";
+	    if (!is_file($src) || strpos((string)@file_get_contents($src), 'fastcgi_param CONTENT_LENGTH') === false) {
+	        @file_put_contents($src, $block);
+	        @chmod($src, 0644);
+	    }
+	    if (!is_file($loc) || !is_writable($loc)) return;
+	    $content = @file_get_contents($loc);
+	    if ($content === false) return;
+	    if (
+	        strpos($content, $marker) !== false &&
+	        strpos($content, 'location = /auth-request.php') !== false &&
+	        strpos($content, 'fastcgi_param CONTENT_LENGTH') !== false
+	    ) {
+	        return;
+	    }
+	    if (strpos($content, 'location = /auth-request.php') !== false) {
+	        $content = preg_replace(
+	            '/#\s*\n#\s*ucwc-auth-fix:[\s\S]*?location\s*=\s*\/auth-request\.php\s*\{[\s\S]*?\}\s*\n?/m',
+	            '',
+	            $content,
+	            1
+	        );
+	        if (strpos($content, 'location = /auth-request.php') !== false) {
+	            $content = preg_replace(
+	                '/location\s*=\s*\/auth-request\.php\s*\{[\s\S]*?\}\s*\n?/m',
+	                '',
+	                $content,
+	                1
+	            );
+	        }
+	    }
+	if (@file_put_contents($loc, $block . "\n" . ltrim((string)$content)) === false) return;
+	    @chmod($loc, 0644);
+	    // Prefer Unraid webGUI master pid file; avoid pgrep (many container nginx masters).
+	    $pid = is_file('/var/run/nginx.pid') ? trim((string)@file_get_contents('/var/run/nginx.pid')) : '';
+	    if ($pid === '' || !ctype_digit($pid)) return;
+	    $n = (int)$pid;
+	    $hupOk = false;
+	    if (function_exists('posix_kill')) {
+	        $hupOk = @posix_kill($n, defined('SIGHUP') ? (int)constant('SIGHUP') : 1);
+	    }
+	    if (!$hupOk && function_exists('shell_exec')) {
+	        @shell_exec('kill -HUP ' . $n . ' >/dev/null 2>&1');
+	        $hupOk = true;
+	    }
+	    @file_put_contents(
+	        '/tmp/ucwc-nginx-auth-fix.log',
+	        date('c') . " reinject+HUP pid={$n} ok=" . ($hupOk ? '1' : '0') . " via=Loader\n",
+	        FILE_APPEND
+	    );
+	})();
+
+	$web_css = '/plugins/theme.effects/style.css';
+$local_css = '/usr/local/emhttp/plugins/theme.effects/style.css';
+$web_black_css = '/plugins/theme.effects/style-black.css';
+$local_black_css = '/usr/local/emhttp/plugins/theme.effects/style-black.css';
+$fx_path = '/boot/config/plugins/theme.effects/theme-effects.cfg';
+$unraid_theme_cfg = '/boot/config/plugins/dynamix/dynamix.cfg';
+$rt = '/usr/local/emhttp/plugins/theme.effects/assets';
+
+/* Master runtime switch: theme.effects.cfg SERVICE=enabled|disabled */
+$ucwc_service_cfg = '/boot/config/plugins/theme.effects/theme.effects.cfg';
+$ucwc_service = 'enabled';
+if (is_file($ucwc_service_cfg)) {
+    $ucwc_svc_raw = @parse_ini_file($ucwc_service_cfg);
+    if (is_array($ucwc_svc_raw) && isset($ucwc_svc_raw['SERVICE']) && $ucwc_svc_raw['SERVICE'] !== '') {
+        $ucwc_service = strtolower(trim((string)$ucwc_svc_raw['SERVICE']));
+    }
+}
+if ($ucwc_service !== 'enabled' && $ucwc_service !== 'enable' && $ucwc_service !== '1' && $ucwc_service !== 'yes') {
+    /* Plugin runtime off: no wallpaper / particles / mascot / theme CSS / apps enhancement. */
+    echo '<!-- ThemeEffects:runtime-disabled -->';
+    return;
+}
+
+
+$fx = [
+    'PARTICLES' => 'no',
+    'PARTICLES_COUNT' => '60',
+    'HUTAO' => 'yes',
+    'HUTAO_SIZE' => 'medium',
+    'HUTAO_POS' => 'br',
+    'HUTAO_TYPE' => 'hutao',
+    'HUTAO_BLUR' => 'no',
+    'HUTAO_BLUR_LEVEL' => 'md',
+    'REDUCE_MOTION' => 'no',
+    'BG_MODE' => 'local',
+    'BG_LOCAL_SLOT' => '1',
+    'BG_GALLERY' => 'photo',
+    'BG_CUSTOM_API' => '',
+    'BG_BLUR' => 'no',
+    'BG_BLUR_LEVEL' => 'md',
+    'FONT_BODY' => 'rajdhani',
+    'FONT_TITLE' => 'orbitron',
+    'FONT_TITLE_UPPER' => 'no',
+    'FONT_SIZE' => '14',
+    'FONT_TITLE_SIZE' => 'default',
+    'FONT_CUSTOM_BODY' => '',
+    'FONT_CUSTOM_TITLE' => '',
+    'FONT_LOCAL_BODY' => '',
+    'FONT_LOCAL_TITLE' => '',
+    'COLOR_PRESET' => 'cyber',
+    'COLOR_TEXT' => '',
+    'COLOR_TITLE' => '',
+    'COLOR_LABEL' => '',
+    'PERF_PROFILE' => 'auto',
+    'CLIENT_OPTIMIZED' => 'no',
+    'MOUSE_FX' => 'no',
+    'MOUSE_STYLE' => 'glow',
+    'MOUSE_SIZE' => '80',
+    'MOUSE_INTENSITY' => '55',
+    'MOUSE_COLOR' => '',
+'MOUSE_CLICK_RIPPLE' => 'yes',
+	    'MOUSE_CURSOR' => 'system',
+	    'MOUSE_CURSOR_HOTSPOT_X' => '4',
+	    'MOUSE_CURSOR_HOTSPOT_Y' => '2',
+	    'MUSIC_ENABLE' => 'no',
+    'MUSIC_UI' => 'card',
+    'MUSIC_SOURCE' => 'local',
+    'MUSIC_LOCAL_DIR' => '',
+    'MUSIC_VOLUME' => '70',
+    'MUSIC_AUTOPLAY' => 'no',
+    'MUSIC_SHUFFLE' => 'no',
+    'MUSIC_REPEAT' => 'off',
+    'MUSIC_DASH_ONLY' => 'yes',
+];
+if (is_file($fx_path)) {
+    $raw = @parse_ini_file($fx_path);
+    if (is_array($raw)) {
+        foreach ($fx as $k => $v) {
+            if (isset($raw[$k]) && $raw[$k] !== '') $fx[$k] = (string)$raw[$k];
+        }
+    }
+}
+$fx_particles = ($fx['PARTICLES'] === 'yes');
+$fx_mouse = (($fx['MOUSE_FX'] ?? 'no') === 'yes');
+$fx_mouse_style = in_array(($fx['MOUSE_STYLE'] ?? 'glow'), ['glow', 'ring', 'trail', 'spark'], true) ? $fx['MOUSE_STYLE'] : 'glow';
+$fx_mouse_size = intval($fx['MOUSE_SIZE'] ?? 80);
+if ($fx_mouse_size < 40) $fx_mouse_size = 40;
+if ($fx_mouse_size > 160) $fx_mouse_size = 160;
+$fx_mouse_intensity = intval($fx['MOUSE_INTENSITY'] ?? 55);
+if ($fx_mouse_intensity < 15) $fx_mouse_intensity = 15;
+if ($fx_mouse_intensity > 100) $fx_mouse_intensity = 100;
+$fx_mouse_color = trim((string)($fx['MOUSE_COLOR'] ?? ''));
+if ($fx_mouse_color !== '' && !preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $fx_mouse_color)) $fx_mouse_color = '';
+$fx_mouse_ripple = (($fx['MOUSE_CLICK_RIPPLE'] ?? 'yes') !== 'no');
+$fx_mouse_cursor = strtolower(trim((string)($fx['MOUSE_CURSOR'] ?? 'system')));
+if ($fx_mouse_cursor === 'auto' || $fx_mouse_cursor === 'default' || $fx_mouse_cursor === '') $fx_mouse_cursor = 'system';
+if (in_array($fx_mouse_cursor, ['dot', 'cross', 'neon', 'none'], true)) $fx_mouse_cursor = 'neon3d';
+if (!in_array($fx_mouse_cursor, ['system', 'neon3d', 'holo', 'cyber', 'crystal', 'upload'], true)) $fx_mouse_cursor = 'system';
+$fx_mouse_cursor_hx = intval($fx['MOUSE_CURSOR_HOTSPOT_X'] ?? 4);
+$fx_mouse_cursor_hy = intval($fx['MOUSE_CURSOR_HOTSPOT_Y'] ?? 2);
+if ($fx_mouse_cursor_hx < 0) $fx_mouse_cursor_hx = 0;
+if ($fx_mouse_cursor_hx > 128) $fx_mouse_cursor_hx = 128;
+if ($fx_mouse_cursor_hy < 0) $fx_mouse_cursor_hy = 0;
+if ($fx_mouse_cursor_hy > 128) $fx_mouse_cursor_hy = 128;
+// Custom uploaded cursor (png/svg/cur/ico) — flash/runtime under assets/
+$fx_mouse_cursor_url = '';
+$cursor_upload_candidates = [
+    $rt . '/cursor-custom.png',
+    $rt . '/cursor-custom.svg',
+    $rt . '/cursor-custom.cur',
+    $rt . '/cursor-custom.ico',
+    $rt . '/cursor-custom.webp',
+];
+foreach ($cursor_upload_candidates as $cup) {
+    if (is_file($cup) && filesize($cup) > 0) {
+        $ext = pathinfo($cup, PATHINFO_EXTENSION);
+        $fx_mouse_cursor_url = '/plugins/theme.effects/assets/cursor-custom.' . $ext . '?v=' . filemtime($cup);
+        break;
+    }
+}
+if ($fx_mouse_cursor === 'upload' && $fx_mouse_cursor_url === '') {
+    $fx_mouse_cursor = 'system';
+}
+$fx_music = (($fx['MUSIC_ENABLE'] ?? 'no') === 'yes');
+$fx_music_ui = (($fx['MUSIC_UI'] ?? 'card') === 'card') ? 'card' : 'card';
+$fx_music_source = (($fx['MUSIC_SOURCE'] ?? 'local') === 'local') ? 'local' : 'local';
+$fx_music_dir = trim((string)($fx['MUSIC_LOCAL_DIR'] ?? ''));
+$fx_music_vol = intval($fx['MUSIC_VOLUME'] ?? 70);
+if ($fx_music_vol < 0) $fx_music_vol = 0;
+if ($fx_music_vol > 100) $fx_music_vol = 100;
+$fx_music_autoplay = (($fx['MUSIC_AUTOPLAY'] ?? 'no') === 'yes');
+$fx_music_shuffle = (($fx['MUSIC_SHUFFLE'] ?? 'no') === 'yes');
+$fx_music_repeat = in_array(($fx['MUSIC_REPEAT'] ?? 'off'), ['off', 'one', 'all'], true) ? $fx['MUSIC_REPEAT'] : 'off';
+$fx_music_dash_only = (($fx['MUSIC_DASH_ONLY'] ?? 'yes') !== 'no');
+$fx_hutao = ($fx['HUTAO'] !== 'no');
+$fx_reduce = ($fx['REDUCE_MOTION'] === 'yes');
+$fx_blur = (($fx['BG_BLUR'] ?? 'no') === 'yes');
+$fx_mascot_blur = (($fx['HUTAO_BLUR'] ?? 'no') === 'yes');
+
+$fx_blur_level = in_array(($fx['BG_BLUR_LEVEL'] ?? 'md'), ['sm', 'md', 'lg'], true) ? $fx['BG_BLUR_LEVEL'] : 'md';
+$fx_mascot_blur_level = in_array(($fx['HUTAO_BLUR_LEVEL'] ?? 'md'), ['sm', 'md', 'lg'], true) ? $fx['HUTAO_BLUR_LEVEL'] : 'md';
+// wallpaper: sm 6 / md 10 / lg 16 ; mascot: sm 4 / md 8 / lg 12
+$bg_blur_px = ($fx_blur_level === 'sm') ? '6px' : (($fx_blur_level === 'lg') ? '16px' : '10px');
+$mascot_blur_px = ($fx_mascot_blur_level === 'sm') ? '4px' : (($fx_mascot_blur_level === 'lg') ? '12px' : '8px');
+
+$fx_perf = strtolower(trim((string)($fx['PERF_PROFILE'] ?? 'auto')));
+if (!in_array($fx_perf, ['auto', 'high', 'balanced', 'low'], true)) $fx_perf = 'auto';
+$fx_client_opt = (($fx['CLIENT_OPTIMIZED'] ?? 'no') === 'yes');
+$fx_count = intval($fx['PARTICLES_COUNT']);
+if ($fx_count < 30) $fx_count = 30;
+if ($fx_count > 120) $fx_count = 120;
+$load_particles = $fx_particles && !$fx_reduce;
+$load_mouse = !$fx_reduce; // Beta2: always load engine; prefs gate runtime
+$fx_hutao_size = in_array($fx['HUTAO_SIZE'], ['small', 'medium', 'large'], true) ? $fx['HUTAO_SIZE'] : 'medium';
+$fx_hutao_pos = in_array($fx['HUTAO_POS'], ['tl', 'tr', 'bl', 'br'], true) ? $fx['HUTAO_POS'] : 'br';
+$fx_hutao_type = (($fx['HUTAO_TYPE'] ?? 'hutao') === 'custom') ? 'custom' : 'hutao';
+// CSS var scale: small 0.78 / medium 1 / large 1.28
+$hutao_scale = ($fx_hutao_size === 'small') ? '0.78' : (($fx_hutao_size === 'large') ? '1.28' : '1');
+$mascot_url = '/plugins/theme.effects/assets/hutao.gif';
+if ($fx_hutao_type === 'custom') {
+    $custom_gif = $rt . '/mascot-custom.gif';
+    if (is_file($custom_gif) && filesize($custom_gif) > 0) {
+        $mascot_url = '/plugins/theme.effects/assets/mascot-custom.gif?v=' . filemtime($custom_gif);
+    } else {
+        // Fallback to built-in if custom missing
+        $fx_hutao_type = 'hutao';
+    }
+}
+
+// 壁纸仅本地 assets 根目录
+$bg_url = '/plugins/theme.effects/assets/background-1.jpg';
+$bg_mode = ($fx['BG_MODE'] === 'dynamic') ? 'dynamic' : 'local';
+$bg_slot = in_array($fx['BG_LOCAL_SLOT'], ['1', '2', 'custom'], true) ? $fx['BG_LOCAL_SLOT'] : '1';
+$pick = '';
+if ($bg_mode === 'dynamic') {
+    $pick = $rt . '/background-dynamic.jpg';
+} elseif ($bg_slot === '2') {
+    $pick = $rt . '/background-2.jpg';
+} elseif ($bg_slot === 'custom') {
+    $pick = $rt . '/background-custom.jpg';
+} else {
+    $pick = $rt . '/background-1.jpg';
+    if (!is_file($pick) || filesize($pick) <= 0) {
+        $pick = $rt . '/background.jpg'; // 兼容旧文件名
+    }
+}
+if ($pick !== '' && is_file($pick) && filesize($pick) > 0) {
+    $web = str_replace('/usr/local/emhttp', '', $pick);
+    $bg_url = $web . '?v=' . filemtime($pick);
+}
+
+// ---- Font / color theme tokens (phase 3: custom name + local files) ----
+$font_body_map = [
+    'system' => 'system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif',
+    'rajdhani' => '"Rajdhani", "Microsoft YaHei", system-ui, sans-serif',
+    'inter' => '"Inter", system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif',
+    'rubik' => '"Rubik", "Microsoft YaHei", system-ui, sans-serif',
+    'noto_sc' => '"Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif',
+    'source_han' => '"Source Han Sans SC", "Noto Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif',
+    'yahei' => '"Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif',
+];
+$font_title_map = [
+    'orbitron' => '"Orbitron", "Rajdhani", sans-serif',
+    'exo2' => '"Exo 2", "Orbitron", "Rajdhani", sans-serif',
+    'inter' => '"Inter", system-ui, -apple-system, "Segoe UI", sans-serif',
+    'rubik' => '"Rubik", "Microsoft YaHei", system-ui, sans-serif',
+    'system' => 'system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif',
+    'noto_sc' => '"Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif',
+    'source_han' => '"Source Han Sans SC", "Noto Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif',
+    'yahei' => '"Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif',
+];
+$sanitize_family = function ($v) {
+    $v = trim((string)$v);
+    $v = str_replace(["\"", "'", ";", "{", "}", "<", ">", "\\"], "", $v);
+    $v = preg_replace('/\s+/u', " ", $v);
+    if ($v === null) $v = "";
+    if (function_exists("mb_substr")) $v = mb_substr($v, 0, 48, "UTF-8");
+    else $v = substr($v, 0, 48);
+    $v = trim($v);
+    if ($v === "" || !preg_match('/^[\p{L}\p{N} ._\-]+$/u', $v)) return "";
+    return $v;
+};
+$local_name_ok = function ($v) {
+    $v = strtolower(trim((string)$v));
+    return preg_match('/^(body|title)-custom\.(woff2|woff|ttf|otf)$/', $v) ? $v : "";
+};
+$font_format = function ($ext) {
+    if ($ext === "woff2") return "woff2";
+    if ($ext === "woff") return "woff";
+    if ($ext === "otf") return "opentype";
+    return "truetype";
+};
+$font_body_key = $fx['FONT_BODY'] ?? 'rajdhani';
+$font_title_key = $fx['FONT_TITLE'] ?? 'orbitron';
+$custom_body = $sanitize_family($fx['FONT_CUSTOM_BODY'] ?? '');
+$custom_title = $sanitize_family($fx['FONT_CUSTOM_TITLE'] ?? '');
+$local_body = $local_name_ok($fx['FONT_LOCAL_BODY'] ?? '');
+$local_title = $local_name_ok($fx['FONT_LOCAL_TITLE'] ?? '');
+$local_body_url = "";
+$local_title_url = "";
+$local_body_fmt = "";
+$local_title_fmt = "";
+if ($local_body !== "") {
+    $p = "$rt/fonts/$local_body";
+    $pf = "/boot/config/plugins/theme.effects/assets/fonts/$local_body";
+    if (is_file($p) || is_file($pf)) {
+        $pick = is_file($p) ? $p : $pf;
+        $local_body_url = "/plugins/theme.effects/assets/fonts/" . rawurlencode($local_body) . "?v=" . @filemtime($pick);
+        $local_body_fmt = $font_format(strtolower(pathinfo($local_body, PATHINFO_EXTENSION)));
+    } else {
+        $local_body = "";
+    }
+}
+if ($local_title !== "") {
+    $p = "$rt/fonts/$local_title";
+    $pf = "/boot/config/plugins/theme.effects/assets/fonts/$local_title";
+    if (is_file($p) || is_file($pf)) {
+        $pick = is_file($p) ? $p : $pf;
+        $local_title_url = "/plugins/theme.effects/assets/fonts/" . rawurlencode($local_title) . "?v=" . @filemtime($pick);
+        $local_title_fmt = $font_format(strtolower(pathinfo($local_title, PATHINFO_EXTENSION)));
+    } else {
+        $local_title = "";
+    }
+}
+// Resolve stacks
+if ($font_body_key === "custom" && $custom_body !== "") {
+    $font_body_stack = '"' . $custom_body . '", "Microsoft YaHei", system-ui, sans-serif';
+} elseif ($font_body_key === "local" && $local_body !== "") {
+    $font_body_stack = '"UCWC Local Body", "Microsoft YaHei", system-ui, sans-serif';
+} else {
+    if (!isset($font_body_map[$font_body_key])) $font_body_key = "rajdhani";
+    $font_body_stack = $font_body_map[$font_body_key];
+}
+if ($font_title_key === "match_body") {
+    $font_title_stack = $font_body_stack;
+} elseif ($font_title_key === "custom" && ($custom_title !== "" || $custom_body !== "")) {
+    $tn = $custom_title !== "" ? $custom_title : $custom_body;
+    $font_title_stack = '"' . $tn . '", "Microsoft YaHei", system-ui, sans-serif';
+} elseif ($font_title_key === "local" && $local_title !== "") {
+    $font_title_stack = '"UCWC Local Title", "Microsoft YaHei", system-ui, sans-serif';
+} else {
+    if (!isset($font_title_map[$font_title_key])) $font_title_key = "orbitron";
+    $font_title_stack = $font_title_map[$font_title_key];
+}
+$font_title_upper = (($fx['FONT_TITLE_UPPER'] ?? 'no') === 'yes') ? 'uppercase' : 'none';
+$font_size = in_array((string)($fx['FONT_SIZE'] ?? '14'), ['13','14','15','16','17','18'], true) ? (string)$fx['FONT_SIZE'] : '14';
+$title_size_key = (string)($fx['FONT_TITLE_SIZE'] ?? 'default');
+$title_size_map = [
+    'default' => 'inherit',
+    'sm' => '1.05em',
+    'md' => '1.2em',
+    'lg' => '1.35em',
+    'xl' => '1.55em',
+];
+if (!isset($title_size_map[$title_size_key])) $title_size_key = 'default';
+$font_title_size = $title_size_map[$title_size_key];
+// letter-spacing: tighten for CJK-friendly titles when uppercase off
+$font_title_tracking = ($font_title_upper === 'uppercase') ? '1px' : '0.3px';
+
+$color_presets = [
+    'cyber'  => ['text' => '#eeeeee', 'title' => '#ffffff', 'label' => '#fb7299', 'link' => '#fb7299', 'cyan' => '#00f3ff', 'pink' => '#fb3f62', 'btn' => '#fb3f62', 'btn_hover' => '#cd4164', 'accent' => '251, 114, 153'],
+    'ice'    => ['text' => '#e8f1ff', 'title' => '#ffffff', 'label' => '#5eb3ff', 'link' => '#5eb3ff', 'cyan' => '#7dd3fc', 'pink' => '#60a5fa', 'btn' => '#3b82f6', 'btn_hover' => '#2563eb', 'accent' => '94, 179, 255'],
+    'gold'   => ['text' => '#f5efd8', 'title' => '#ffe9a8', 'label' => '#d4a017', 'link' => '#e0b53a', 'cyan' => '#f0d78c', 'pink' => '#d4a017', 'btn' => '#c9971a', 'btn_hover' => '#a67c12', 'accent' => '212, 160, 23'],
+    'mint'   => ['text' => '#e8fff6', 'title' => '#ffffff', 'label' => '#3dd6c6', 'link' => '#3dd6c6', 'cyan' => '#5eead4', 'pink' => '#2dd4bf', 'btn' => '#14b8a6', 'btn_hover' => '#0d9488', 'accent' => '61, 214, 198'],
+    'violet' => ['text' => '#f0e9ff', 'title' => '#ffffff', 'label' => '#a78bfa', 'link' => '#c4b5fd', 'cyan' => '#c4b5fd', 'pink' => '#a78bfa', 'btn' => '#8b5cf6', 'btn_hover' => '#7c3aed', 'accent' => '167, 139, 250'],
+    'sunset' => ['text' => '#ffe8e0', 'title' => '#fff5f0', 'label' => '#fb923c', 'link' => '#fdba74', 'cyan' => '#fdba74', 'pink' => '#f97316', 'btn' => '#ea580c', 'btn_hover' => '#c2410c', 'accent' => '251, 146, 60'],
+];
+$preset_key = $fx['COLOR_PRESET'] ?? 'cyber';
+if (!isset($color_presets[$preset_key]) && $preset_key !== 'custom') $preset_key = 'cyber';
+$base_pal = $color_presets[$preset_key === 'custom' ? 'cyber' : $preset_key];
+$hex_ok = function ($v) {
+    $v = trim((string)$v);
+    if ($v !== '' && preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $v)) return strtolower($v);
+    return '';
+};
+$c_text = $hex_ok($fx['COLOR_TEXT'] ?? '') ?: $base_pal['text'];
+$c_title = $hex_ok($fx['COLOR_TITLE'] ?? '') ?: $base_pal['title'];
+$c_label = $hex_ok($fx['COLOR_LABEL'] ?? '') ?: $base_pal['label'];
+// When custom colors set without custom preset, still honor hex; link follows label.
+$c_link = $c_label;
+$c_cyan = $base_pal['cyan'];
+$c_pink = $base_pal['pink'];
+$c_btn = $base_pal['btn'];
+$c_btn_hover = $base_pal['btn_hover'];
+$c_accent = $base_pal['accent'];
+if ($preset_key === 'custom' || $hex_ok($fx['COLOR_LABEL'] ?? '') !== '') {
+    // derive simple accent rgb from label hex if possible
+    $hx = ltrim($c_label, '#');
+    if (strlen($hx) === 3) $hx = $hx[0].$hx[0].$hx[1].$hx[1].$hx[2].$hx[2];
+    if (strlen($hx) === 6 && ctype_xdigit($hx)) {
+        $c_accent = hexdec(substr($hx,0,2)) . ', ' . hexdec(substr($hx,2,2)) . ', ' . hexdec(substr($hx,4,2));
+        $c_btn = $c_label;
+        $c_pink = $c_label;
+    }
+}
+// Google Fonts: load only preset families (skip custom/local/system/yahei).
+$google_family_map = [
+    'rajdhani' => 'Rajdhani:wght@500;600;700',
+    'orbitron' => 'Orbitron:wght@500;700',
+    'inter' => 'Inter:wght@400;500;600;700',
+    'rubik' => 'Rubik:wght@400;500;600;700',
+    'exo2' => 'Exo+2:wght@500;600;700',
+    'noto_sc' => 'Noto+Sans+SC:wght@400;500;700',
+    'source_han' => 'Noto+Sans+SC:wght@400;500;700',
+];
+$need_keys = [];
+if (!in_array($font_body_key, ["custom", "local", "system", "yahei"], true)) $need_keys[] = $font_body_key;
+if ($font_title_key === "match_body") {
+    // inherit body google needs
+} elseif (!in_array($font_title_key, ["custom", "local", "system", "yahei"], true)) {
+    $need_keys[] = $font_title_key;
+}
+if ($font_title_key === "orbitron" && !in_array("rajdhani", $need_keys, true) && $font_body_key === "rajdhani") {
+    $need_keys[] = "rajdhani";
+}
+$google_families = [];
+foreach (array_unique($need_keys) as $gk) {
+    if (isset($google_family_map[$gk])) $google_families[] = $google_family_map[$gk];
+}
+$google_families = array_values(array_unique($google_families));
+$google_href = count($google_families)
+    ? 'https://fonts.googleapis.com/css2?family=' . implode('&family=', $google_families) . '&display=swap'
+    : '';
+// @font-face for local uploads
+$local_face_css = "";
+if ($local_body !== "" && $local_body_url !== "") {
+    $local_face_css .= "@font-face{font-family:\"UCWC Local Body\";src:url(\"" . htmlspecialchars($local_body_url, ENT_QUOTES) . "\") format(\"" . $local_body_fmt . "\");font-display:swap;font-weight:100 900;font-style:normal;}";
+}
+if ($local_title !== "" && $local_title_url !== "") {
+    $local_face_css .= "@font-face{font-family:\"UCWC Local Title\";src:url(\"" . htmlspecialchars($local_title_url, ENT_QUOTES) . "\") format(\"" . $local_title_fmt . "\");font-display:swap;font-weight:100 900;font-style:normal;}";
+}
+
+// Status-bar / browser chrome color: sample top of wallpaper (not pure black)
+$ucwc_status_color = '#222630';
+if ($pick !== '' && is_file($pick) && function_exists('imagecreatefromjpeg')) {
+    $ext = strtolower(pathinfo($pick, PATHINFO_EXTENSION));
+    $im = null;
+    if ($ext === 'jpg' || $ext === 'jpeg') $im = @imagecreatefromjpeg($pick);
+    elseif ($ext === 'png' && function_exists('imagecreatefrompng')) $im = @imagecreatefrompng($pick);
+    elseif ($ext === 'webp' && function_exists('imagecreatefromwebp')) $im = @imagecreatefromwebp($pick);
+    if ($im) {
+        $w = imagesx($im); $h = imagesy($im);
+        $rs = $gs = $bs = $n = 0;
+        $rows = max(1, min(48, (int)($h * 0.04)));
+        $step = max(1, (int)($w / 100));
+        for ($y = 0; $y < $rows; $y++) {
+            for ($x = 0; $x < $w; $x += $step) {
+                $rgb = imagecolorat($im, $x, $y);
+                $rs += ($rgb >> 16) & 255;
+                $gs += ($rgb >> 8) & 255;
+                $bs += $rgb & 255;
+                $n++;
+            }
+        }
+        if ($n > 0) {
+            $ucwc_status_color = sprintf('#%02x%02x%02x', (int)round($rs/$n), (int)round($gs/$n), (int)round($bs/$n));
+        }
+        imagedestroy($im);
+    }
+}
+
+$settings = parse_plugin_cfg("theme.effects");
+if (($settings['SERVICE'] ?? "enabled") === "enabled") {
+    if (file_exists($local_css)) {
+        $ver = filemtime($local_css);
+        ?>
+        <link rel="stylesheet" type="text/css" href="<?=$web_css?>?v=<?=$ver?>">
+        <?php
+    }
+    $current_theme = @parse_ini_file($unraid_theme_cfg)['theme'] ?? 'white';
+    if ($current_theme === 'black' && file_exists($local_black_css)) {
+        $ver_black = filemtime($local_black_css);
+        ?>
+        <link rel="stylesheet" type="text/css" href="<?=$web_black_css?>?v=<?=$ver_black?>">
+        <?php
+    }
+}
+?>
+<!-- ThemeEffects:theme-effects:start -->
+<meta name="theme-color" content="<?= htmlspecialchars($ucwc_status_color, ENT_QUOTES) ?>">
+<meta name="msapplication-navbutton-color" content="<?= htmlspecialchars($ucwc_status_color, ENT_QUOTES) ?>">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<?php if ($google_href !== ''): ?>
+<link rel="stylesheet" href="<?= htmlspecialchars($google_href, ENT_QUOTES) ?>">
+<?php endif; ?>
+<style id="ucwc-bg-style">
+<?= $local_face_css ?>
+:root {
+  --ucwc-bg-url: url("<?= htmlspecialchars($bg_url, ENT_QUOTES) ?>");
+  --ucwc-bg-blur: <?= htmlspecialchars($bg_blur_px, ENT_QUOTES) ?>;
+  --ucwc-mascot-blur: <?= htmlspecialchars($mascot_blur_px, ENT_QUOTES) ?>;
+  --ucwc-hutao-scale: <?= htmlspecialchars($hutao_scale, ENT_QUOTES) ?>;
+  --ucwc-mascot-url: url("<?= htmlspecialchars($mascot_url, ENT_QUOTES) ?>");
+  --ucwc-status-color: <?= htmlspecialchars($ucwc_status_color, ENT_QUOTES) ?>;
+  --page-bg: <?= htmlspecialchars($ucwc_status_color, ENT_QUOTES) ?>;
+  --ucwc-font-body: <?= $font_body_stack ?>;
+  --ucwc-font-title: <?= $font_title_stack ?>;
+  --ucwc-font-size: <?= htmlspecialchars($font_size, ENT_QUOTES) ?>px;
+  --ucwc-title-size: <?= htmlspecialchars($font_title_size, ENT_QUOTES) ?>;
+  --ucwc-title-transform: <?= htmlspecialchars($font_title_upper, ENT_QUOTES) ?>;
+  --ucwc-title-tracking: <?= htmlspecialchars($font_title_tracking, ENT_QUOTES) ?>;
+  --text: <?= htmlspecialchars($c_text, ENT_QUOTES) ?>;
+  --text-hover: <?= htmlspecialchars($c_title, ENT_QUOTES) ?>;
+  --text-muted: #999999;
+  --label: <?= htmlspecialchars($c_label, ENT_QUOTES) ?>;
+  --link: <?= htmlspecialchars($c_link, ENT_QUOTES) ?>;
+  --link-hover: rgba(<?= htmlspecialchars($c_accent, ENT_QUOTES) ?>, 0.2);
+  --cyan: <?= htmlspecialchars($c_cyan, ENT_QUOTES) ?>;
+  --pink: <?= htmlspecialchars($c_pink, ENT_QUOTES) ?>;
+  --btn: <?= htmlspecialchars($c_btn, ENT_QUOTES) ?>;
+  --btn-hover: <?= htmlspecialchars($c_btn_hover, ENT_QUOTES) ?>;
+  --btn-text: #eeeeee;
+  --btn-text-hover: #ffffff;
+  --accent: <?= htmlspecialchars($c_accent, ENT_QUOTES) ?>;
+  --accent-bg: rgba(<?= htmlspecialchars($c_accent, ENT_QUOTES) ?>, 0.2);
+}
+body {
+  font-family: var(--ucwc-font-body) !important;
+  font-size: var(--ucwc-font-size) !important;
+  color: var(--text);
+}
+h1, h2, h3, h4, h5, h6, strong, .title, #title, div.title, dt {
+  font-family: var(--ucwc-font-title) !important;
+  text-transform: var(--ucwc-title-transform) !important;
+  letter-spacing: var(--ucwc-title-tracking) !important;
+  color: var(--text-hover);
+}
+/* Title size only when not "default/inherit" — avoid breaking Unraid chrome scale */
+<?php if ($title_size_key !== 'default'): ?>
+h1, h2, h3, h4, h5, h6, .title, #title, div.title {
+  font-size: var(--ucwc-title-size) !important;
+}
+<?php endif; ?>
+table, td, th, div, p, a, span, input, select, textarea, button, .button {
+  font-family: var(--ucwc-font-body) !important;
+}
+/* Keep icon fonts intact under body/title overrides */
+.fa, .fa-fw, [class^="icon-"], [class*=" icon-"] {
+  font-family: inherit;
+}
+.fa, .fa-fw { font-family: "FontAwesome" !important; }
+[class^="icon-"], [class*=" icon-"] { font-family: unraid !important; }
+</style>
+<script>
+window.__UCWC_THEME__ = {
+  particles: <?= $fx_particles ? 'true' : 'false' ?>,
+  particles_count: <?= (int)$fx_count ?>,
+  hutao: <?= $fx_hutao ? 'true' : 'false' ?>,
+  hutao_size: <?= json_encode($fx_hutao_size) ?>,
+  hutao_pos: <?= json_encode($fx_hutao_pos) ?>,
+  hutao_type: <?= json_encode($fx_hutao_type) ?>,
+  hutao_blur: <?= $fx_mascot_blur ? 'true' : 'false' ?>,
+  mascot_url: <?= json_encode($mascot_url) ?>,
+  reduce_motion: <?= $fx_reduce ? 'true' : 'false' ?>,
+  bg_mode: <?= json_encode($bg_mode) ?>,
+  bg_url: <?= json_encode($bg_url) ?>,
+  bg_blur: <?= $fx_blur ? 'true' : 'false' ?>,
+  bg_blur_level: <?= json_encode($fx_blur_level) ?>,
+  hutao_blur_level: <?= json_encode($fx_mascot_blur_level) ?>,
+  bg_blur_px: <?= json_encode($bg_blur_px) ?>,
+  hutao_blur_px: <?= json_encode($mascot_blur_px) ?>,
+  perf_profile: <?= json_encode($fx_perf) ?>,
+  client_optimized: <?= $fx_client_opt ? 'true' : 'false' ?>,
+  mouse_fx: <?= $fx_mouse ? 'true' : 'false' ?>,
+  mouse_style: <?= json_encode($fx_mouse_style) ?>,
+  mouse_size: <?= (int)$fx_mouse_size ?>,
+  mouse_intensity: <?= (int)$fx_mouse_intensity ?>,
+  mouse_color: <?= json_encode($fx_mouse_color) ?>,
+  mouse_click_ripple: <?= $fx_mouse_ripple ? 'true' : 'false' ?>,
+  mouse_cursor: <?= json_encode($fx_mouse_cursor) ?>,
+  mouse_cursor_url: <?= json_encode($fx_mouse_cursor_url) ?>,
+  mouse_cursor_hotspot_x: <?= (int)$fx_mouse_cursor_hx ?>,
+  mouse_cursor_hotspot_y: <?= (int)$fx_mouse_cursor_hy ?>,
+  music: {
+    enable: <?= $fx_music ? 'true' : 'false' ?>,
+    ui: <?= json_encode($fx_music_ui) ?>,
+    source: <?= json_encode($fx_music_source) ?>,
+    local_dir: <?= json_encode($fx_music_dir) ?>,
+    volume: <?= (int)$fx_music_vol ?>,
+    autoplay: <?= $fx_music_autoplay ? 'true' : 'false' ?>,
+    shuffle: <?= $fx_music_shuffle ? 'true' : 'false' ?>,
+    repeat: <?= json_encode($fx_music_repeat) ?>,
+    dash_only: <?= $fx_music_dash_only ? 'true' : 'false' ?>
+  }
+};
+(function () {
+  var t = window.__UCWC_THEME__ || {};
+  var mascotEl = null;
+  var mascotSrcLocked = '';
+  var freezeEl = null;
+  var thawTimer = null;
+  var classesApplied = false;
+
+  function setClass(el, name, on) {
+    if (!el || !el.classList) return;
+    var has = el.classList.contains(name);
+    if (on && !has) el.classList.add(name);
+    else if (!on && has) el.classList.remove(name);
+  }
+
+  function ensureMascot() {
+    if (t.hutao === false) {
+      mascotEl = document.getElementById('ucwc-mascot') || mascotEl;
+      if (mascotEl) {
+        setClass(mascotEl, 'ucwc-mascot-off', true);
+        mascotEl.setAttribute('hidden', '');
+      }
+      if (freezeEl) freezeEl.style.display = 'none';
+      return null;
+    }
+    mascotEl = document.getElementById('ucwc-mascot');
+    if (!mascotEl) {
+      mascotEl = document.createElement('img');
+      mascotEl.id = 'ucwc-mascot';
+      mascotEl.alt = '';
+      mascotEl.setAttribute('aria-hidden', 'true');
+      try { mascotEl.decoding = 'sync'; } catch (e0) {}
+      mascotEl.draggable = false;
+      try { mascotEl.loading = 'eager'; } catch (e1) {}
+      // Hint browser to keep layer; avoid display toggles later
+      mascotEl.style.contain = 'strict';
+      if (document.body) document.body.appendChild(mascotEl);
+      else if (document.documentElement) document.documentElement.appendChild(mascotEl);
+    }
+    setClass(mascotEl, 'ucwc-mascot-off', false);
+    mascotEl.removeAttribute('hidden');
+    var url = t.mascot_url || '/plugins/theme.effects/assets/hutao.gif';
+    // Only set src when URL actually changes — reassignment restarts GIF (flicker).
+    if (url && mascotSrcLocked !== url) {
+      mascotSrcLocked = url;
+      if (mascotEl.getAttribute('src') !== url) mascotEl.src = url;
+    }
+    return mascotEl;
+  }
+
+  /** Snapshot current GIF frame onto a fixed canvas so tab hide/show restart is covered. */
+  function freezeMascotFrame() {
+    try {
+      var img = ensureMascot();
+      if (!img || !img.complete || !(img.naturalWidth > 0)) return;
+      var r = img.getBoundingClientRect();
+      if (!(r.width > 0 && r.height > 0)) return;
+      freezeEl = document.getElementById('ucwc-mascot-freeze');
+      if (!freezeEl) {
+        freezeEl = document.createElement('canvas');
+        freezeEl.id = 'ucwc-mascot-freeze';
+        freezeEl.setAttribute('aria-hidden', 'true');
+        freezeEl.style.cssText =
+          'position:fixed;z-index:2;pointer-events:none;display:none;margin:0;padding:0;border:0;';
+        (document.body || document.documentElement).appendChild(freezeEl);
+      }
+      var nw = img.naturalWidth;
+      var nh = img.naturalHeight;
+      if (freezeEl.width !== nw) freezeEl.width = nw;
+      if (freezeEl.height !== nh) freezeEl.height = nh;
+      var ctx = freezeEl.getContext('2d');
+      if (!ctx) return;
+      ctx.clearRect(0, 0, nw, nh);
+      ctx.drawImage(img, 0, 0, nw, nh);
+      freezeEl.style.left = r.left + 'px';
+      freezeEl.style.top = r.top + 'px';
+      freezeEl.style.width = r.width + 'px';
+      freezeEl.style.height = r.height + 'px';
+      freezeEl.style.right = 'auto';
+      freezeEl.style.bottom = 'auto';
+      freezeEl.style.opacity = '1';
+      freezeEl.style.display = 'block';
+      // Hide live GIF under freeze (class beats opacity !important)
+      if (img.classList) img.classList.add('ucwc-mascot-frozen');
+    } catch (e) {}
+  }
+
+  function thawMascotFrame() {
+    try {
+      if (thawTimer) {
+        clearTimeout(thawTimer);
+        thawTimer = null;
+      }
+      var img = document.getElementById('ucwc-mascot');
+      freezeEl = document.getElementById('ucwc-mascot-freeze');
+      // Two rAFs + short delay: let GIF decoder present a frame before revealing
+      var reveal = function () {
+        if (img && img.classList) img.classList.remove('ucwc-mascot-frozen');
+        if (freezeEl) freezeEl.style.display = 'none';
+      };
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          thawTimer = setTimeout(reveal, 48);
+        });
+      });
+    } catch (e) {
+      try {
+        var img2 = document.getElementById('ucwc-mascot');
+        if (img2 && img2.classList) img2.classList.remove('ucwc-mascot-frozen');
+        if (freezeEl) freezeEl.style.display = 'none';
+      } catch (e2) {}
+    }
+  }
+
+  var apply = function (force) {
+    var root = document.documentElement, body = document.body;
+    var size = t.hutao_size || 'medium';
+    var pos = t.hutao_pos || 'br';
+    var posClass = ({ tl: 'ucwc-hutao-tl', tr: 'ucwc-hutao-tr', bl: 'ucwc-hutao-bl', br: 'ucwc-hutao-br' })[pos] || 'ucwc-hutao-br';
+    var sizeClass = size === 'small' ? 'ucwc-hutao-sm' : (size === 'large' ? 'ucwc-hutao-lg' : 'ucwc-hutao-md');
+    // Skip redundant class thrash after first paint (avoids GIF composite restart)
+    if (classesApplied && !force) {
+      ensureMascot();
+      return;
+    }
+    if (root) {
+      setClass(root, 'ucwc-hutao-off', t.hutao === false);
+      setClass(root, 'ucwc-reduce-motion', !!t.reduce_motion);
+      setClass(root, 'ucwc-particles-on', !!t.particles && !t.reduce_motion);
+      setClass(root, 'ucwc-bg-blur', !!t.bg_blur);
+      setClass(root, 'ucwc-no-bg-blur', !t.bg_blur);
+      setClass(root, 'ucwc-mascot-blur', !!(t.hutao !== false && t.hutao_blur));
+      ['ucwc-hutao-sm', 'ucwc-hutao-md', 'ucwc-hutao-lg', 'ucwc-hutao-tl', 'ucwc-hutao-tr', 'ucwc-hutao-bl', 'ucwc-hutao-br'].forEach(function (c) {
+        setClass(root, c, false);
+      });
+      if (t.hutao !== false) {
+        setClass(root, sizeClass, true);
+        setClass(root, posClass, true);
+      }
+      if (t.mascot_url) {
+        root.style.setProperty('--ucwc-mascot-url', 'url("' + String(t.mascot_url).replace(/"/g, '\\"') + '")');
+      }
+      // System pointer style — independent of canvas mouse FX.
+      // IMPORTANT: do NOT early-whitelist only legacy names (that wiped neon3d/holo/… to system sitewide).
+      (function applyCursorEarly() {
+        var cur = String(t.mouse_cursor || 'system').toLowerCase().trim();
+        if (cur === 'auto' || cur === 'default' || cur === '') cur = 'system';
+        // Legacy Beta3 presets → neon3d
+        if (cur === 'dot' || cur === 'cross' || cur === 'neon' || cur === 'none') cur = 'neon3d';
+        var allowed = ['system', 'neon3d', 'holo', 'cyber', 'crystal', 'upload'];
+        if (allowed.indexOf(cur) < 0) cur = 'system';
+        // Custom upload file missing → fall back
+        if (cur === 'upload' && !t.mouse_cursor_url) cur = 'system';
+        ['ucwc-cursor-system', 'ucwc-cursor-dot', 'ucwc-cursor-cross', 'ucwc-cursor-neon', 'ucwc-cursor-none',
+         'ucwc-cursor-neon3d', 'ucwc-cursor-holo', 'ucwc-cursor-cyber', 'ucwc-cursor-crystal',
+         'ucwc-cursor-upload', 'ucwc-cursor-custom'].forEach(function (c) {
+          setClass(root, c, false);
+        });
+        root.setAttribute('data-ucwc-cursor', cur);
+        setClass(root, 'ucwc-cursor-' + cur, true);
+        setClass(root, 'ucwc-cursor-custom', cur !== 'system');
+        if (cur === 'upload' && t.mouse_cursor_url) {
+          var hx = typeof t.mouse_cursor_hotspot_x === 'number' ? t.mouse_cursor_hotspot_x : 4;
+          var hy = typeof t.mouse_cursor_hotspot_y === 'number' ? t.mouse_cursor_hotspot_y : 2;
+          var u = String(t.mouse_cursor_url).replace(/\\/g, '/').replace(/"/g, '\\"');
+          root.style.setProperty('--ucwc-cursor', 'url("' + u + '") ' + hx + ' ' + hy + ', auto');
+        } else if (cur === 'system') {
+          try { root.style.removeProperty('--ucwc-cursor'); } catch (eCurClr) {}
+        }
+      })();
+    }
+    if (body) {
+      setClass(body, 'ucwc-hutao-off', t.hutao === false);
+      setClass(body, 'ucwc-reduce-motion', !!t.reduce_motion);
+      setClass(body, 'ucwc-particles-on', !!t.particles && !t.reduce_motion);
+      setClass(body, 'ucwc-bg-blur', !!t.bg_blur);
+      setClass(body, 'ucwc-no-bg-blur', !t.bg_blur);
+      setClass(body, 'ucwc-mascot-blur', !!(t.hutao !== false && t.hutao_blur));
+      // Perf profile classes only (GPU_ACCEL removed — no meaningful client load relief).
+      var perf = t.perf_profile || 'auto';
+      if (perf === 'auto') {
+        try {
+          var mem = navigator.deviceMemory || 0;
+          var cores = navigator.hardwareConcurrency || 0;
+          var mobile = (window.innerWidth || 0) < 768;
+          var saveData = !!(navigator.connection && navigator.connection.saveData);
+          var low = saveData || (mem > 0 && mem <= 4) || (cores > 0 && cores <= 4) || (mobile && (window.devicePixelRatio || 1) >= 2.5);
+          var high = !low && ((mem >= 8 && cores >= 6) || (!mobile && mem >= 8));
+          perf = low ? 'low' : (high ? 'high' : 'balanced');
+        } catch (ePerf) { perf = 'balanced'; }
+      }
+      setClass(root, 'ucwc-perf-high', perf === 'high');
+      setClass(root, 'ucwc-perf-balanced', perf === 'balanced');
+      setClass(root, 'ucwc-perf-low', perf === 'low');
+      setClass(body, 'ucwc-perf-high', perf === 'high');
+      setClass(body, 'ucwc-perf-balanced', perf === 'balanced');
+      setClass(body, 'ucwc-perf-low', perf === 'low');
+      // Soft-cap particle count on low when still enabled
+      if (perf === 'low' && t.particles && typeof t.particles_count === 'number' && t.particles_count > 50) {
+        t.particles_count = 50;
+      }
+
+    }
+    ensureMascot();
+    classesApplied = true;
+  };
+  if (document.body) apply(true); else document.addEventListener('DOMContentLoaded', function () { apply(true); });
+
+  // Tab minimize/restore: browsers restart animated GIF from frame 0.
+  // Cover with a canvas snapshot of the last frame so the jump is invisible.
+  (function () {
+    function onVis() {
+      if (document.visibilityState === 'hidden') {
+        freezeMascotFrame();
+      } else {
+        // Do NOT re-run full apply() (class thrash restarts GIF harder).
+        ensureMascot();
+        thawMascotFrame();
+      }
+    }
+    document.addEventListener('visibilitychange', onVis, false);
+    window.addEventListener('pagehide', function () {
+      freezeMascotFrame();
+    }, false);
+    window.addEventListener('pageshow', function () {
+      ensureMascot();
+      thawMascotFrame();
+    }, false);
+    // blur/focus: some desktop browsers freeze GIF without visibilitychange
+    window.addEventListener('blur', function () {
+      if (document.visibilityState === 'hidden') freezeMascotFrame();
+    }, false);
+  })();
+
+  // Fullscreen wallpaper: real DOM layer + mobile chrome theme-color
+  (function () {
+    var el = null;
+    var root = document.documentElement;
+
+    function ensureEl() {
+      el = document.getElementById('ucwc-wallpaper');
+      if (el) return el;
+      el = document.createElement('div');
+      el.id = 'ucwc-wallpaper';
+      el.setAttribute('aria-hidden', 'true');
+      if (document.body) document.body.insertBefore(el, document.body.firstChild);
+      else if (root) root.appendChild(el);
+      if (root) root.classList.add('ucwc-has-wallpaper');
+      return el;
+    }
+
+    function cssPx(n) { return Math.ceil(n) + 'px'; }
+
+    function ensureViewportFit() {
+      try {
+        var m = document.querySelector('meta[name="viewport"]');
+        if (!m) {
+          m = document.createElement('meta');
+          m.setAttribute('name', 'viewport');
+          m.setAttribute('content', 'width=device-width, initial-scale=1, viewport-fit=cover');
+          (document.head || root).appendChild(m);
+        } else {
+          var c = m.getAttribute('content') || '';
+          if (c.indexOf('viewport-fit') === -1) {
+            m.setAttribute('content', c + (c ? ', ' : '') + 'viewport-fit=cover');
+          }
+        }
+        var sc = getComputedStyle(root).getPropertyValue('--ucwc-status-color').trim() || '#222630';
+        var metas = document.querySelectorAll('meta[name="theme-color"]');
+        if (!metas.length) {
+          var tm = document.createElement('meta');
+          tm.setAttribute('name', 'theme-color');
+          tm.setAttribute('content', sc);
+          (document.head || root).appendChild(tm);
+        } else {
+          for (var i = 0; i < metas.length; i++) metas[i].setAttribute('content', sc);
+        }
+        var ensureMeta = function (name, content) {
+          var el = document.querySelector('meta[name="' + name + '"]');
+          if (!el) {
+            el = document.createElement('meta');
+            el.setAttribute('name', name);
+            (document.head || root).appendChild(el);
+          }
+          el.setAttribute('content', content);
+        };
+        ensureMeta('apple-mobile-web-app-status-bar-style', 'black-translucent');
+        ensureMeta('apple-mobile-web-app-capable', 'yes');
+        ensureMeta('mobile-web-app-capable', 'yes');
+        root.style.backgroundColor = sc;
+      } catch (e) {}
+    }
+
+    function isMobileLike() {
+      try {
+        var w = window.innerWidth || (root && root.clientWidth) || 0;
+        var coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+        var noHover = window.matchMedia && window.matchMedia('(hover: none)').matches;
+        // 仅手机/窄屏走 overscan；桌面宽屏禁止用 screen.* 放大壁纸
+        return w > 0 && w < 768 && (coarse || noHover || w <= 520);
+      } catch (e) {
+        return (window.innerWidth || 0) < 768;
+      }
+    }
+
+    /* Skip no-op geometry writes (blur layers re-rasterize on every style change). */
+    var lastGeom = '';
+    var fitTimer = 0;
+    var scrollFitTimer = 0;
+
+    function fit() {
+      try {
+        ensureViewportFit();
+        var node = ensureEl();
+        if (!node) return;
+        var vv = window.visualViewport;
+        var mobile = isMobileLike();
+        var w, h, left, top, layoutH;
+
+        if (mobile) {
+          // 移动端：覆盖状态栏/底部安全区，允许小幅 overscan
+          var sw = Math.max(
+            window.innerWidth || 0,
+            (root && root.clientWidth) || 0,
+            (vv && vv.width) || 0
+          );
+          var sh = Math.max(
+            window.innerHeight || 0,
+            (root && root.clientHeight) || 0,
+            (vv && (vv.height + (vv.offsetTop || 0))) || 0
+          );
+          // 不用 screen.width/height：横竖屏与 CSS 像素不一致会导致放大
+          var pad = Math.max(24, Math.min(64, Math.round(Math.max(sw, sh) * 0.06)));
+          w = Math.max(sw, 1) + pad * 2;
+          h = Math.max(sh, 1) + pad * 2;
+          left = -pad - ((vv && vv.offsetLeft) || 0);
+          top = -pad - ((vv && vv.offsetTop) || 0);
+          layoutH = sh + pad;
+        } else {
+          // PC：贴合可视窗口，禁止 overscan，避免壁纸被放大裁切
+          w = Math.max(
+            window.innerWidth || 0,
+            (root && root.clientWidth) || 0,
+            (document.documentElement && document.documentElement.clientWidth) || 0,
+            1
+          );
+          h = Math.max(
+            window.innerHeight || 0,
+            (root && root.clientHeight) || 0,
+            (document.documentElement && document.documentElement.clientHeight) || 0,
+            1
+          );
+          left = 0;
+          top = 0;
+          layoutH = h;
+        }
+
+        var geomKey = [Math.round(left), Math.round(top), Math.round(w), Math.round(h)].join(',');
+        var first = !lastGeom;
+        if (geomKey === lastGeom) return;
+        lastGeom = geomKey;
+
+        node.style.position = 'fixed';
+        node.style.left = cssPx(left);
+        node.style.top = cssPx(top);
+        node.style.width = cssPx(w);
+        node.style.height = cssPx(h);
+        node.style.right = 'auto';
+        node.style.bottom = 'auto';
+        node.style.zIndex = '-2';
+        node.style.pointerEvents = 'none';
+        /* Only set paint props once — rewriting them forces blur re-filter */
+        if (first) {
+          node.style.backgroundImage = 'var(--ucwc-bg-url)';
+          node.style.backgroundSize = 'cover';
+          node.style.backgroundPosition = 'center top';
+          node.style.backgroundRepeat = 'no-repeat';
+        }
+        if (root) {
+          root.style.setProperty('--ucwc-cover-h', cssPx(h));
+          root.style.minHeight = '';
+          /* After wallpaper layer exists, drop sharp html background so we do not
+             double-paint full-viewport image under the blurred layer. */
+          if (first) {
+            root.style.backgroundImage = 'none';
+            root.style.backgroundSize = '';
+            root.style.backgroundPosition = '';
+            root.style.backgroundRepeat = '';
+          }
+        }
+        if (document.body) {
+          document.body.style.minHeight = '';
+          document.body.style.background = 'transparent';
+          document.body.style.backgroundColor = 'transparent';
+        }
+      } catch (e) {}
+    }
+
+    function scheduleFit(ms) {
+      clearTimeout(fitTimer);
+      fitTimer = setTimeout(fit, ms || 0);
+    }
+
+    function boot() {
+      fit();
+      /* independent delayed passes — do not share fitTimer with scheduleFit */
+      setTimeout(fit, 50);
+      setTimeout(fit, 300);
+      /* one late pass for soft-keyboard / chrome URL bar settle */
+      setTimeout(fit, 1000);
+    }
+
+    if (document.body) boot();
+    else document.addEventListener('DOMContentLoaded', boot);
+
+    window.addEventListener('resize', function () { scheduleFit(48); }, { passive: true });
+    window.addEventListener('orientationchange', function () {
+      lastGeom = '';
+      scheduleFit(50);
+      scheduleFit(300);
+    }, { passive: true });
+    document.addEventListener('fullscreenchange', function () { lastGeom = ''; scheduleFit(16); }, { passive: true });
+    document.addEventListener('webkitfullscreenchange', function () { lastGeom = ''; scheduleFit(16); }, { passive: true });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', function () { scheduleFit(48); }, { passive: true });
+      /* vv scroll fires very often on mobile URL-bar collapse — debounce hard */
+      window.visualViewport.addEventListener('scroll', function () {
+        clearTimeout(scrollFitTimer);
+        scrollFitTimer = setTimeout(fit, 120);
+      }, { passive: true });
+    }
+    try {
+      var mql = window.matchMedia && window.matchMedia('(display-mode: fullscreen), (display-mode: standalone), (display-mode: minimal-ui)');
+      if (mql) {
+        var onDm = function () { lastGeom = ''; scheduleFit(16); };
+        if (mql.addEventListener) mql.addEventListener('change', onDm);
+        else if (mql.addListener) mql.addListener(onDm);
+      }
+    } catch (e) {}
+  })();
+})();
+</script>
+<?php if ($load_particles && is_file('/usr/local/emhttp/plugins/theme.effects/assets/ucwc-particles.js')):
+  $pver = filemtime('/usr/local/emhttp/plugins/theme.effects/assets/ucwc-particles.js');
+?>
+<script src="/plugins/theme.effects/assets/ucwc-particles.js?v=<?=$pver?>"></script>
+<?php endif; ?>
+<?php if ($load_mouse && is_file('/usr/local/emhttp/plugins/theme.effects/assets/ucwc-mouse-fx.js')):
+  $mver = filemtime('/usr/local/emhttp/plugins/theme.effects/assets/ucwc-mouse-fx.js');
+?>
+<script src="/plugins/theme.effects/assets/ucwc-mouse-fx.js?v=<?=$mver?>"></script>
+<?php endif; ?>
+<?php if ($fx_music):
+  $music_css = '/usr/local/emhttp/plugins/theme.effects/assets/ucwc-music.css';
+  $music_js = '/usr/local/emhttp/plugins/theme.effects/assets/ucwc-music.js';
+  if (is_file($music_css)):
+    $mcssv = filemtime($music_css);
+?>
+<link rel="stylesheet" id="ucwc-music-css" href="/plugins/theme.effects/assets/ucwc-music.css?v=<?=$mcssv?>">
+<?php endif;
+  if (is_file($music_js)):
+    $mjsv = filemtime($music_js);
+?>
+<script src="/plugins/theme.effects/assets/ucwc-music.js?v=<?=$mjsv?>"></script>
+<?php endif; endif; ?>
+
+<!-- ThemeEffects:dash-close-inline:start -->
+<script>
+(function () {
+  // Stock addProperties() prepends Close Tile as first child of td (own row/left).
+  // Move into .tile-header-right-controls as first icon (in front of cog/chevron).
+  // Some tiles (e.g. Airflow without autofan) have no right-controls — create one.
+  function ensureRightControls(tbody) {
+    var controls =
+      tbody.querySelector('td:first-child .tile-header-right-controls') ||
+      tbody.querySelector('.tile-header-right .tile-header-right-controls') ||
+      tbody.querySelector('.tile-header-right-controls');
+    if (controls) return controls;
+    var header = tbody.querySelector('.tile-header');
+    if (!header) return null;
+    var right = header.querySelector('.tile-header-right');
+    if (!right) {
+      right = document.createElement('span');
+      right.className = 'tile-header-right';
+      header.appendChild(right);
+    }
+    controls = document.createElement('span');
+    controls.className = 'tile-header-right-controls';
+    right.appendChild(controls);
+    return controls;
+  }
+  function relocateCloseTiles() {
+    try {
+      if (!document.querySelector('table.dashboard')) return;
+      var closes = document.querySelectorAll('table.dashboard tbody:not(.system) i.fa-close.tile');
+      for (var i = 0; i < closes.length; i++) {
+        var ic = closes[i];
+        var parent = ic.parentElement;
+        if (parent && parent.classList && parent.classList.contains('tile-header-right-controls')) {
+          if (parent.firstElementChild !== ic) parent.insertBefore(ic, parent.firstElementChild);
+          continue;
+        }
+        var tbody = ic.closest ? ic.closest('tbody') : null;
+        if (!tbody) continue;
+        var controls = ensureRightControls(tbody);
+        if (!controls) continue;
+        if (controls.firstElementChild) controls.insertBefore(ic, controls.firstElementChild);
+        else controls.appendChild(ic);
+      }
+    } catch (e) {}
+  }
+  function boot() {
+    relocateCloseTiles();
+    var n = 0;
+    var t = setInterval(function () {
+      relocateCloseTiles();
+      if (++n >= 40) clearInterval(t);
+    }, 250);
+    try {
+      var root = document.querySelector('div.frame') || document.body;
+      if (root && window.MutationObserver) {
+        var mo = new MutationObserver(function () { relocateCloseTiles(); });
+        mo.observe(root, { childList: true, subtree: true });
+      }
+    } catch (e2) {}
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') relocateCloseTiles();
+    }, false);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
+</script>
+<!-- ThemeEffects:dash-close-inline:end -->
+
+<!-- ThemeEffects:theme-effects:end -->
+
+
+
+<!-- ThemeEffects:apps-enhancement:start -->
+<script src="/plugins/theme.effects/assets/apps-enhancement.js?v=v2.4.3"></script>
+<!-- ThemeEffects:apps-enhancement:end -->

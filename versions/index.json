@@ -4,6 +4,19 @@
   "latest_version": "v2.5.1",
   "versions": [
     {
+      "id": "v2.6.0-Beta14",
+      "label": "Beta14：曲目栏固定宽、卡片位置记忆、专辑封面自动下载",
+      "channel": "beta",
+      "released_at": "2026-07-29",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true,
+      "mouse_fx": true,
+      "music": true,
+      "ota": true
+    },
+    {
       "id": "v2.6.0-Beta13",
       "label": "Beta13：鼠标双路上传、取消宿主窗、select对齐标题栏、进度条单百分号",
       "channel": "beta",
