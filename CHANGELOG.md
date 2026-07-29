@@ -1,5 +1,24 @@
 # 更新日志
 
+## v2.6.0-Beta3 - 2026-07-29
+
+### 概述
+**Beta3：音乐真正作为仪表盘卡片**；**系统指针样式**（类 Windows 主题改鼠标本身）；路径选择框宽度对齐其它下拉；fileTree 下拉主题化背景。
+
+### 变更
+- **音乐**
+  - 去掉 `position:fixed` 右下角浮层，挂载到仪表盘内容流（`#db-box` / grid-stack / dashboard 表附近）
+  - 卡片标题栏「音乐」+ 播放控件，样式贴近 `share_status.dashboard` 磁贴
+- **鼠标指针样式（`MOUSE_CURSOR`）**
+  - 选项：系统默认 / 圆点 / 十字准星 / 霓虹箭头 / 隐藏指针
+  - 通过 `html[data-ucwc-cursor]` + CSS `cursor: url(data-svg)` 改系统指针外形（非仅 canvas 光晕）
+  - 输入框保持文本光标；链接/按钮保持 pointer；与 canvas 光晕特效独立，可单独开启
+- **路径选择器**
+  - `.ucwc-path-field` 宽度改为 **280px**，与典型 select 对齐（不再比其它选项框长一截）
+- **fileTree 下拉**
+  - 半透明深色渐变 + 描边/阴影，去掉突兀纯黑原生背景；条目 hover 主题青
+- 版本号：**v2.6.0-Beta3**（beta）；正式 latest 仍为 **v2.5.1**
+
 ## v2.6.0-Beta2 - 2026-07-29
 
 ### 概述

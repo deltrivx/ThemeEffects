@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "theme.effects">
 <!ENTITY author    "deltrivx">
-<!ENTITY version   "2026.07.29m">
+<!ENTITY version   "2026.07.29n">
 <!ENTITY launch    "Settings/ThemeEffects">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY flash     "/boot/config/plugins/&name;">
@@ -17,6 +17,8 @@
 <CHANGES>
 <![CDATA[
 ## Theme Effects
+###2026.07.29n
+- v2.6.0-Beta3: dash music tile, MOUSE_CURSOR system pointer styles, path/fileTree theme align
 ###2026.07.29m
 - v2.6.0-Beta2: select chevrons + Unraid fileTree path/dir pickers
 ###2026.07.29k
