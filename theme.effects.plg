@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "theme.effects">
 <!ENTITY author    "deltrivx">
-<!ENTITY version   "2026.07.29q">
+<!ENTITY version   "2026.07.29r">
 <!ENTITY launch    "Settings/ThemeEffects">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY flash     "/boot/config/plugins/&name;">
@@ -17,6 +17,8 @@
 <CHANGES>
 <![CDATA[
 ## Theme Effects
+###2026.07.29r
+- v2.6.0-Beta6: cross-page resume; dual-pane music card; sitewide cursor + custom upload
 ###2026.07.29q
 - v2.6.0-Beta5: music card dash-only UI; sitewide play without card; 14px glass tile
 ###2026.07.29p

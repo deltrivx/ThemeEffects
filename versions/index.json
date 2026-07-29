@@ -4,6 +4,19 @@
   "latest_version": "v2.5.1",
   "versions": [
     {
+      "id": "v2.6.0-Beta6",
+      "label": "Beta6：跨页续播 + 双栏音乐卡片 + 指针全站/自定义上传",
+      "channel": "beta",
+      "released_at": "2026-07-29",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true,
+      "mouse_fx": true,
+      "music": true,
+      "ota": true
+    },
+    {
       "id": "v2.6.0-Beta5",
       "label": "Beta5：音乐卡片仅仪表盘 + 全站无 UI 续播 + 14px 玻璃圆角",
       "channel": "beta",

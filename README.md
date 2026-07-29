@@ -3,16 +3,16 @@
 独立 Unraid WebGUI 主题插件（**不依赖** Custom WebUI CSS）。仓库：[deltrivx/ThemeEffects](https://github.com/deltrivx/ThemeEffects)
 
 当前正式版：**v2.5.1**（OTA/全量更新）；`latest_version` 指向 **v2.5.1**  
-最新 Beta：**v2.6.0-Beta5**（音乐卡片仅仪表盘 + 全站无 UI 续播 + 14px 玻璃圆角）
+最新 Beta：**v2.6.0-Beta6**（跨页续播 + 双栏音乐卡片 + 指针全站/自定义上传）
 
 ## 功能
 
 - 全局主题 CSS（黑主题适配）
 - 背景壁纸（本地 / 自定义上传 / 在线图库）
 - 粒子特效
-- 鼠标特效（柔光/光环/光迹/星火，默认关闭）+ 系统指针（霓虹立体 / 全息玻璃 / 赛博利刃 / 水晶切面）
+- 鼠标特效（柔光/光环/光迹/星火，默认关闭）+ 全站指针样式（霓虹立体 / 全息玻璃 / 赛博利刃 / 水晶切面 / **自定义上传**）
 - 吉祥物（内置胡桃 / 自定义 GIF）
-- **音乐组件 V1（Beta）**：仪表盘音乐卡片（仅仪表盘 UI）+ 可选全站后台续播 + 本地目录音源（默认关闭）
+- **音乐组件 V1（Beta）**：仪表盘双栏音乐卡片（曲目⇄歌词）+ 可选全站续播（localStorage + 手势/chip）+ 本地目录音源（默认关闭）
 - 应用页增强（侧栏、搜索建议、路由隔离）
 - 设置页「主题特效」分段「应用」
 - 模糊等级（弱/中/强）与模糊背景性能优化
@@ -50,7 +50,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/deltrivx/ThemeEffects/main/s
 - 指定版本：`bash scripts/install.sh install v2.4.3`
 - 正式版 OTA：`bash scripts/install.sh install v2.5.1 ota`（默认，可省略 `ota`）
 - 正式版全量：`bash scripts/install.sh install v2.5.1 full`
-- 音乐 / 指针 Beta：`bash scripts/install.sh install v2.6.0-Beta5 ota`
+- 音乐 / 指针 Beta：`bash scripts/install.sh install v2.6.0-Beta6 ota`
 - 环境变量：`UCWC_INSTALL_MODE=ota|full`
 
 ### 插件方式
