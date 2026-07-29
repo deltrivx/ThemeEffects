@@ -484,7 +484,7 @@ install_version() {
     fetch_pkg "$tmp/assets/ucwc-particles.js" "$base/assets/ucwc-particles.js" "assets/ucwc-particles.js" "ucwc-particles.js" || exit 1
     fetch_pkg "$tmp/assets/ucwc-mouse-fx.js" "$base/assets/ucwc-mouse-fx.js" "assets/ucwc-mouse-fx.js" "ucwc-mouse-fx.js" || true
     # 主题特效页 UI + AJAX 保存 + 版本管理 API + 音乐组件（优先版本包，回退仓库根）
-    for f in ucwc-update.php ucwc-theme-fx-save.php ucwc-music-api.php ucwc-auth-request.conf assets/ucwc-theme-fx.js assets/ucwc-theme-fx.css assets/ucwc-music.js assets/ucwc-music.css assets/ucwc-music-host.html; do
+    for f in ucwc-update.php ucwc-theme-fx-save.php ucwc-music-api.php ucwc-auth-request.conf assets/ucwc-theme-fx.js assets/ucwc-theme-fx.css assets/ucwc-music.js assets/ucwc-music.css; do
       bn=$(basename "$f")
       dir=$(dirname "$f")
       mkdir -p "$tmp/$dir"
@@ -601,9 +601,6 @@ install_version() {
     fi
     if [ -f "$tmp/assets/ucwc-music.css" ]; then
       install_pair "$tmp/assets/ucwc-music.css" "$PERSIST_DIR/assets/ucwc-music.css" "$RUNTIME_DIR/assets/ucwc-music.css"
-    fi
-    if [ -f "$tmp/assets/ucwc-music-host.html" ]; then
-      install_pair "$tmp/assets/ucwc-music-host.html" "$PERSIST_DIR/assets/ucwc-music-host.html" "$RUNTIME_DIR/assets/ucwc-music-host.html"
     fi
     if [ -f "$tmp/ucwc-auth-request.conf" ]; then
       install -m 0644 "$tmp/ucwc-auth-request.conf" "$PERSIST_DIR/ucwc-auth-request.conf"
