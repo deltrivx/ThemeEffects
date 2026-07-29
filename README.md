@@ -2,7 +2,7 @@
 
 独立 Unraid WebGUI 主题插件（**不依赖** Custom WebUI CSS）。仓库：[deltrivx/ThemeEffects](https://github.com/deltrivx/ThemeEffects)
 
-当前开发通道：**v2.5.0-Beta2**（鼠标特效 Beta2）；正式 latest 仍为 **v2.4.3**；独立插件目录 `theme.effects`，自带全局 Loader。
+当前开发通道：**v2.5.0-Beta3**（Beta 检查与应用提示）；正式 latest 仍为 **v2.4.3**；独立插件目录 `theme.effects`，自带全局 Loader。
 
 ## 功能
 
@@ -36,7 +36,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/deltrivx/ThemeEffects/main/s
 - 交互终端：菜单（最新版 / 历史版本 / 卸载 / 退出）
 - 非交互（管道）：直接安装最新版
 - 指定版本：`bash scripts/install.sh install v2.4.3`
-- Beta 鼠标特效：`bash scripts/install.sh install v2.5.0-Beta2`
+- Beta 鼠标特效：`bash scripts/install.sh install v2.5.0-Beta3`
 
 ### 插件方式
 

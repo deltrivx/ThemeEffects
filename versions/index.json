@@ -4,6 +4,17 @@
   "latest_version": "v2.4.3",
   "versions": [
     {
+      "id": "v2.5.0-Beta3",
+      "label": "Beta3：Beta 检查文案、分段应用提示、鼠标颜色控件",
+      "channel": "beta",
+      "released_at": "2026-07-29",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true,
+      "mouse_fx": true
+    },
+    {
       "id": "v2.5.0-Beta2",
       "label": "Beta2：鼠标星火/空闲淡出/设置即时预览",
       "channel": "beta",

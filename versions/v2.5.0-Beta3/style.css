@@ -1,0 +1,4494 @@
+/* v6: Apps isolation
+ * Apps-only rules use body.ucwc-apps (class toggled by JS).
+ * Do NOT use body:has(.../Apps) — it re-evaluates on every scroll site-wide.
+ *
+ * v1.7.1-win-composite (system paint-path optim; visual parity):
+ * - multi-layer filter drop-shadow → box-shadow (Windows ANGLE)
+ * - wallpaper on fixed body::before cover (html image cleared)
+ * - dashboard corner clip fix (28b)
+ */
+
+/* ucwc-win-composite:active */
+/* ucwc-baseline:v1.8.0-beta-3 */
+/* ucwc-baseline:v1.8.0-beta-3 */
+/* ucwc-win-composite:corner-clip-fix */
+/* ucwc-baseline:fresh-v171-win-composite */
+/* ucwc-inner-depth:plan-a */
+
+/* ===== Base imports and theme variables ===== */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Rajdhani:wght@500;600;700&display=swap');
+
+
+:root {
+    --ucwc-font-body: 'Rajdhani', "Microsoft YaHei", system-ui, sans-serif;
+    --ucwc-font-title: 'Orbitron', sans-serif;
+    --ucwc-font-size: 14px;
+    --ucwc-title-transform: none;
+    
+    --cyan: #00f3ff;      
+    --pink: #fb3f62;      
+    --purple: #ff00ff;    
+    --green: #00ff00;     
+
+    
+    --grad1: linear-gradient(135deg, #8be9fd, #50fa7b); 
+    --grad2: linear-gradient(135deg, #ff79c6, #bd93f9); 
+
+    
+    --btn: #fb3f62;               
+    --btn-hover: #cd4164;         
+    --btn-text: #eee;             
+    --btn-text-hover: #fff;       
+
+    
+    --accent: 251, 114, 153;      
+    --accent-bg: rgba(251, 114, 153, 0.2);
+
+    
+    --text: #eee;                 
+    --text-hover: #fff;           
+    --text-muted: #999;           
+
+    
+    --link: rgb(251, 114, 153);          
+    --link-hover: rgba(251, 114, 153, 0.2); 
+    --label: #fb7299;                     
+
+    
+    --dropdown: rgba(33, 33, 33, 0.82); 
+    --modal: rgba(0, 0, 0, 0.2);        
+    --overlay: transparent;
+    --page-bg: var(--ucwc-status-color, #222630);
+
+    /* Wallpaper on html (fixed cover); root color is fallback only */
+    background-color: var(--page-bg);
+}
+
+
+@keyframes pulse {
+    0% { text-shadow: none; }
+    50% { text-shadow: 0 0 16px currentColor, 0 0 32px currentColor, 0 0 48px currentColor; }
+}
+
+
+@keyframes hue {
+    0% { filter: hue-rotate(0deg); }
+    100% { filter: hue-rotate(360deg); }
+}
+
+
+@keyframes logoAnim {
+    0% { filter: invert(48%) sepia(100%) saturate(520%) hue-rotate(165deg); }
+    25% { filter: invert(50%) sepia(100%) saturate(5000%) hue-rotate(300deg); }
+    100% { filter: invert(48%) sepia(100%) saturate(520%) hue-rotate(90deg); }
+}
+
+
+* { outline: 0; }  
+
+/* Viewport wallpaper:
+   Primary cover is real DOM layer #ucwc-wallpaper (Loader JS sizes it to screen).
+   body::before is fallback until JS runs. Mobile status bar uses theme-color. */
+html {
+    min-height: 100%;
+    min-height: 100dvh;
+    min-height: 100lvh;
+    min-height: -webkit-fill-available;
+    background-color: var(--ucwc-status-color, var(--page-bg, #222630)) !important;
+    background-image: var(--ucwc-bg-url, none) !important;
+    background-repeat: no-repeat !important;
+    background-position: center top !important;
+    background-size: cover !important;
+    -webkit-background-size: cover !important;
+    background-attachment: scroll !important;
+    overflow-x: clip;
+}
+
+body {
+    font-family: var(--ucwc-font-body, 'Rajdhani', "Microsoft YaHei", sans-serif);
+    font-size: var(--ucwc-font-size, 14px);
+    color: var(--text);
+    background: transparent !important;
+    background-color: transparent !important;
+    min-height: 100%;
+    min-height: 100dvh;
+    min-height: 100lvh;
+    min-height: -webkit-fill-available;
+    padding-top: 6px !important;
+    position: relative;
+}
+
+/* Real wallpaper layer — JS sets left/top/width/height to cover physical screen.
+	   Keep below particles (particles use z-index:-1).
+	   Compositing: promote once via translateZ; avoid permanent will-change (forces
+	   oversized layer thrash on every geometry write during mobile overscan fit). */
+	#ucwc-wallpaper {
+	    position: fixed !important;
+	    z-index: -2 !important;
+	    pointer-events: none !important;
+	    margin: 0 !important;
+	    padding: 0 !important;
+	    border: 0 !important;
+	    outline: none !important;
+	    box-shadow: none !important;
+	    background-color: transparent !important;
+	    background-image: var(--ucwc-bg-url, url(/plugins/theme.effects/assets/background-1.jpg)) !important;
+	    background-repeat: no-repeat !important;
+	    background-position: center top !important;
+	    background-size: cover !important;
+	    -webkit-background-size: cover !important;
+	    background-attachment: scroll !important;
+	    transform: translateZ(0);
+	    -webkit-transform: translateZ(0);
+	    isolation: isolate;
+	    /* layout+paint only — not size (empty fixed div needs JS width/height) */
+	    contain: layout style paint;
+	    backface-visibility: hidden;
+	    -webkit-backface-visibility: hidden;
+	}
+
+/* Fallback if JS not yet run */
+body::before {
+    content: '';
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 100vw !important;
+    min-height: 100vh !important;
+    min-height: 100dvh !important;
+    min-height: 100lvh !important;
+    min-height: -webkit-fill-available !important;
+    z-index: -2;
+    pointer-events: none;
+    background-color: transparent;
+    background-image: var(--ucwc-bg-url, url(/plugins/theme.effects/assets/background-1.jpg));
+    background-repeat: no-repeat !important;
+    background-position: center top !important;
+    background-size: cover !important;
+    -webkit-background-size: cover !important;
+    background-attachment: scroll !important;
+    transform: translateZ(0);
+}
+
+/* Real wallpaper mounted: drop sharp html/body fallback paints (avoids
+	   double full-viewport decode under the blurred layer). */
+	html.ucwc-has-wallpaper {
+	    background-image: none !important;
+	}
+	html.ucwc-has-wallpaper body::before {
+	    display: none !important;
+	    content: none !important;
+	    filter: none !important;
+	    -webkit-filter: none !important;
+	    background: none !important;
+	}
+
+	/* Background blur (Theme Effects BG_BLUR=yes → body/html.ucwc-bg-blur).
+	   Cost notes:
+	   - One live blurred layer only (#ucwc-wallpaper); ::before is display:none
+	     once html.ucwc-has-wallpaper is set.
+	   - filter: blur alone (no saturate) — cheaper Gaussian pass.
+	   - Mild scale(1.025) hides soft edges without large offscreen overdraw.
+	   - contain + isolation keep blur paint off the main scroll tree. */
+	body.ucwc-bg-blur #ucwc-wallpaper,
+	html.ucwc-bg-blur #ucwc-wallpaper {
+	    filter: blur(var(--ucwc-bg-blur, 10px)) !important;
+	    -webkit-filter: blur(var(--ucwc-bg-blur, 10px)) !important;
+	    transform: translateZ(0) scale(1.025);
+	    -webkit-transform: translateZ(0) scale(1.025);
+	}
+	/* Pre-JS fallback only (no real wallpaper node yet) */
+	html:not(.ucwc-has-wallpaper) body.ucwc-bg-blur::before,
+	html.ucwc-bg-blur:not(.ucwc-has-wallpaper) body::before {
+	    filter: blur(var(--ucwc-bg-blur, 10px)) !important;
+	    -webkit-filter: blur(var(--ucwc-bg-blur, 10px)) !important;
+	    transform: translateZ(0) scale(1.025);
+	    -webkit-transform: translateZ(0) scale(1.025);
+	}
+	/* Opt-out / off: no blur */
+	body.ucwc-no-bg-blur::before,
+	body.ucwc-no-bg-blur #ucwc-wallpaper,
+	html.ucwc-no-bg-blur #ucwc-wallpaper,
+	html.ucwc-no-bg-blur body::before {
+	    filter: none !important;
+	    -webkit-filter: none !important;
+	    backdrop-filter: none !important;
+	    -webkit-backdrop-filter: none !important;
+	    transform: translateZ(0);
+	    -webkit-transform: translateZ(0);
+	}
+
+	/* Accessibility: weaker blur when reduced motion is preferred */
+	@media (prefers-reduced-motion: reduce) {
+	    body::before,
+	    #ucwc-wallpaper {
+	        backdrop-filter: none;
+	        -webkit-backdrop-filter: none;
+	    }
+	    body.ucwc-bg-blur #ucwc-wallpaper,
+	    html.ucwc-bg-blur #ucwc-wallpaper,
+	    html:not(.ucwc-has-wallpaper) body.ucwc-bg-blur::before,
+	    html.ucwc-bg-blur:not(.ucwc-has-wallpaper) body::before {
+	        filter: blur(6px) !important;
+	        -webkit-filter: blur(6px) !important;
+	        transform: translateZ(0) scale(1.015);
+	        -webkit-transform: translateZ(0) scale(1.015);
+	    }
+	}
+
+
+body.ucwc-tab-hidden #header img[src*="UN-logotype-gradient.svg"],
+body.ucwc-tab-hidden #header .logo,
+body.ucwc-tab-hidden .fa.fa-play.started.green-text,
+body.ucwc-tab-hidden .fa.fa-square.stopped.red-text,
+body.ucwc-tab-hidden .system.icon-u-lock.green-text,
+body.ucwc-tab-hidden .system.icon-u-lock-open.red-text,
+body.ucwc-tab-hidden .icon-u-search.system,
+body.ucwc-tab-hidden .icon-u-logout.system,
+body.ucwc-tab-hidden .icon-u-terminal.system,
+body.ucwc-tab-hidden .fa.fa-tty.system,
+body.ucwc-tab-hidden .icon-u-duplicate.system,
+body.ucwc-tab-hidden .icon-u-chat.system,
+body.ucwc-tab-hidden .icon-u-display.system,
+body.ucwc-tab-hidden .icon-u-log.system,
+body.ucwc-tab-hidden .icon-u-help.system,
+body.ucwc-tab-hidden .icon-u-delete.system,
+body.ucwc-tab-hidden .icon-u-switch.system {
+    animation-play-state: paused !important;
+}
+
+
+h1, h2, h3, h4, h5, h6, strong, .title, #title, div.title, dt {
+    font-family: var(--ucwc-font-title, 'Orbitron', sans-serif);
+    text-transform: var(--ucwc-title-transform, none);
+    letter-spacing: var(--ucwc-title-tracking, 1px);
+    color: var(--text-hover);
+    text-shadow: 0 0 5px rgba(0, 243, 255, 0.3);
+    font-size: var(--ucwc-title-size, inherit);
+}
+
+#title, div.title {
+    border-bottom: none;
+    background: rgba(0, 0, 0, 0.5); 
+}
+
+
+table, td, th, div, p, a, span, input, select, textarea, button, .button {
+    font-family: var(--ucwc-font-body, 'Rajdhani', "Microsoft YaHei", sans-serif);
+}
+
+
+pre { border: 1px solid rgba(255, 255, 255, 0.3); }
+blockquote {
+    border: 2px solid rgba(0, 0, 0, 0.25);
+    border-left: 0;
+    border-right: 0;
+    color: var(--text);
+    background: rgba(0, 0, 0, 0.1);
+}
+::placeholder { color: var(--text-muted) !important; }
+
+
+a, .blue-text, a.static, i.control, .card_readmore, .ca_readmore, .homeMore, .popUpClose {
+    color: var(--link);
+    transition: color 0.2s, text-shadow 0.2s;
+}
+a:hover, a.static:hover, i.control:hover, .card_readmore:hover, .ca_readmore:hover,
+.homeMore:hover, .popUpClose:hover, .enabledIcon:hover, .ca_bottomLine .appIcons:hover,
+.ca_bottomLine .unpinned:hover {
+    color: var(--link-hover);
+}
+a:hover {
+    text-shadow: 0 0 8px var(--cyan); 
+}
+#copyright > a { color: var(--link); }
+#copyright > a:hover { color: var(--link-hover); }
+
+
+/* ===== Header, logo, and navigation ===== */
+
+.navbar-fixed-top {
+    background: var(--dropdown);
+    border-bottom: 1px solid var(--cyan);
+    height: 5px !important; 
+}
+.navbar-brand img, #logo {
+    height: 32px;
+    margin-top: 8px !important;
+}
+
+#header img[src*="UN-logotype-gradient.svg"] {
+    filter: invert(48%) sepia(100%) saturate(520%) hue-rotate(165deg);
+    animation: logoAnim 14s infinite alternate;
+}
+#header {
+    background: transparent;
+    color: var(--text) !important;
+}
+#header .text-left {
+    border-right: 2px solid rgb(var(--accent));
+}
+#header .block {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 0 0 0 25px;
+}
+#header .logo {
+    color: #fff !important;
+    animation: hue 18s infinite;
+}
+
+.nav-item, .nav-link, .dynamix-menu li a {
+    font-family: var(--ucwc-font-title, 'Orbitron', sans-serif);
+    text-transform: var(--ucwc-title-transform, none);
+}
+.nav-item { font-size: 1.2rem; }
+.dynamix-menu li a {
+    padding: 15px !important;
+    font-size: 13px;
+    height: 50px !important;
+}
+#menu .nav-item a:hover {
+    text-shadow: 0 0 8px #00ffd5;
+}
+.nav-tile { background: rgba(0, 0, 0, 0.25); }
+.nav-item a { color: var(--text); }
+.nav-item.active a, .nav-item.active a:hover,
+.nav-item.LanguageButton a, .nav-item.LanguageButton .icon-u-switch.system {
+    color: var(--link) !important;
+}
+.nav-item.LanguageButton a:hover,
+.nav-item.LanguageButton a:hover .icon-u-switch.system {
+    color: var(--btn-text-hover) !important;
+    text-shadow: 0 0 8px var(--cyan);
+}
+
+.nav-item:focus:after, .nav-item:hover:after,
+.nav-item.active:after, .nav-user.show:hover:after {
+    background: #fb7299;
+}
+.nav-user a { color: #fb7299; }
+
+
+/* ===== Tables, dashboard, and common data surfaces ===== */
+
+table, table.tablesorter thead tr .tablesorter-headerAsc,
+table.tablesorter thead tr .tablesorter-headerDesc,
+table.tablesorter thead tr th, table.tablesorter tbody tr:nth-child(even),
+table.disk_status thead tr:first-child td,
+table.share_status tbody tr:nth-child(even),
+table.share_status thead tr:first-child td,
+table tbody tr.tr_last {
+    background: rgba(0, 0, 0, 0.25);
+}
+table.tablesorter thead tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+}
+table.tablesorter thead tr th, thead, thead.sortable {
+    color: var(--text-hover);
+}
+table tbody tr.tr_last {
+    border-top: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+
+table.dashboard tbody { background: transparent; }
+table.dashboard td.stopgap { height: 0 !important; line-height: 0 !important; padding: 0 !important; }
+#db_box1 .leftside #current_time,
+#db_box1 .leftside #current_date {
+    display: inline !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+#db_box1 .tile-header-left .section > span#current_time_.switch.head_time {
+    position: absolute !important;
+    width: 0 !important;
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    color: transparent !important;
+    text-shadow: none !important;
+    line-height: 0 !important;
+    pointer-events: none !important;
+}
+#db_box1 .tile-header-left .section > span#current_time_.switch.head_time .ampm,
+#db_box1 .tile-header-left .section > span#current_time_.switch.head_time + br {
+    display: none !important;
+}
+
+table.unraid thead tr:first-child > td {
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: rgba(38, 38, 38, 0.3) !important;
+}
+table.unraid tbody tr:nth-child(even) {
+    background: rgba(0, 0, 0, 0.3) !important;
+}
+table.tablesorter.four tbody tr:nth-child(4n-1) {
+    background: rgba(0, 0, 0, 0.2) !important;
+}
+
+table.share_status.dashboard {
+    background: rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+table.share_status.dashboard tr > td.next {
+    border-top: 1px solid rgba(255, 255, 255, 0.25);
+    color: var(--text-hover);
+}
+table.share_status tbody tr.warn {
+    color: #e68a00 !important;
+    background: #feefb3 !important;  
+}
+
+table.usb_mounts thead tr:first-child td, table.usb_mounts tbody tr:nth-child(even),
+table.usb_mounts tbody tr:not(.tr_last):hover > td, table.samba_mounts thead tr:first-child td,
+table.samba_mounts tbody tr:nth-child(even), table.samba_mounts tbody tr:not(.tr_last):hover > td,
+table.usb_absent thead tr:first-child td, table.usb_absent tbody tr:nth-child(even),
+table.usb_absent tbody tr:not(.tr_last):hover > td {
+    background: rgba(0, 0, 0, 0.2) !important;
+}
+
+
+/* ===== Forms, buttons, dialogs, and controls ===== */
+
+button, input[type="button"], input[type="submit"], input[type="reset"], a.button, .button,
+#template button, .sweet-alert button, .actionsPopup, .ca_favouriteRepo, .donate, .popupProfile,
+.repoPopup, .supportButton, .supportPopup, .infoButton, .actionsButton {
+    color: var(--btn-text);
+    background: var(--btn);
+    border: 1px solid transparent;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+    position: relative;
+}
+
+button, input[type="button"], input[type="submit"], input[type="reset"], a.button, .button,
+#template button, .sweet-alert button {
+    background:
+        linear-gradient(90deg, var(--btn), var(--btn)) 0 0 / 100% 2px no-repeat,
+        linear-gradient(90deg, var(--btn), var(--btn)) 0 100% / 100% 2px no-repeat,
+        linear-gradient(0deg, var(--btn), var(--btn)) 0 100% / 2px 100% no-repeat,
+        linear-gradient(0deg, var(--btn), var(--btn)) 100% 100% / 2px 100% no-repeat;
+}
+button:hover, input[type="button"]:hover, input[type="submit"]:hover, a.button:hover, .button:hover,
+#template button:hover, .sweet-alert button:hover, .actionsPopup:hover, .ca_favouriteRepo:hover,
+.donate:hover, .popupProfile:hover, .repoPopup:hover, .supportButton:hover, .supportPopup:hover,
+.infoButton:hover, .actionsButton:hover {
+    color: var(--btn-text-hover);
+    background-color: var(--btn-hover);
+    box-shadow: 0 0 10px var(--btn-hover);  
+}
+
+.swal-button {
+    color: var(--btn-text) !important;
+    background: var(--btn) !important;
+    border: 1px solid transparent !important;
+}
+.swal-button:hover {
+    color: var(--btn-text-hover) !important;
+    background: var(--btn-hover) !important;
+}
+
+
+input, select, textarea {
+    background: rgba(0, 0, 0, 0.25) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    color: var(--text) !important;
+    border-radius: 4px;
+    padding: 8px 12px;
+    transition: all 0.3s;
+}
+input.t1.search, #searchBox, .searchSubmit {
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: #f2f2f2;
+}
+input:focus, select:focus, textarea:focus {
+    border-color: rgba(123, 104, 238, 0.6) !important;
+    box-shadow: 0 0 0 3px rgba(123, 104, 238, 0.3);
+    outline: none;
+}
+textarea {
+    background: rgba(40, 42, 54, 0.85) !important;
+    backdrop-filter: none;
+    border-radius: 8px;
+    padding: 12px 15px;
+    width: 100%;
+}
+
+
+.fa.fa-play.started.green-text, .fa.fa-square.stopped.red-text {
+    animation: pulse 2s infinite alternate;
+}
+.fa.fa-play.started.green-text {
+    color: #2ecc71;
+    text-shadow: 0 0 12px #2ecc71, 0 0 24px #2ecc71;
+}
+.fa.fa-square.stopped.red-text {
+    color: #f0000c;
+    text-shadow: 0 0 12px #f0000c, 0 0 24px #f0000c;
+}
+.green, .green-text, .passed { color: #fb7299; }   
+.ca_red { color: #e22828 !important; }
+span.green { color: #2ecc71 !important; }          
+span.red { color: #e74c3c !important; }
+
+.fa-circle, .ball {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    box-shadow: 0 0 6px currentColor;
+    margin-right: 5px;
+    font-size: 10px;
+}
+
+
+/*
+ * FA fw chrome icons — unified bright white (stop/reboot/power spans + cog/wrench/chevron).
+ * Earlier GPUStat pass wrongly excluded .control → cog became --link pink while hands stayed white.
+ * Keep GPUStat Unraid icon rows out of this force (they use i.ups.fa.fa-fw.icon-*).
+ */
+i.fa.fa-fw,
+span.fa.fa-fw,
+table.dashboard i.fa.fa-fw,
+table.dashboard span.fa.fa-fw,
+table.dashboard .tile-ctrl .fa.fa-fw,
+table.dashboard .tile-header-right-controls i.fa.fa-fw,
+table.dashboard i.control.fa.fa-fw,
+table.dashboard i.openclose.fa.fa-fw {
+    color: var(--text-hover) !important;
+}
+/* Hover: same family, slightly cyan glow — still one palette */
+table.dashboard .tile-ctrl .fa.fa-fw:hover,
+table.dashboard .tile-header-right-controls i.fa.fa-fw:hover,
+table.dashboard i.control.fa.fa-fw:hover,
+table.dashboard span.fa.fa-fw.hand:hover {
+    color: var(--text-hover) !important;
+    text-shadow: 0 0 8px var(--cyan, #00f3ff);
+}
+
+/* Dashboard module header icons @ 1.8rem (prior unify step).
+   Size rules only — never force display on i.tile / fa-close (stock hides until unlock).
+   Close-X is relocated into .tile-header-right-controls by Loader JS (first child). */
+table.dashboard .tile-ctrl,
+table.dashboard span.tile-ctrl {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 0.5rem !important;
+}
+table.dashboard .tile-ctrl span.fa.fa-fw,
+table.dashboard .tile-ctrl .fa.fa-fw,
+table.dashboard .tile-ctrl span.hand.fa,
+table.dashboard span.tile-ctrl > span.fa {
+    font-size: 1.8rem !important;
+    line-height: 1 !important;
+    width: 1.28571429em !important;
+    height: 1.8rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    vertical-align: middle !important;
+    box-sizing: content-box !important;
+}
+table.dashboard .tile-header-right-controls,
+table.dashboard span.tile-header-right-controls {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 0.5rem !important;
+}
+/* Size header controls; exclude bare global force-display so stock i.tile hide works */
+table.dashboard .tile-header-right-controls > i.fa.fa-fw:not(.fa-close),
+table.dashboard .tile-header-right-controls > i.control.fa.fa-fw:not(.fa-close),
+table.dashboard i.control.fa.fa-fw:not(.tile):not(.fa-close) {
+    font-size: 1.8rem !important;
+    line-height: 1 !important;
+    width: 1.28571429em !important;
+    height: 1.8rem !important;
+    vertical-align: middle !important;
+}
+/* Close-X lives inside right-controls (moved by JS). Size only — display left to stock/jQuery. */
+table.dashboard .tile-header-right-controls > i.fa-close.control.tile,
+table.dashboard .tile-header-right-controls > i.control.fa-close.tile {
+    font-size: 1.8rem !important;
+    line-height: 1 !important;
+    width: 1.28571429em !important;
+    height: 1.8rem !important;
+    vertical-align: middle !important;
+    order: -1;
+    flex: 0 0 auto;
+    margin: 0 !important;
+    float: none !important;
+    position: static !important;
+}
+table.dashboard .tile-header-right {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
+}
+
+/* GPU Statistics only: do not force white / thrash mixed Unraid glyphs + app images */
+table.dashboard tbody[id*="gpustat"] i.fa.fa-fw,
+table.dashboard tbody[id*="gpustat"] i.ups.fa,
+table.dashboard tr[class*="gpu-"] i.fa.fa-fw,
+table.dashboard .gpu-active-apps i.fa.fa-fw,
+#db-box1 tbody[id*="gpustat"] i.fa,
+#db_box1 tbody[id*="gpustat"] i.fa {
+    color: inherit !important;
+    filter: none !important;
+    -webkit-filter: none !important;
+    animation: none !important;
+    text-shadow: none !important;
+}
+.gpu-image,
+img.gpu-image,
+table.dashboard img.gpu-image,
+span.gpu-img-span img,
+table.dashboard span.gpu-img-span img {
+    filter: none !important;
+    -webkit-filter: none !important;
+    width: 24px !important;
+    height: 24px !important;
+    max-width: 24px !important;
+    max-height: 24px !important;
+    object-fit: contain !important;
+    padding-left: 8px;
+    vertical-align: middle;
+    display: inline-block;
+    color: inherit !important;
+}
+
+.system.icon-u-lock.green-text, .system.icon-u-lock-open.red-text,
+.icon-u-search.system, .icon-u-logout.system, .icon-u-terminal.system,
+.fa.fa-tty.system, .icon-u-duplicate.system, .icon-u-chat.system,
+.icon-u-display.system, .icon-u-log.system, .icon-u-help.system,
+.icon-u-delete.system, .icon-u-switch.system {
+    animation: pulse 2.8s infinite alternate;
+}
+.icon-u-lock { color: #fb7299; }
+.system.icon-u-lock.green-text { color: #2ecc71; text-shadow: 0 0 12px #2ecc71; animation-delay: 0s; }
+.system.icon-u-lock-open.red-text { color: #e74c3c; text-shadow: 0 0 12px #e74c3c; animation-delay: 0s; }
+.icon-u-search.system { color: #00f3ff; text-shadow: 0 0 12px #00f3ff; animation-delay: 0.1s; }
+.icon-u-logout.system { color: #e74c3c; text-shadow: 0 0 12px #e74c3c; animation-delay: 0.2s; }
+.icon-u-terminal.system { color: #2ecc71; text-shadow: 0 0 12px #2ecc71; animation-delay: 0.3s; }
+.fa.fa-tty.system { color: #9b59b6; text-shadow: 0 0 12px #9b59b6; animation-delay: 0.4s; }
+.icon-u-duplicate.system { color: #f39c12; text-shadow: 0 0 12px #f39c12; animation-delay: 0.5s; }
+.icon-u-chat.system { color: #ff00ff; text-shadow: 0 0 12px #ff00ff; animation-delay: 0.6s; }
+.icon-u-display.system { color: #3498db; text-shadow: 0 0 12px #3498db; animation-delay: 0.7s; }
+.icon-u-log.system { color: #1abc9c; text-shadow: 0 0 12px #1abc9c; animation-delay: 0.8s; }
+.icon-u-help.system { color: #f1c40f; text-shadow: 0 0 12px #f1c40f; animation-delay: 0.9s; }
+.icon-u-delete.system { color: #e74c3c; text-shadow: 0 0 12px #e74c3c; animation-delay: 1s; }
+.icon-u-switch.system { color: var(--link) !important; text-shadow: 0 0 12px var(--cyan); animation-delay: 1.1s; }
+.text-header-text-primary svg {
+    color: #FFD700;
+    filter: drop-shadow(0 0 4px #FFD700);
+}
+.red-orb { color: #fb7299; }
+
+
+.dash_card, .tile {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+    border-radius: 4px;
+}
+.dash_card table td {
+    border-bottom: 0;
+    vertical-align: middle;
+}
+.sys, .usage-bar, .usage-disk { background: rgba(0, 0, 0, 0.35); }
+table.disk_status tbody tr.tr_last { background: #0000 !important; }
+.usage-disk { color: #fff; }
+.usage-disk > span:first-child { background: #fb7299 !important; }
+.usage-disk-main span, .usage-disk span { font-size: 12px; line-height: normal; }
+
+.greenbar, .orangebar, .redbar, .graybar {
+    background: linear-gradient(90deg, #fb7299, #fb7299);
+}
+div.pie::after { background: rgba(33, 41, 65, 0.66) !important; }
+span.outer.solid { background: transparent; }
+span.inner { width: 137px !important; }
+
+
+.ctrls, .docker_controls {
+    display: flex !important;
+    align-items: center !important;
+    white-space: nowrap !important;
+    border: none !important;
+    height: 30px;
+}
+.ctrls span, .docker_controls span {
+    border: none !important;
+    padding-left: 1px !important;
+    margin: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+.switch { margin: 0 !important; display: inline-block !important; }
+.dockerHubHolder {
+    background: rgba(0, 0, 0, 0.09) !important;
+    border-color: rgba(21, 21, 21, 0.32) !important;
+    cursor: pointer;
+}
+.ca_holderDocker {
+    background: rgba(0, 0, 0, 0.1) !important;
+    border-color: rgba(0, 0, 0, 0.25) !important;
+}
+.ca_holderDocker::before { color: rgba(255, 255, 255, 0.4) !important; }
+
+
+#vmform table.multiple { background: rgba(0, 0, 0, 0.25) !important; }
+#vmform .sectiontab { background: #fb7299 !important; }
+table.dashboard i.control { background: transparent !important; }
+
+
+.sweet-alert, .sweet-alert .sa-icon.sa-success .sa-fix {
+    background: rgba(0, 0, 0, 0.2) !important;
+}
+.sweet-alert { border-style: none !important; }
+.showSweetAlert:not([data-has-cancel-button=false]), .swal-overlay--show-modal .swal-modal {
+    background: var(--modal);
+}
+.swal-content, .swal-content select, .swal-title, .sweet-alert h2, .sweet-alert p {
+    color: var(--text) !important;
+}
+
+#sb-wrapper {
+    border: 1px solid transparent;
+    color: var(--text);
+    background: var(--modal);
+}
+#sb-info-inner, #sb-loading-inner, div.sb-message {
+    color: var(--text);
+    background: transparent;
+}
+#sb-title, #sb-title-inner {
+    color: var(--text-hover);
+    background: transparent;
+}
+#sb-body-inner, #sb-loading, iframe {
+    color: var(--text);
+    background: transparent !important;
+}
+
+
+.dropdown-menu { background: var(--dropdown) !important; }
+.dropdown-menu a { color: var(--text) !important; }
+.dropdown-menu .divider {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+.dropdown-menu li > a:focus, .dropdown-menu li > a:hover, .dropdown-submenu:hover > a {
+    color: var(--text-hover) !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+.sidenav { background: var(--modal) !important; color: var(--text) !important; }
+div.Panel i.PanelIcon { color: var(--text-hover); }
+div.frame, div.tabs, #template, #menu, #footer { background: var(--overlay); }
+#footer { color: var(--text); }
+
+
+.UnraidUPC .--hasBanner-custom .UnraidUPC-dropdown {
+    background: var(--dropdown) !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+    color: var(--text) !important;
+}
+#UnraidUPC .text-beta,
+.UnraidUPC-dropdown a, .UnraidUPC-dropdown button { color: var(--text) !important; }
+.UnraidUPC-dropdown .btn-emphasize, .UnraidUPC-dropdown a:focus,
+.UnraidUPC-dropdown a:hover, .UnraidUPC-dropdown button:focus,
+.UnraidUPC-dropdown button:hover {
+    background-image: linear-gradient(90deg, var(--accent-bg), rgb(var(--accent)));
+    color: #fff;
+}
+
+
+.shade { margin-top: 1rem; padding: 1rem 0; background: transparent !important; }
+#db-box3 > tbody.smb.share.share1.sortable > tr > td > a { color: var(--link); }
+#db-box3 > tbody.smb.share.share1.sortable > tr > td > a:hover { color: var(--link-hover); }
+div.user-list {
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+
+.tooltipster-sidetip.tooltipster-right .tooltipster-box {
+    border-left: 3px solid rgb(var(--accent)) !important;
+}
+.tooltipster-sidetip.tooltipster-bottom .tooltipster-box {
+    border-top: 3px solid rgb(var(--accent)) !important;
+}
+.appIconsPopUp:hover, a.popUpLink:hover { color: var(--accent-bg) !important; }
+
+
+.switch-button-background.checked { background: #fb7299 !important; }
+.switch-button-label.on { color: #fb7299 !important; }
+label.checkbox input:checked ~ .checkmark { background: var(--btn); }
+
+
+.logLine { background: transparent; }
+.logLine.spacing { color: var(--text); background: var(--modal); }
+#contDescription {
+    background: rgba(0, 0, 0, 0.25);
+    padding: 1%;
+    border-radius: 5px;
+}
+
+
+img#mycase {
+    max-width: 128px !important;
+    max-height: 128px !important;
+    filter: drop-shadow(0 0 5px var(--btn));
+}
+div.shade-black { background: transparent !important; }
+
+
+::-webkit-scrollbar { width: 12px; }
+::-webkit-scrollbar-track {
+    background: rgba(40, 42, 54, 0.4);
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+    background: var(--grad2);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--grad1);
+    background-clip: content-box;
+}
+
+
+/* ===== Non-Apps: local 1.6.2-patched (or v1.6.1) base ===== */
+/* ===== Apps page: v1.0.0 only ===== */
+/* -------------------- 17. 应用商店（Community Applications） -------------------- */
+.searchArea {
+    z-index: 6;
+    width: 100%;
+    position: sticky;
+    background: transparent !important;
+    top: var(--search-area-top);
+}
+.popupCloseArea {
+    position: fixed;
+    margin: -2rem 0 0 10px;
+    padding: 2rem 0 1rem;
+    width: 100%;
+    background: transparent !important;
+    z-index: 5;
+}
+.menuItems {
+    position: relative;
+    height: auto;
+    align-items: stretch;
+    width: 14rem;
+    z-index: 2;
+    background: transparent !important;
+}
+/* 标签页（Tab）样式 */
+div.tab [type="radio"]:checked + label { cursor: default; border: 0 !important; opacity: 1; }
+div.tab [type=radio] + label {
+    background: rgba(0, 0, 0, 0.35) !important;
+    opacity: 0.5;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+div.tab [type=radio] + label:hover, div.tab [type=radio]:checked + label {
+    border-color: var(--accent-bg);
+    color: var(--text-hover);
+}
+/* 应用卡片 */
+.ca_holder {
+    background: rgba(0, 0, 0, 0.25) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    transition: background 0.2s;
+}
+.ca_holder:hover { background: rgba(0, 0, 0, 0.45) !important; }
+.ca_templatesDisplay .ca_holderFav {
+    background: rgba(var(--accent), 0.7) !important;
+    color: var(--label) !important;
+}
+/* CA card: favourite heart + pin badge — always top-right of card, never over icon.
+   Badges live inside .ca_bottomLine in CA HTML; absolute top would be relative to that bar.
+   apps-enhancement.js reparents them onto .ca_holder; CSS also covers both states. */
+.ca_holder,
+.dockerHubHolder {
+    position: relative !important;
+}
+/* Action row stays at card bottom (CA used top:18rem relative which collides with icon) */
+.ca_holder > .ca_bottomLine,
+.dockerHubHolder > .ca_bottomLine {
+    position: absolute !important;
+    top: auto !important;
+    bottom: 0.55rem !important;
+    left: 0.45rem !important;
+    right: 0.45rem !important;
+    width: auto !important;
+    z-index: 4 !important;
+    box-sizing: border-box !important;
+    pointer-events: auto !important;
+    /* do not create a positioning context that traps badges after reparent is pending */
+}
+/* After reparent (preferred): direct children of card */
+.ca_holder > .favCardBackground,
+.ca_holder > .pinnedCard,
+.dockerHubHolder > .favCardBackground,
+.dockerHubHolder > .pinnedCard,
+/* Before reparent / fallback: still force out of bottomLine flow toward card top-right.
+   bottomLine is position:absolute on the card, so these absolutes are vs bottomLine —
+   JS reparent is required for correct corner; this keeps them visible if JS late. */
+.ca_holder .ca_bottomLine > .favCardBackground,
+.ca_holder .ca_bottomLine > .pinnedCard,
+.dockerHubHolder .ca_bottomLine > .favCardBackground,
+.dockerHubHolder .ca_bottomLine > .pinnedCard {
+    float: none !important;
+    position: absolute !important;
+    z-index: 8 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1 !important;
+    display: inline-block !important;
+    pointer-events: none !important; /* badge is status only */
+}
+/* Card-root badges: true top-right */
+.ca_holder > .favCardBackground,
+.ca_holder > .pinnedCard,
+.dockerHubHolder > .favCardBackground,
+.dockerHubHolder > .pinnedCard {
+    top: 0.45rem !important;
+    right: 0.55rem !important;
+    left: auto !important;
+    bottom: auto !important;
+}
+.ca_holder > .favCardBackground,
+.dockerHubHolder > .favCardBackground {
+    right: 2.35rem !important; /* left of pin */
+    color: #ff6b9d !important;
+    font-size: 1.6rem !important;
+}
+.ca_holder > .pinnedCard,
+.dockerHubHolder > .pinnedCard {
+    color: #3dd6c6 !important;
+    font-size: 1.6rem !important;
+}
+/* Hide still-hidden fav placeholders */
+.ca_holder .favCardBackgroundHide,
+.dockerHubHolder .favCardBackgroundHide {
+    display: none !important;
+}
+/* Icon no longer needs negative margin to dodge bottomLine-in-flow */
+.ca_holder .ca_iconArea,
+.dockerHubHolder .ca_iconArea {
+    margin-top: 0.35rem !important;
+}
+.ca_holder .favCardBackground::before,
+.ca_holder .pinnedCard::before,
+.dockerHubHolder .favCardBackground::before,
+.dockerHubHolder .pinnedCard::before {
+    display: inline-block !important;
+}
+
+
+.ca_descriptionArea:hover, a.ca_repoPopup:hover { color: var(--btn-text-hover) !important; }
+.selectedMenu { color: rgb(var(--accent)) !important; }
+.hoverMenu { color: var(--link-hover) !important; }
+.sortIcons.enabledIcon { color: rgb(var(--accent)) !important; }
+.sortIcons.enabledIcon:hover { color: var(--link-hover) !important; }
+.sortIcons { color: var(--text) !important; }
+.sortIcons:hover { color: var(--text-hover) !important; }
+.pageSelected { color: rgb(var(--accent)) !important; }
+.pageNumber:hover { color: var(--accent-bg) !important; }
+.chartMenu:hover { color: var(--link-hover) !important; }
+
+/* -------------------- 18. 弹窗与对话框（SweetAlert, Lightbox） -------------------- */
+.sweet-alert, .sweet-alert .sa-icon.sa-success .sa-fix {
+    background: rgba(0, 0, 0, 0.2) !important;
+}
+.sweet-alert { border-style: none !important; }
+.showSweetAlert:not([data-has-cancel-button=false]), .swal-overlay--show-modal .swal-modal {
+    background: var(--modal);
+}
+.swal-content, .swal-content select, .swal-title, .sweet-alert h2, .sweet-alert p {
+    color: var(--text) !important;
+}
+/* Lightbox 灯箱 */
+#sb-wrapper {
+    border: 1px solid transparent;
+    color: var(--text);
+    background: var(--modal);
+}
+#sb-info-inner, #sb-loading-inner, div.sb-message {
+    color: var(--text);
+    background: transparent;
+}
+#sb-title, #sb-title-inner {
+    color: var(--text-hover);
+    background: transparent;
+}
+#sb-body-inner, #sb-loading, iframe {
+    color: var(--text);
+    background: transparent !important;
+}
+
+/* -------------------- 19. 下拉菜单与侧边栏 -------------------- */
+.dropdown-menu { background: var(--dropdown) !important; }
+.dropdown-menu a { color: var(--text) !important; }
+.dropdown-menu .divider {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+.dropdown-menu li > a:focus, .dropdown-menu li > a:hover, .dropdown-submenu:hover > a {
+    color: var(--text-hover) !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+.sidenav { background: var(--modal) !important; color: var(--text) !important; }
+div.Panel i.PanelIcon { color: var(--text-hover); }
+div.frame, div.tabs, #template, #menu, #footer { background: var(--overlay); }
+#footer { color: var(--text); }
+
+/* -------------------- 20. Unraid UPC 组件（顶部用户面板） -------------------- */
+.UnraidUPC .--hasBanner-custom .UnraidUPC-dropdown {
+    background: var(--dropdown) !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+    color: var(--text) !important;
+}
+#UnraidUPC .text-beta { color: var(--text) !important; }
+.UnraidUPC-dropdown a, .UnraidUPC-dropdown button { color: var(--text) !important; }
+.UnraidUPC-dropdown .btn-emphasize, .UnraidUPC-dropdown a:focus,
+.UnraidUPC-dropdown a:hover, .UnraidUPC-dropdown button:focus,
+.UnraidUPC-dropdown button:hover {
+    background-image: linear-gradient(90deg, var(--accent-bg), rgb(var(--accent)));
+    color: #fff;
+}
+
+/* -------------------- 21. 共享与用户管理 -------------------- */
+.shade { margin-top: 1rem; padding: 1rem 0; background: transparent !important; }
+#db-box3 > tbody.smb.share.share1.sortable > tr > td > a { color: var(--link); }
+#db-box3 > tbody.smb.share.share1.sortable > tr > td > a:hover { color: var(--link-hover); }
+div.user-list {
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* -------------------- 22. 工具提示（Tooltipster） -------------------- */
+.tooltipster-sidetip.tooltipster-right .tooltipster-box {
+    border-left: 3px solid rgb(var(--accent)) !important;
+}
+.tooltipster-sidetip.tooltipster-bottom .tooltipster-box {
+    border-top: 3px solid rgb(var(--accent)) !important;
+}
+.appIconsPopUp:hover, a.popUpLink:hover { color: var(--accent-bg) !important; }
+li.caMenuItem { color: #fff; }
+li.caMenuItem:hover { color: var(--link-hover); }
+
+/* -------------------- 23. 开关按钮与复选框 -------------------- */
+.switch-button-background.checked { background: #fb7299 !important; }
+.switch-button-label.on { color: #fb7299 !important; }
+label.checkbox input:checked ~ .checkmark { background: var(--btn); }
+
+/* -------------------- 24. 日志与信息面板 -------------------- */
+.logLine { background: transparent; }
+.logLine.spacing { color: var(--text); background: var(--modal); }
+#contDescription {
+    background: rgba(0, 0, 0, 0.25);
+    padding: 1%;
+    border-radius: 5px;
+}
+
+/* -------------------- 25. 自定义图片与额外组件 -------------------- */
+img#mycase {
+    max-width: 128px !important;
+    max-height: 128px !important;
+    filter: drop-shadow(0 0 5px var(--btn));
+}
+.maxPerPage { background: transparent !important; }
+div.shade-black { background: transparent !important; }
+
+/* -------------------- 26. 滚动条美化（霓虹渐变） -------------------- */
+::-webkit-scrollbar { width: 12px; }
+::-webkit-scrollbar-track {
+    background: rgba(40, 42, 54, 0.4);
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+    background: var(--grad2);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--grad1);
+    background-clip: content-box;
+}
+
+/* -------------------- 27. 杂项与兼容性修复 -------------------- */
+span.green, span.red, span.blue, span.orange {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+}
+.text-18px { filter: invert(); }
+.logLine { background-color: #000; }   /* 日志行强制黑色背景确保对比度 */
+/* FA only for pure FontAwesome glyphs — never steal Unraid icon-* font */
+.fa:not([class*="icon-"]):not([class^="icon-"]) {
+    font-family: "FontAwesome" !important;
+}
+/* GPUStat / dashboard rows use i.fa.fa-fw.icon-hardware etc. — must stay Unraid */
+i.fa[class*="icon-"],
+i.fa[class^="icon-"],
+.fa[class*="icon-"],
+.fa[class^="icon-"],
+table.dashboard i[class*="icon-"],
+table.dashboard i[class^="icon-"],
+[class^="icon-"],
+[class*=" icon-"] {
+    font-family: unraid !important;
+    font-style: normal !important;
+    font-weight: normal !important;
+    font-variant: normal !important;
+    text-transform: none !important;
+    speak: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* -------------------- 28. Dashboard 模块间隔与圆角 -------------------- */
+table.dashboard {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: 0 !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    box-shadow: none !important;
+}
+div.grid > div.tile {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+table.dashboard > thead.stopgap,
+table.dashboard > thead.stopgap > tr,
+table.dashboard > thead.stopgap > tr > td.stopgap {
+    height: 8px !important;
+    line-height: 8px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+table.dashboard > tbody {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    outline: 0 !important;
+}
+table.dashboard > tbody > tr,
+table.dashboard > tbody > tr.tr_last,
+table.dashboard > tbody > tr:nth-child(even) {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+table.dashboard > tbody > tr > td {
+    background: rgba(12, 16, 24, 0.42) !important;
+    background-clip: padding-box !important;
+    border-top: 0 !important;
+    border-bottom: 0 !important;
+    box-shadow: none !important;
+}
+table.dashboard > tbody > tr:first-child > td {
+    border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+table.dashboard > tbody > tr.last > td,
+table.dashboard > tbody > tr.tr_last > td,
+table.dashboard > tbody > tr:last-child > td {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.10) !important;
+}
+table.dashboard > tbody > tr > td:first-child {
+    border-left: 1px solid rgba(255, 255, 255, 0.10) !important;
+}
+table.dashboard > tbody > tr > td:last-child {
+    border-right: 1px solid rgba(255, 255, 255, 0.10) !important;
+}
+table.dashboard > tbody > tr:first-child > td:first-child {
+    border-top-left-radius: 14px !important;
+    overflow: hidden !important;
+}
+table.dashboard > tbody > tr:first-child > td:last-child {
+    border-top-right-radius: 14px !important;
+    overflow: hidden !important;
+}
+table.dashboard > tbody > tr.last > td:first-child,
+table.dashboard > tbody > tr.tr_last > td:first-child,
+table.dashboard > tbody > tr:last-child > td:first-child {
+    border-bottom-left-radius: 14px !important;
+    overflow: hidden !important;
+}
+table.dashboard > tbody > tr.last > td:last-child,
+table.dashboard > tbody > tr.tr_last > td:last-child,
+table.dashboard > tbody > tr:last-child > td:last-child {
+    border-bottom-right-radius: 14px !important;
+    overflow: hidden !important;
+}
+
+
+/* -------------------- 28b. Dashboard corner clip fix (win-composite) -------------------- */
+/* Root cause after filter→box-shadow:
+   drop-shadow followed painted alpha of rounded cells; box-shadow follows the
+   element's border-box. A transparent square tbody + rounded td fills left a
+   light rectangular corner outside the curve.
+   Fix: paint one rounded glass shell on tbody (radius + fill + shadow together);
+   keep cell backgrounds transparent so corners cannot mismatch. */
+table.dashboard > tbody {
+    border-radius: 14px !important;
+    background: rgba(12, 16, 24, 0.42) !important;
+    background-color: rgba(12, 16, 24, 0.42) !important;
+    border: 1px solid rgba(255, 255, 255, 0.10) !important;
+    border-collapse: separate !important;
+    transform: none !important;
+    contain: style !important;
+    isolation: isolate !important;
+    outline: 0 !important;
+}
+
+table.dashboard > tbody:hover {
+    border-radius: 14px !important;
+}
+
+table.dashboard > tbody > tr,
+table.dashboard > tbody > tr.tr_last,
+table.dashboard > tbody > tr:nth-child(even),
+table.dashboard > tbody > tr > td {
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+}
+
+table.dashboard > tbody > tr > td {
+    border-top: 0 !important;
+    border-bottom: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    box-shadow: none !important;
+    background-clip: padding-box !important;
+}
+table.dashboard > tbody > tr:last-child > td,
+table.dashboard > tbody > tr.tr_last > td,
+table.dashboard > tbody > tr.last > td {
+    border-bottom: 0 !important;
+}
+table.dashboard > tbody > tr:first-child > td {
+    border-top: 0 !important;
+}
+table.dashboard > tbody > tr:first-child > td:first-child {
+    border-top-left-radius: 14px !important;
+}
+table.dashboard > tbody > tr:first-child > td:last-child {
+    border-top-right-radius: 14px !important;
+}
+table.dashboard > tbody > tr.last > td:first-child,
+table.dashboard > tbody > tr.tr_last > td:first-child,
+table.dashboard > tbody > tr:last-child > td:first-child {
+    border-bottom-left-radius: 14px !important;
+}
+table.dashboard > tbody > tr.last > td:last-child,
+table.dashboard > tbody > tr.tr_last > td:last-child,
+table.dashboard > tbody > tr:last-child > td:last-child {
+    border-bottom-right-radius: 14px !important;
+}
+table.dashboard > tbody > tr:only-child > td:only-child,
+table.dashboard > tbody > tr:first-child:last-child > td:first-child:last-child {
+    border-radius: 14px !important;
+}
+
+table.dashboard,
+table.dashboard > thead,
+div.grid,
+div.grid > div.tile,
+div.tile,
+.dash_card {
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+}
+
+/* -------------------- 29. Dashboard 模块外壳层次（仪表盘专用：3 层 soft depth） -------------------- */
+/* 仅仪表盘用完整 3 层 drop-shadow，避免纸片感；导航/其它页仍用更轻的 2 层。 */
+table.dashboard > tbody {
+    outline: 0 !important;
+    border-radius: 14px !important;
+    box-shadow:
+        0 4px 3px rgba(0, 0, 0, 0.28),
+        0 12px 10px rgba(0, 0, 0, 0.32),
+        0 24px 18px rgba(0, 0, 0, 0.22) !important;
+    /* win-composite: was filter drop-shadow stack */
+    filter: none;
+    transition: transform 0.2s ease;
+    contain: style;
+    transform: none; /* win-composite */
+}
+
+table.dashboard > tbody:hover {
+    outline: 0 !important;
+    border-radius: 14px !important;
+    box-shadow:
+        0 4px 3px rgba(0, 0, 0, 0.28),
+        0 12px 10px rgba(0, 0, 0, 0.32),
+        0 24px 18px rgba(0, 0, 0, 0.22) !important;
+    transform: translate3d(0, -3px, 0);
+}
+
+/* 顶部受光 + 底部微内阴影，增加体积感（写在 td 上，不干扰 filter） */
+table.dashboard > tbody > tr:first-child > td {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.16),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.12) !important;
+}
+table.dashboard > tbody > tr.last > td,
+table.dashboard > tbody > tr.tr_last > td,
+table.dashboard > tbody > tr:last-child > td {
+    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.06) !important;
+}
+/* -------------------- 30. 去除模块内部直角边框（避免与 tbody 圆角外壳双重效果） -------------------- */
+.dash_card, .tile {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+}
+
+
+/* -------------------- 31. 父容器完全透明 + 顶部 tab 做成 iOS Widget -------------------- */
+
+/* 31.1 Dashboard 所有父/祖先容器一律透明，消灭列背板与继承 filter */
+div.frame, div.tabs, div.grid, div.grid > div.tile,
+.shade, .shade-black, div.shade-black,
+#template, #menu, #footer,
+#displaybox, .content, .tab-content,
+div[class^="section"], div[class*=" section"],
+.Panels, .Panel, section[role="tabpanel"] {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    filter: none !important;
+}
+
+/* 31.2 顶部 tab bar 做成 iOS Widget 卡片 */
+nav.tabs {
+    background: rgba(20, 24, 34, 0.55) !important;
+    border-radius: 14px !important;
+    padding: 6px !important;
+    margin-bottom: 14px !important;
+    border: 0 !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.10) !important;
+    filter:
+        drop-shadow(0 5px 5px rgba(0,0,0,.30))
+        drop-shadow(0 14px 12px rgba(0,0,0,.18));
+}
+
+nav.tabs .tabs-container {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+/* 31.3 tab 按钮：静态透明 / 选中态青色胶囊高亮 */
+nav.tabs button[role="tab"] {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    border-radius: 10px !important;
+    padding: 6px 14px !important;
+    color: var(--text) !important;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+nav.tabs button[role="tab"]:hover {
+    background: rgba(255,255,255,0.06) !important;
+    transform: translateY(-1px);
+}
+
+nav.tabs button[role="tab"][aria-selected="true"] {
+    background: rgba(0, 243, 255, 0.12) !important;
+    color: var(--text-hover) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.20),
+        0 0 12px rgba(0, 243, 255, 0.20) !important;
+}
+
+/* 31.4 主导航：参照当前 Dashboard 模块的 iOS Widget 层次 */
+#menu {
+    width: calc(100% - 20px) !important;
+    box-sizing: border-box !important;
+    min-height: 40px !important;
+    margin: 0 10px 14px !important;
+    padding: 4px 8px !important;
+    background: rgba(20, 24, 34, 0.55) !important;
+    background-color: rgba(20, 24, 34, 0.55) !important;
+    border: 0 !important;
+    border-radius: 14px !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.10) !important;
+    box-shadow:
+        0 5px 5px rgba(0,0,0,.30),
+        0 14px 12px rgba(0,0,0,.18) !important;
+    /* win-composite: was filter drop-shadow stack */
+    filter: none !important;
+}
+
+#menu:before,
+#menu:after,
+#menu .nav-item:before,
+#menu .nav-item:after {
+    content: none !important;
+    display: none !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+#menu .nav-item,
+#menu .nav-item a,
+#menu .nav-item a:hover {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+
+#menu .nav-item {
+    border-radius: 10px !important;
+}
+
+#menu .nav-item a {
+    border-radius: 10px !important;
+    color: var(--text) !important;
+}
+
+#menu .nav-item:hover {
+    background: rgba(255,255,255,0.06) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12) !important;
+}
+
+#menu .nav-item.active,
+#menu .nav-item.active:hover {
+    background: rgba(0, 243, 255, 0.12) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.20),
+        0 0 12px rgba(0, 243, 255, 0.20) !important;
+}
+
+#menu .nav-item.active a,
+#menu .nav-item.active a:hover {
+    color: var(--text-hover) !important;
+}
+
+/* Hide Unraid built-in scrollbars on top nav (left tasks + right switch/user tiles).
+   Keep overflow-x so narrow screens can still swipe; only the bar chrome is removed. */
+#menu,
+#menu .nav-tile,
+#menu .nav-tile.left,
+#menu .nav-tile.right {
+    scrollbar-width: none !important; /* Firefox */
+    -ms-overflow-style: none !important; /* legacy Edge */
+}
+#menu::-webkit-scrollbar,
+#menu .nav-tile::-webkit-scrollbar,
+#menu .nav-tile.left::-webkit-scrollbar,
+#menu .nav-tile.right::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+}
+#menu::-webkit-scrollbar-thumb,
+#menu .nav-tile::-webkit-scrollbar-thumb,
+#menu .nav-tile.left::-webkit-scrollbar-thumb,
+#menu .nav-tile.right::-webkit-scrollbar-thumb,
+#menu::-webkit-scrollbar-track,
+#menu .nav-tile::-webkit-scrollbar-track,
+#menu .nav-tile.left::-webkit-scrollbar-track,
+#menu .nav-tile.right::-webkit-scrollbar-track {
+    display: none !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+@media (max-width: 900px) {
+    #menu {
+        display: flex !important;
+        align-items: center !important;
+        flex-wrap: nowrap !important;
+        width: calc(100% - 12px) !important;
+        margin-left: 6px !important;
+        margin-right: 6px !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        white-space: nowrap !important;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    #menu::-webkit-scrollbar {
+        display: none;
+    }
+
+    #menu .nav-item,
+    #menu .nav-item a {
+        white-space: nowrap !important;
+        flex: 0 0 auto !important;
+    }
+}
+
+#menu .nav-tile,
+#menu .nav-tile.left,
+#menu .nav-tile.right {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+/* 32.1 Step 2: target page section titles, matching the current Dashboard module style */
+body.ucwc-main div.title,
+body.ucwc-shares div.title,
+body.ucwc-docker div.title {
+    min-height: 36px !important;
+    box-sizing: border-box !important;
+    margin: 10px 10px 14px !important;
+    padding: 8px 12px !important;
+    background: rgba(20, 24, 34, 0.55) !important;
+    background-color: rgba(20, 24, 34, 0.55) !important;
+    border: 0 !important;
+    border-radius: 14px !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.10) !important;
+    box-shadow:
+        0 5px 5px rgba(0,0,0,.30),
+        0 14px 12px rgba(0,0,0,.18) !important;
+    /* win-composite: was filter drop-shadow stack */
+    filter: none !important;
+    overflow: hidden !important;
+}
+
+body.ucwc-main div.title:before,
+body.ucwc-main div.title:after,
+body.ucwc-shares div.title:before,
+body.ucwc-shares div.title:after,
+body.ucwc-docker div.title:before,
+body.ucwc-docker div.title:after {
+    content: none !important;
+    display: none !important;
+}
+
+/* 32.2 Step 2: target page tables and panels, soften remaining rectangular blocks */
+body.ucwc-main table:not(.dashboard),
+body.ucwc-shares table:not(.dashboard),
+body.ucwc-docker table:not(.dashboard),
+body.ucwc-plugins table:not(.dashboard),
+body.ucwc-vms table:not(.dashboard) {
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    border-radius: 14px !important;
+    overflow: hidden !important;
+    background: rgba(20, 24, 34, 0.35) !important;
+    background-color: rgba(20, 24, 34, 0.35) !important;
+    border: 0 !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08) !important;
+    box-shadow:
+        0 5px 5px rgba(0,0,0,.26),
+        0 12px 10px rgba(0,0,0,.16) !important;
+    /* win-composite: was filter drop-shadow stack */
+    filter: none !important;
+}
+
+body.ucwc-main table:not(.dashboard) > thead:first-child > tr:first-child > th:first-child,
+body.ucwc-main table:not(.dashboard) > thead:first-child > tr:first-child > td:first-child,
+body.ucwc-shares table:not(.dashboard) > thead:first-child > tr:first-child > th:first-child,
+body.ucwc-shares table:not(.dashboard) > thead:first-child > tr:first-child > td:first-child,
+body.ucwc-docker table:not(.dashboard) > thead:first-child > tr:first-child > th:first-child,
+body.ucwc-docker table:not(.dashboard) > thead:first-child > tr:first-child > td:first-child,
+body.ucwc-plugins table:not(.dashboard) > thead:first-child > tr:first-child > th:first-child,
+body.ucwc-plugins table:not(.dashboard) > thead:first-child > tr:first-child > td:first-child,
+body.ucwc-vms table:not(.dashboard) > thead:first-child > tr:first-child > th:first-child,
+body.ucwc-vms table:not(.dashboard) > thead:first-child > tr:first-child > td:first-child {
+    border-top-left-radius: 14px !important;
+}
+
+body.ucwc-main table:not(.dashboard) > thead:first-child > tr:first-child > th:last-child,
+body.ucwc-main table:not(.dashboard) > thead:first-child > tr:first-child > td:last-child,
+body.ucwc-shares table:not(.dashboard) > thead:first-child > tr:first-child > th:last-child,
+body.ucwc-shares table:not(.dashboard) > thead:first-child > tr:first-child > td:last-child,
+body.ucwc-docker table:not(.dashboard) > thead:first-child > tr:first-child > th:last-child,
+body.ucwc-docker table:not(.dashboard) > thead:first-child > tr:first-child > td:last-child,
+body.ucwc-plugins table:not(.dashboard) > thead:first-child > tr:first-child > th:last-child,
+body.ucwc-plugins table:not(.dashboard) > thead:first-child > tr:first-child > td:last-child,
+body.ucwc-vms table:not(.dashboard) > thead:first-child > tr:first-child > th:last-child,
+body.ucwc-vms table:not(.dashboard) > thead:first-child > tr:first-child > td:last-child {
+    border-top-right-radius: 14px !important;
+}
+
+body.ucwc-main table:not(.dashboard) > tbody:last-child > tr:last-child > td:first-child,
+body.ucwc-shares table:not(.dashboard) > tbody:last-child > tr:last-child > td:first-child,
+body.ucwc-docker table:not(.dashboard) > tbody:last-child > tr:last-child > td:first-child,
+body.ucwc-plugins table:not(.dashboard) > tbody:last-child > tr:last-child > td:first-child,
+body.ucwc-vms table:not(.dashboard) > tbody:last-child > tr:last-child > td:first-child {
+    border-bottom-left-radius: 14px !important;
+}
+
+body.ucwc-main table:not(.dashboard) > tbody:last-child > tr:last-child > td:last-child,
+body.ucwc-shares table:not(.dashboard) > tbody:last-child > tr:last-child > td:last-child,
+body.ucwc-docker table:not(.dashboard) > tbody:last-child > tr:last-child > td:last-child,
+body.ucwc-plugins table:not(.dashboard) > tbody:last-child > tr:last-child > td:last-child,
+body.ucwc-vms table:not(.dashboard) > tbody:last-child > tr:last-child > td:last-child {
+    border-bottom-right-radius: 14px !important;
+}
+
+@media (max-width: 900px) {
+    body.ucwc-main nav.tabs,
+    body.ucwc-shares nav.tabs,
+    body.ucwc-docker nav.tabs,
+    body.ucwc-plugins nav.tabs,
+    body.ucwc-vms nav.tabs,
+    body.ucwc-main div.title,
+    body.ucwc-shares div.title,
+    body.ucwc-docker div.title,
+    body.ucwc-plugins div.title,
+    body.ucwc-vms div.title,
+    body.ucwc-main .tabs,
+    body.ucwc-shares .tabs,
+    body.ucwc-docker .tabs,
+    body.ucwc-plugins .tabs,
+    body.ucwc-vms .tabs,
+    body.ucwc-main .tab,
+    body.ucwc-shares .tab,
+    body.ucwc-docker .tab,
+    body.ucwc-plugins .tab,
+    body.ucwc-vms .tab,
+    body.ucwc-main .ctrls,
+    body.ucwc-shares .ctrls,
+    body.ucwc-docker .ctrls,
+    body.ucwc-plugins .ctrls,
+    body.ucwc-vms .ctrls,
+    body.ucwc-main .docker_controls,
+    body.ucwc-shares .docker_controls,
+    body.ucwc-docker .docker_controls,
+    body.ucwc-plugins .docker_controls,
+    body.ucwc-vms .docker_controls {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        white-space: nowrap !important;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    body.ucwc-main nav.tabs::-webkit-scrollbar,
+    body.ucwc-shares nav.tabs::-webkit-scrollbar,
+    body.ucwc-docker nav.tabs::-webkit-scrollbar,
+    body.ucwc-plugins nav.tabs::-webkit-scrollbar,
+    body.ucwc-vms nav.tabs::-webkit-scrollbar,
+    body.ucwc-main div.title::-webkit-scrollbar,
+    body.ucwc-shares div.title::-webkit-scrollbar,
+    body.ucwc-docker div.title::-webkit-scrollbar,
+    body.ucwc-plugins div.title::-webkit-scrollbar,
+    body.ucwc-vms div.title::-webkit-scrollbar {
+        display: none;
+    }
+
+    body.ucwc-main table:not(.dashboard),
+    body.ucwc-shares table:not(.dashboard),
+    body.ucwc-docker table:not(.dashboard),
+    body.ucwc-plugins table:not(.dashboard),
+    body.ucwc-vms table:not(.dashboard) {
+        display: block !important;
+        max-width: calc(100vw - 20px) !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        white-space: nowrap !important;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    body.ucwc-main table:not(.dashboard) tr,
+    body.ucwc-shares table:not(.dashboard) tr,
+    body.ucwc-docker table:not(.dashboard) tr,
+    body.ucwc-plugins table:not(.dashboard) tr,
+    body.ucwc-vms table:not(.dashboard) tr {
+        white-space: nowrap !important;
+    }
+
+    body.ucwc-main table:not(.dashboard),
+    body.ucwc-main table:not(.dashboard) thead,
+    body.ucwc-main table:not(.dashboard) tbody {
+        width: max-content !important;
+        min-width: 100% !important;
+        table-layout: auto !important;
+    }
+
+    body.ucwc-main div.title,
+    body.ucwc-main .ctrls {
+        flex-wrap: nowrap !important;
+        min-width: 100% !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+    }
+
+    body.ucwc-main table:not(.dashboard) th,
+    body.ucwc-main table:not(.dashboard) td,
+    body.ucwc-main div.title > *,
+    body.ucwc-main .ctrls > * {
+        max-width: none !important;
+        min-width: auto !important;
+        flex-shrink: 0 !important;
+        text-overflow: clip !important;
+        overflow-wrap: normal !important;
+        word-break: normal !important;
+        white-space: nowrap !important;
+    }
+}
+
+/* 32.3 All main pages: round remaining common rectangular modules */
+body:is(.ucwc-main, .ucwc-shares, .ucwc-docker, .ucwc-plugins, .ucwc-vms, .ucwc-settings, .ucwc-tools, .ucwc-users, .ucwc-apps, .ucwc-dashboard) div.title {
+    border-radius: 14px !important;
+    overflow: hidden !important;
+}
+
+body:is(.ucwc-main, .ucwc-shares, .ucwc-docker, .ucwc-plugins, .ucwc-vms, .ucwc-settings, .ucwc-tools, .ucwc-users, .ucwc-apps, .ucwc-dashboard) #template,
+body:is(.ucwc-main, .ucwc-shares, .ucwc-docker, .ucwc-plugins, .ucwc-vms, .ucwc-settings, .ucwc-tools, .ucwc-users, .ucwc-apps, .ucwc-dashboard) .ca_holder,
+body:is(.ucwc-main, .ucwc-shares, .ucwc-docker, .ucwc-plugins, .ucwc-vms, .ucwc-settings, .ucwc-tools, .ucwc-users, .ucwc-apps, .ucwc-dashboard) .ca_holderFav,
+body:is(.ucwc-main, .ucwc-shares, .ucwc-docker, .ucwc-plugins, .ucwc-vms, .ucwc-settings, .ucwc-tools, .ucwc-users, .ucwc-apps, .ucwc-dashboard) .ca_holderDocker,
+body:is(.ucwc-main, .ucwc-shares, .ucwc-docker, .ucwc-plugins, .ucwc-vms, .ucwc-settings, .ucwc-tools, .ucwc-users, .ucwc-apps, .ucwc-dashboard) .dockerHubHolder,
+body:is(.ucwc-main, .ucwc-shares, .ucwc-docker, .ucwc-plugins, .ucwc-vms, .ucwc-settings, .ucwc-tools, .ucwc-users, .ucwc-apps, .ucwc-dashboard) .docker_controls,
+body:is(.ucwc-main, .ucwc-shares, .ucwc-docker, .ucwc-plugins, .ucwc-vms, .ucwc-settings, .ucwc-tools, .ucwc-users, .ucwc-apps, .ucwc-dashboard) .ctrls,
+body:is(.ucwc-main, .ucwc-shares, .ucwc-docker, .ucwc-plugins, .ucwc-vms, .ucwc-settings, .ucwc-tools, .ucwc-users, .ucwc-apps, .ucwc-dashboard) .sweet-alert,
+body:is(.ucwc-main, .ucwc-shares, .ucwc-docker, .ucwc-plugins, .ucwc-vms, .ucwc-settings, .ucwc-tools, .ucwc-users, .ucwc-apps, .ucwc-dashboard) .swal-modal,
+body:is(.ucwc-main, .ucwc-shares, .ucwc-docker, .ucwc-plugins, .ucwc-vms, .ucwc-settings, .ucwc-tools, .ucwc-users, .ucwc-apps, .ucwc-dashboard) #sb-wrapper,
+body:is(.ucwc-main, .ucwc-shares, .ucwc-docker, .ucwc-plugins, .ucwc-vms, .ucwc-settings, .ucwc-tools, .ucwc-users, .ucwc-apps, .ucwc-dashboard) #displaybox {
+    border-radius: 14px !important;
+    overflow: hidden !important;
+}
+
+body:is(.ucwc-main, .ucwc-shares, .ucwc-docker, .ucwc-plugins, .ucwc-vms, .ucwc-settings, .ucwc-tools, .ucwc-users, .ucwc-apps, .ucwc-dashboard) .ca_holder,
+body:is(.ucwc-main, .ucwc-shares, .ucwc-docker, .ucwc-plugins, .ucwc-vms, .ucwc-settings, .ucwc-tools, .ucwc-users, .ucwc-apps, .ucwc-dashboard) .ca_holderFav,
+body:is(.ucwc-main, .ucwc-shares, .ucwc-docker, .ucwc-plugins, .ucwc-vms, .ucwc-settings, .ucwc-tools, .ucwc-users, .ucwc-apps, .ucwc-dashboard) .ca_holderDocker,
+body:is(.ucwc-main, .ucwc-shares, .ucwc-docker, .ucwc-plugins, .ucwc-vms, .ucwc-settings, .ucwc-tools, .ucwc-users, .ucwc-apps, .ucwc-dashboard) .dockerHubHolder {
+    background-clip: padding-box !important;
+}
+
+/* 33. Settings and Tools: square rounded option tiles */
+body.ucwc-settings .Panels,
+body.ucwc-tools .Panels {
+    gap: 14px !important;
+    margin: 14px 10px !important;
+}
+
+body.ucwc-settings .Panel,
+body.ucwc-tools .Panel {
+    position: relative !important;
+    width: 120px !important;
+    min-height: 120px !important;
+    max-width: 120px !important;
+    border-radius: 14px !important;
+    /* visible so favorite heart at corner is not clipped mid-icon */
+    overflow: visible !important;
+    background: rgba(20, 24, 34, 0.55) !important;
+    background-color: rgba(20, 24, 34, 0.55) !important;
+    border: 0 !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.10) !important;
+    box-shadow:
+        0 5px 5px rgba(0,0,0,.26),
+        0 12px 10px rgba(0,0,0,.16) !important;
+    /* win-composite: was filter drop-shadow stack */
+    filter: none !important;
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+
+body.ucwc-settings .Panel:hover,
+body.ucwc-tools .Panel:hover {
+    background: rgba(28, 34, 48, 0.62) !important;
+    transform: translateY(-2px);
+}
+
+body.ucwc-settings .Panel a,
+body.ucwc-tools .Panel a {
+    position: relative !important;
+    min-height: 120px !important;
+    box-sizing: border-box !important;
+    border-radius: 14px !important;
+    align-items: center !important;
+    justify-items: center !important;
+    align-content: center !important;
+    padding: 14px 10px !important;
+    gap: 10px !important;
+    overflow: visible !important;
+}
+
+body.ucwc-settings .Panel a > span,
+body.ucwc-tools .Panel a > span {
+    position: static !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 44px !important;
+}
+
+/* Settings/Tools favorite heart: Unraid default is only margin-left:12px absolute,
+   which lands over our centered PanelIcon. Pin to tile top-right instead.
+   Visual FX match PanelIcon / luminous glyph stack: neon text-shadow + volume. */
+body.ucwc-settings .Panel i.favo,
+body.ucwc-tools .Panel i.favo {
+    position: absolute !important;
+    top: 6px !important;
+    right: 8px !important;
+    left: auto !important;
+    bottom: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    z-index: 20 !important;
+    font-size: 1.35rem !important;
+    line-height: 1 !important;
+    width: auto !important;
+    height: auto !important;
+    /* heart keeps fav pink; glow recipe matches icon / link hover luminance */
+    color: #ff79c6 !important;
+    text-shadow:
+        0 0 8px currentColor,
+        0 0 16px currentColor,
+        0 0 24px rgba(255, 121, 198, 0.55) !important;
+    filter:
+        drop-shadow(0 1px 1px rgba(0, 0, 0, 0.55))
+        drop-shadow(0 2px 3px rgba(0, 0, 0, 0.28)) !important;
+    -webkit-filter:
+        drop-shadow(0 1px 1px rgba(0, 0, 0, 0.55))
+        drop-shadow(0 2px 3px rgba(0, 0, 0, 0.28)) !important;
+    transition: color 0.2s, text-shadow 0.2s, filter 0.2s, opacity 0.15s !important;
+    pointer-events: auto !important;
+    transform: none !important;
+}
+
+/* Stronger bloom on tile hover — same energy as a:hover cyan glow on icons */
+body.ucwc-settings .Panel:hover i.favo,
+body.ucwc-tools .Panel:hover i.favo {
+    color: #ff9ad4 !important;
+    text-shadow:
+        0 0 10px currentColor,
+        0 0 20px currentColor,
+        0 0 32px currentColor,
+        0 0 8px var(--cyan) !important;
+    filter:
+        drop-shadow(0 1px 1px rgba(0, 0, 0, 0.55))
+        drop-shadow(0 2px 3px rgba(0, 0, 0, 0.28))
+        drop-shadow(0 0 4px rgba(255, 121, 198, 0.65)) !important;
+    -webkit-filter:
+        drop-shadow(0 1px 1px rgba(0, 0, 0, 0.55))
+        drop-shadow(0 2px 3px rgba(0, 0, 0, 0.28))
+        drop-shadow(0 0 4px rgba(255, 121, 198, 0.65)) !important;
+}
+
+body.ucwc-settings .PanelText,
+body.ucwc-tools .PanelText {
+    line-height: 1.25 !important;
+    text-align: center !important;
+    /* Long labels e.g. "Auto Update Applications" must wrap inside 120px tiles */
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    hyphens: auto;
+    max-width: 100% !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+body.ucwc-settings .Panel:before,
+body.ucwc-settings .Panel:after,
+body.ucwc-tools .Panel:before,
+body.ucwc-tools .Panel:after {
+    content: none !important;
+    display: none !important;
+}
+
+@media (max-width: 900px) {
+    /* Keep horizontal swipe for tiles, but do NOT set white-space:nowrap on .Panels —
+       it inherits into .PanelText and blocks multi-line labels on mobile. */
+    body.ucwc-settings .Panels,
+    body.ucwc-tools .Panels {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        justify-content: flex-start !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        white-space: normal !important;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    body.ucwc-settings .Panels::-webkit-scrollbar,
+    body.ucwc-tools .Panels::-webkit-scrollbar {
+        display: none;
+    }
+
+    body.ucwc-settings .Panel,
+    body.ucwc-tools .Panel {
+        flex: 0 0 120px !important;
+        white-space: normal !important;
+    }
+
+    body.ucwc-settings .Panel a,
+    body.ucwc-tools .Panel a,
+    body.ucwc-settings .PanelText,
+    body.ucwc-tools .PanelText {
+        white-space: normal !important;
+        overflow-wrap: anywhere !important;
+        word-break: break-word !important;
+    }
+}
+
+/* 33.2 Settings, Tools and Users: title bars match option tile depth */
+body.ucwc-settings div.title,
+body.ucwc-tools div.title,
+body.ucwc-users div.title {
+    min-height: 36px !important;
+    box-sizing: border-box !important;
+    margin: 10px 10px 14px !important;
+    padding: 8px 12px !important;
+    background: rgba(20, 24, 34, 0.55) !important;
+    background-color: rgba(20, 24, 34, 0.55) !important;
+    border: 0 !important;
+    border-radius: 14px !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.10) !important;
+    box-shadow:
+        0 5px 5px rgba(0,0,0,.26),
+        0 12px 10px rgba(0,0,0,.16) !important;
+    /* win-composite: was filter drop-shadow stack */
+    filter: none !important;
+    overflow: hidden !important;
+}
+
+body.ucwc-settings div.title:before,
+body.ucwc-settings div.title:after,
+body.ucwc-tools div.title:before,
+body.ucwc-tools div.title:after,
+body.ucwc-users div.title:before,
+body.ucwc-users div.title:after {
+    content: none !important;
+    display: none !important;
+}
+
+/* 33.3 Users: match Settings/Tools square option tile style */
+body.ucwc-users .Panels {
+    gap: 14px !important;
+    margin: 14px 10px !important;
+}
+
+body.ucwc-users .user-list {
+    width: 120px !important;
+    min-height: 120px !important;
+    max-width: 120px !important;
+    border-radius: 14px !important;
+    overflow: hidden !important;
+    background: rgba(20, 24, 34, 0.55) !important;
+    background-color: rgba(20, 24, 34, 0.55) !important;
+    border: 0 !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.10) !important;
+    box-shadow:
+        0 5px 5px rgba(0,0,0,.26),
+        0 12px 10px rgba(0,0,0,.16) !important;
+    /* win-composite: was filter drop-shadow stack */
+    filter: none !important;
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+
+body.ucwc-users .user-list:hover {
+    background: rgba(28, 34, 48, 0.62) !important;
+    transform: translateY(-2px);
+}
+
+body.ucwc-users .user-list a {
+    min-height: 120px !important;
+    box-sizing: border-box !important;
+    border-radius: 14px !important;
+    display: grid !important;
+    align-items: center !important;
+    justify-items: center !important;
+    align-content: center !important;
+    padding: 14px 10px !important;
+    gap: 8px !important;
+    line-height: 1.25 !important;
+    text-align: center !important;
+}
+
+body.ucwc-users .user-list a br {
+    display: none !important;
+}
+
+body.ucwc-users .user-list:before,
+body.ucwc-users .user-list:after {
+    content: none !important;
+    display: none !important;
+}
+
+@media (max-width: 900px) {
+    body.ucwc-users .Panels {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        justify-content: flex-start !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        white-space: normal !important;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    body.ucwc-users .Panels::-webkit-scrollbar {
+        display: none;
+    }
+
+    body.ucwc-users .user-list {
+        flex: 0 0 120px !important;
+        white-space: normal !important;
+    }
+
+    body.ucwc-users .user-list a {
+        white-space: normal !important;
+        overflow-wrap: anywhere !important;
+        word-break: break-word !important;
+    }
+}
+
+/* 34. Main mobile: Unassigned Devices header switches must not cover long title text */
+@media (max-width: 900px) {
+    body.ucwc-main div.title.ud {
+        display: flex !important;
+        align-items: center !important;
+        flex-wrap: nowrap !important;
+        gap: 12px !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        white-space: nowrap !important;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    body.ucwc-main div.title.ud::-webkit-scrollbar {
+        display: none;
+    }
+
+    body.ucwc-main div.title.ud .leftTitleUD {
+        position: static !important;
+        display: inline-flex !important;
+        flex: 0 0 auto !important;
+        min-width: max-content !important;
+        padding-right: 0 !important;
+        white-space: nowrap !important;
+    }
+
+    body.ucwc-main div.title.ud .rightTitleUD {
+        position: static !important;
+        right: auto !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        flex: 0 0 auto !important;
+        gap: 10px !important;
+        min-width: max-content !important;
+        margin-left: 0 !important;
+        white-space: nowrap !important;
+    }
+
+    body.ucwc-main div.title.ud .right.ud,
+    body.ucwc-main div.title.ud .ud_titleFix {
+        position: static !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        flex: 0 0 auto !important;
+        padding-right: 0 !important;
+        margin: 0 !important;
+        white-space: nowrap !important;
+    }
+}
+
+
+/* Apps perf v4 overrides removed in v5 */
+
+
+/* v5: Apps list paint cheap (minimal :has, no continuous filters) */
+body.ucwc-apps .caMenuItem,
+body.ucwc-apps .categoryMenu,
+body.ucwc-apps .chartMenu {
+    transition: none !important;
+    filter: none !important;
+}
+body.ucwc-apps .searchArea,
+body.ucwc-apps .menuItems {
+    filter: none !important;
+}
+
+/* 35. Apps page: sidebar, search and app cards */
+body.ucwc-apps .searchAreaHolder {
+    width: 100% !important;
+    max-width: 1920px !important;
+    height: auto !important;
+    min-height: 48px !important;
+    box-sizing: border-box !important;
+    margin: 6px auto 12px !important;
+    padding: 0 20px !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    overflow: visible !important;
+    position: relative !important;
+    z-index: 40 !important;
+}
+
+body.ucwc-apps .searchArea {
+    width: auto !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: none !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 7px 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    touch-action: pan-x !important;
+    overscroll-behavior-y: none !important;
+    white-space: nowrap !important;
+    position: relative !important;
+    top: 0 !important;
+    isolation: auto !important;
+    z-index: 41 !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    border: 0 !important;
+    border-radius: 14px !important;
+    border-bottom-left-radius: 14px !important;
+    border-bottom-right-radius: 14px !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.10) !important;
+    box-shadow: 0 6px 6px rgba(0,0,0,.28), 0 14px 10px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,0.10) !important;
+    filter: none !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+body.ucwc-apps .searchArea::before {
+    content: "" !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 0 !important;
+    border-radius: 14px !important;
+    background: rgba(20, 24, 34, 0.55) !important;
+    background-color: rgba(20, 24, 34, 0.55) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.10) !important;
+    clip-path: inset(0 round 14px) !important;
+}
+
+body.ucwc-apps .searchArea > * {
+    position: relative !important;
+    z-index: 1 !important;
+}
+
+body.ucwc-apps .searchArea::-webkit-scrollbar {
+    display: none;
+}
+
+body.ucwc-apps .searchAreaHolder,
+body.ucwc-apps .searchAreaHolder .searchArea {
+    border-bottom-left-radius: 14px !important;
+    border-bottom-right-radius: 14px !important;
+}
+
+body.ucwc-apps #searchFilter {
+    display: inline-flex !important;
+    align-items: center !important;
+    flex: 0 0 auto !important;
+}
+
+body.ucwc-apps #searchBox {
+    width: 300px !important;
+    min-width: 300px !important;
+    height: 34px !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 0 42px 0 12px !important;
+    top: auto !important;
+    left: auto !important;
+    border: 0 !important;
+    border-radius: 12px !important;
+    background: rgba(255,255,255,0.08) !important;
+    background-color: rgba(255,255,255,0.08) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08) !important;
+    color: var(--text) !important;
+}
+
+body.ucwc-apps .searchSubmit {
+    width: 34px !important;
+    min-width: 34px !important;
+    height: 34px !important;
+    box-sizing: border-box !important;
+    margin: 0 0 0 -34px !important;
+    padding: 0 !important;
+    left: auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 0 12px 12px 0 !important;
+    background: rgba(255,255,255,0.08) !important;
+    background-color: rgba(255,255,255,0.08) !important;
+}
+
+body.ucwc-apps #searchButton {
+    line-height: 1 !important;
+}
+
+body.ucwc-apps .searchArea > *,
+body.ucwc-apps .maxPerPage,
+body.ucwc-apps .categoryLineNoMenu,
+body.ucwc-apps .sortIcons,
+body.ucwc-apps .pageNumber,
+body.ucwc-apps .pageSelected {
+    flex: 0 0 auto !important;
+    max-width: none !important;
+    white-space: nowrap !important;
+}
+
+body.ucwc-apps .menuItems {
+    width: 148px !important;
+    box-sizing: border-box !important;
+    margin: 10px 0 0 0 !important;
+    padding: 8px !important;
+    position: relative !important;
+    isolation: isolate !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    border: 0 !important;
+    border-radius: 14px !important;
+    border-bottom-left-radius: 14px !important;
+    border-bottom-right-radius: 14px !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.10) !important;
+    box-shadow: 0 6px 6px rgba(0,0,0,.28), 0 14px 10px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,0.10) !important;
+    filter: none !important;
+    overflow: visible !important;
+}
+
+body.ucwc-apps .menuItems::before {
+    content: "" !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 0 !important;
+    border-radius: 14px !important;
+    background: rgba(20, 24, 34, 0.55) !important;
+    background-color: rgba(20, 24, 34, 0.55) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.10) !important;
+    clip-path: inset(0 round 14px) !important;
+}
+
+body.ucwc-apps .menuItems > * {
+    position: relative !important;
+    z-index: 1 !important;
+}
+
+body.ucwc-apps .ca_display_area {
+    width: calc(100% - 20px) !important;
+    box-sizing: border-box !important;
+    margin-left: 10px !important;
+    margin-right: 10px !important;
+    position: relative !important;
+    align-items: stretch !important;
+    min-height: 0 !important;
+    height: auto !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    border-radius: 0 0 14px 14px !important;
+}
+
+body.ucwc-apps .mobileMenu {
+    width: 148px !important;
+    min-width: 148px !important;
+    position: relative !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    border-radius: 14px !important;
+    overflow: visible !important;
+}
+
+body.ucwc-apps .mainArea {
+    position: absolute !important;
+    top: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 148px !important;
+    width: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    align-self: stretch !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(255,121,198,0.85) rgba(20,24,34,0.35) !important;
+}
+
+body.ucwc-apps #templates_content {
+    margin-bottom: 0 !important;
+    padding-bottom: 8px !important;
+}
+
+body.ucwc-apps .mainArea::-webkit-scrollbar {
+    width: 10px !important;
+}
+
+body.ucwc-apps .mainArea::-webkit-scrollbar-track {
+    background: rgba(20,24,34,0.35) !important;
+    border-radius: 999px !important;
+}
+
+body.ucwc-apps .mainArea::-webkit-scrollbar-thumb {
+    background: rgba(255,121,198,0.85) !important;
+    border-radius: 999px !important;
+    border: 2px solid rgba(20,24,34,0.35) !important;
+}
+
+body.ucwc-apps .menuItems ul,
+body.ucwc-apps .menuItems li {
+    list-style: none !important;
+}
+
+body.ucwc-apps .caMenuItem,
+body.ucwc-apps .categoryMenu,
+body.ucwc-apps .chartMenu {
+    width: 100% !important;
+    min-height: 30px !important;
+    box-sizing: border-box !important;
+    margin: 2px 0 !important;
+    padding: 7px 9px !important;
+    display: flex !important;
+    align-items: center !important;
+    border-radius: 10px !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+body.ucwc-apps .caMenuItem:hover,
+body.ucwc-apps .categoryMenu:hover,
+body.ucwc-apps .chartMenu:hover,
+body.ucwc-apps .hoverMenu {
+    background: rgba(255,255,255,0.07) !important;
+    color: var(--text-hover) !important;
+}
+
+body.ucwc-apps .selectedMenu,
+body.ucwc-apps .chartMenu.selectedMenu {
+    background: rgba(255,255,255,0.10) !important;
+    color: var(--text-hover) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08) !important;
+}
+
+@media (max-width: 900px) {
+    body.ucwc-apps .searchAreaHolder {
+        margin: 8px 0 12px !important;
+        padding: 0 8px !important;
+        scrollbar-width: none;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        overscroll-behavior-x: contain !important;
+        overscroll-behavior-y: none !important;
+        touch-action: pan-x !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    body.ucwc-apps .searchAreaHolder::-webkit-scrollbar {
+        display: none;
+    }
+
+    body.ucwc-apps .searchArea {
+        padding: 7px 8px !important;
+        min-width: max-content !important;
+        width: max-content !important;
+        max-width: none !important;
+        overflow: visible !important;
+        overflow-x: visible !important;
+        overflow-y: visible !important;
+    }
+
+    body.ucwc-apps #searchBox {
+        width: 300px !important;
+        min-width: 300px !important;
+    }
+
+    body.ucwc-apps .menuItems {
+        flex: 0 0 148px !important;
+        width: 148px !important;
+        min-width: 148px !important;
+        top: auto !important;
+        margin: 8px 0 0 0 !important;
+        overflow: visible !important;
+    }
+
+    body.ucwc-apps .ca_display_area {
+        width: calc(100% - 16px) !important;
+        margin-left: 8px !important;
+        margin-right: 8px !important;
+    }
+
+}
+
+/* 35.1 Apps page: tighten rendered menu items and card flow */
+body.ucwc-apps .searchArea,
+body.ucwc-apps .searchArea label,
+body.ucwc-apps .searchArea span,
+body.ucwc-apps .maxPerPage {
+    color: var(--text) !important;
+}
+
+body.ucwc-apps .searchArea .templateSearch,
+body.ucwc-apps .searchArea .dockerSearch,
+body.ucwc-apps .searchArea .maxPerPage {
+    min-height: 30px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+body.ucwc-apps .searchArea .maxPerPage {
+    min-height: 28px !important;
+    height: 28px !important;
+    max-height: 28px !important;
+    box-sizing: border-box !important;
+    position: relative !important;
+    top: 0 !important;
+    margin: 0 !important;
+    padding: 0 13px !important;
+    justify-content: center !important;
+    border: 1px solid rgba(255,255,255,0.12) !important;
+    border-radius: 999px !important;
+    background: rgba(255,255,255,0.10) !important;
+    background-color: rgba(255,255,255,0.10) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08) !important;
+    color: rgba(238,238,238,0.90) !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    line-height: 1 !important;
+    text-shadow: none !important;
+}
+
+body.ucwc-apps .menuItems ul.caMenuItem {
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+body.ucwc-apps .menuItems li.caMenuItem,
+body.ucwc-apps .menuItems li.categoryMenu,
+body.ucwc-apps .menuItems li.chartMenu {
+    display: flex !important;
+    align-items: center !important;
+}
+
+/* 35.2 Apps page: soften search source toggle buttons */
+body.ucwc-apps .searchArea .dockerSearch,
+body.ucwc-apps .searchArea .templateSearch {
+    min-height: 28px !important;
+    height: 28px !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 0 13px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid rgba(255,255,255,0.12) !important;
+    border-radius: 999px !important;
+    background: rgba(255,255,255,0.10) !important;
+    background-color: rgba(255,255,255,0.10) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08) !important;
+    color: rgba(238,238,238,0.90) !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    line-height: 1 !important;
+    text-shadow: none !important;
+    vertical-align: middle !important;
+}
+
+body.ucwc-apps .searchArea .dockerSearch:hover,
+body.ucwc-apps .searchArea .templateSearch:hover {
+    background: rgba(255,255,255,0.16) !important;
+    background-color: rgba(255,255,255,0.16) !important;
+    color: var(--text-hover) !important;
+}
+
+
+/* CA 2026.x nested subCategory rows (Installed/Previous ALL/Docker/Plugins) */
+body.ucwc-apps .menuItems li.subCategory {
+    display: block !important;
+    margin: 0 0 2px 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    min-height: 0 !important;
+}
+body.ucwc-apps .menuItems li.subCategory > ul.caMenuItem {
+    width: 100% !important;
+    min-height: 26px !important;
+    margin: 1px 0 !important;
+    padding: 5px 9px 5px 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    border-radius: 8px !important;
+    box-sizing: border-box !important;
+    list-style: none !important;
+}
+
+/* ===== Desktop Apps: search suggestions unclipped (PC only) ===== */
+@media (min-width: 768px) {
+    /* Architecture is owned by fix-4issues block; only desktop tweaks here */
+    body.ucwc-apps #searchBox {
+        position: relative !important;
+        z-index: 52 !important;
+    }
+    body.ucwc-apps .ui-autocomplete,
+    body.ucwc-apps ul.ui-autocomplete,
+    body.ucwc-apps .ui-menu.ui-autocomplete {
+        max-height: min(50vh, 360px) !important;
+    }
+}
+/* ===== end Desktop Apps search suggestions ===== */
+
+
+/* ===== Apps search scroll architecture (fix-4issues) ===== */
+/* Holder is the ONLY horizontal scroller.
+   searchArea expands to content width and stays overflow:visible so
+   jQuery UI autocomplete under #searchBox is never clipped
+   (CSS: non-visible overflow-x forces overflow-y to auto). */
+body.ucwc-apps .searchAreaHolder {
+    overflow-x: auto !important;
+    overflow-y: hidden !important; /* horizontal-only: no vertical drag on search row */
+    overscroll-behavior-x: contain !important;
+    overscroll-behavior-y: none !important;
+    touch-action: pan-x !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    position: relative !important;
+    z-index: 50 !important;
+}
+body.ucwc-apps .searchAreaHolder::-webkit-scrollbar {
+    display: none;
+}
+
+body.ucwc-apps .searchArea {
+    width: max-content !important;
+    min-width: max-content !important;
+    max-width: none !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: none !important;
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+    isolation: auto !important;
+    position: relative !important;
+    z-index: 51 !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    white-space: nowrap !important;
+    box-sizing: border-box !important;
+}
+
+/* Background lives on searchArea (full content width) so it scrolls with the strip */
+body.ucwc-apps .searchArea::before {
+    content: "" !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    z-index: 0 !important;
+    border-radius: 14px !important;
+    background: rgba(20, 24, 34, 0.55) !important;
+    background-color: rgba(20, 24, 34, 0.55) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.10) !important;
+    clip-path: inset(0 round 14px) !important;
+    pointer-events: none !important;
+}
+
+/* Autocomplete unclip — ALL viewports */
+body.ucwc-apps #searchBox,
+body.ucwc-apps #searchFilter {
+    overflow: visible !important;
+    position: relative !important;
+    z-index: 52 !important;
+}
+
+body.ucwc-apps .ui-autocomplete,
+body.ucwc-apps ul.ui-autocomplete,
+body.ucwc-apps .ui-menu.ui-autocomplete,
+body.ucwc-apps .ui-front .ui-autocomplete,
+.ui-autocomplete.ui-front,
+ul.ui-autocomplete.ui-menu {
+    z-index: 20060 !important;
+    max-height: min(50vh, 360px) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    pointer-events: auto !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    clip: auto !important;
+    clip-path: none !important;
+    background: rgba(22, 26, 36, 0.98) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45) !important;
+}
+
+/* Parents that often clip absolute/fixed menus — keep visible on Apps.
+   mainArea excluded: it must keep overflow-y:auto for right panel content. */
+body.ucwc-apps #template,
+body.ucwc-apps #content,
+body.ucwc-apps .content,
+body.ucwc-apps div.frame,
+body.ucwc-apps div.tabs,
+body.ucwc-apps .ca_display_area {
+    overflow: visible !important;
+}
+/* search strip parents only; do not force mainArea overflow visible */
+body.ucwc-apps .searchAreaHolder {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    touch-action: pan-x !important;
+    overscroll-behavior-y: none !important;
+}
+
+/* Viewport side-scroll guard: never put overflow-x:clip on body/html
+   (that clips body-level jQuery UI autocomplete). Constrain page shell. */
+body.ucwc-apps {
+    overflow-x: visible !important;
+}
+body.ucwc-apps #template,
+body.ucwc-apps .mainArea,
+body.ucwc-apps #content,
+body.ucwc-apps .content {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+body.ucwc-apps .searchAreaHolder {
+    max-width: 100% !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+/* ===== end Apps search scroll architecture ===== */
+
+/* ===== Desktop Apps: search bg + mainArea fix ===== */
+/* MUST come after fix-4issues so min-width:100% beats min-width:max-content */
+@media (min-width: 768px) {
+    body.ucwc-apps .searchAreaHolder {
+        /* was -14px: search bar sat too close under top menu */
+        margin: 10px auto 12px !important;
+        padding: 0 20px !important;
+        position: relative !important;
+        top: 0 !important;
+        transform: none !important;
+        z-index: 20 !important;
+        overflow-x: auto !important;
+        overflow-y: visible !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        background: transparent !important;
+    }
+
+    body.ucwc-apps .searchArea {
+        width: max-content !important;
+        min-width: 100% !important;
+        max-width: none !important;
+        height: 48px !important;
+        min-height: 48px !important;
+        box-sizing: border-box !important;
+        overflow-x: auto !important;
+        overflow-y: visible !important;
+        position: relative !important;
+        z-index: 21 !important;
+        background: rgba(20, 24, 34, 0.55) !important;
+        background-color: rgba(20, 24, 34, 0.55) !important;
+        border-radius: 14px !important;
+        box-shadow:
+            0 6px 6px rgba(0, 0, 0, 0.28),
+            0 14px 10px rgba(0, 0, 0, 0.18),
+            inset 0 1px 0 rgba(255, 255, 255, 0.10) !important;
+        filter: none !important;
+    }
+
+    body.ucwc-apps .searchArea::before {
+        content: "" !important;
+        position: absolute !important;
+        inset: 0 !important;
+        width: auto !important;
+        min-width: 0 !important;
+        height: auto !important;
+        z-index: 0 !important;
+        border-radius: 14px !important;
+        background: transparent !important;
+        background-color: transparent !important;
+        box-shadow: none !important;
+        clip-path: none !important;
+        pointer-events: none !important;
+    }
+
+    body.ucwc-apps .searchArea > * {
+        position: relative !important;
+        z-index: 1 !important;
+    }
+
+    body.ucwc-apps .ca_display_area {
+        position: relative !important;
+        display: block !important;
+        width: calc(100% - 20px) !important;
+        margin: 0 10px 12px !important;
+        padding: 0 !important;
+        /* 与视口可用高度对齐，左右栏同高、各自滚动 */
+        min-height: calc(100vh - 220px) !important;
+        height: calc(100dvh - 220px) !important;
+        max-height: calc(100dvh - 220px) !important;
+        z-index: 1 !important;
+        overflow: hidden !important;
+        background: transparent !important;
+    }
+
+    /* PC left sidebar: always visible, height-matched to mainArea, independent scroll */
+    body.ucwc-apps .mobileMenu,
+    body.ucwc-apps #mobileMenu {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        bottom: 0 !important;
+        float: none !important;
+        width: 148px !important;
+        min-width: 148px !important;
+        max-width: 148px !important;
+        height: auto !important;
+        max-height: 100% !important;
+        overflow: hidden !important;
+        z-index: 3 !important;
+        box-sizing: border-box !important;
+    }
+
+    body.ucwc-apps .menuItems {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+        position: relative !important;
+        z-index: 3 !important;
+        width: 148px !important;
+        min-width: 148px !important;
+        height: 100% !important;
+        max-height: 100% !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain !important;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin !important;
+        scrollbar-color: rgba(255,121,198,0.75) rgba(20,24,34,0.35) !important;
+        box-sizing: border-box !important;
+    }
+
+    body.ucwc-apps .menuItems::-webkit-scrollbar {
+        width: 8px !important;
+    }
+    body.ucwc-apps .menuItems::-webkit-scrollbar-track {
+        background: rgba(20,24,34,0.35) !important;
+        border-radius: 999px !important;
+    }
+    body.ucwc-apps .menuItems::-webkit-scrollbar-thumb {
+        background: rgba(255,121,198,0.75) !important;
+        border-radius: 999px !important;
+        border: 2px solid rgba(20,24,34,0.35) !important;
+    }
+
+    body.ucwc-apps.menuHidden .mobileMenu,
+    body.ucwc-apps.menuHidden #mobileMenu,
+    body.ucwc-apps:not(.menuShowing) .mobileMenu,
+    body.ucwc-apps:not(.menuShowing) #mobileMenu,
+    body.ucwc-apps .mobileMenu.menuHidden,
+    body.ucwc-apps #mobileMenu.menuHidden {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        width: 148px !important;
+        min-width: 148px !important;
+        height: auto !important;
+        max-height: 100% !important;
+        overflow: hidden !important;
+        top: 0 !important;
+        left: 0 !important;
+        bottom: 0 !important;
+    }
+
+    body.ucwc-apps .mainArea {
+        position: absolute !important;
+        top: 0 !important;
+        left: 148px !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: auto !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        margin: 0 !important;
+        padding: 4px 8px 16px 12px !important;
+        box-sizing: border-box !important;
+        z-index: 2 !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        background: transparent !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        display: block !important;
+    }
+
+    body.ucwc-apps #templates_content,
+    body.ucwc-apps .mainArea > * {
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+    }
+}
+/* ===== end Desktop Apps: search bg + mainArea fix ===== */
+
+
+/* ===== Apps mobile: left menu panel v4 (perf + text-fit + no mask) ===== */
+/* Slimmed selectors; full list + page scroll; no scrim; text-width menu */
+
+@media (max-width: 767px) {
+    body.ucwc-apps .mainArea {
+        position: relative !important;
+        inset: auto !important;
+        left: auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+        max-height: none !important;
+        min-height: 40vh !important;
+        margin: 0 !important;
+        overflow-x: hidden !important;
+        overflow-y: visible !important;
+        z-index: 1 !important;
+        transform: none !important;
+        animation: none !important;
+        transition: none !important;
+        pointer-events: auto !important;
+    }
+
+    body.ucwc-apps .ca_display_area {
+        display: block !important;
+        position: relative !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+        max-height: none !important;
+        margin: 0 !important;
+        padding: 0 8px 12px !important;
+        box-sizing: border-box !important;
+        overflow: visible !important;
+        transform: none !important;
+        animation: none !important;
+        transition: none !important;
+    }
+
+    body.ucwc-apps .searchAreaHolder {
+        margin: 8px 0 12px !important;
+        padding: 0 8px !important;
+        margin-left: 0 !important;
+        left: 0 !important;
+        position: relative !important;
+        z-index: 50 !important;
+        transform: none !important;
+        animation: none !important;
+        transition: none !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important; /* mobile: search row horizontal only */
+        overscroll-behavior-x: contain !important;
+        overscroll-behavior-y: none !important;
+        touch-action: pan-x !important;
+        -webkit-overflow-scrolling: touch;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    body.ucwc-apps .searchArea {
+        box-sizing: border-box !important;
+        filter: none !important;
+        -webkit-overflow-scrolling: touch;
+        width: max-content !important;
+        min-width: max-content !important;
+        max-width: none !important;
+        overflow: visible !important;
+        overflow-x: visible !important;
+        overflow-y: hidden !important;
+        touch-action: pan-x !important;
+        overscroll-behavior-y: none !important;
+    }
+
+    body.ucwc-apps #searchBox {
+        width: min(100%, 260px) !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        position: relative !important;
+        z-index: 51 !important;
+    }
+
+    /* kill CA/jQuery motion once */
+    body.ucwc-apps .mobileMenu,
+    body.ucwc-apps #mobileMenu,
+    body.ucwc-apps .menuItems {
+        animation: none !important;
+        transition: none !important;
+        transform: none !important;
+        filter: none !important;
+    }
+
+    body.ucwc-apps .ui-effects-wrapper {
+        display: contents !important;
+        position: static !important;
+        width: auto !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        transform: none !important;
+        animation: none !important;
+        transition: none !important;
+    }
+
+    /* closed */
+    body.ucwc-apps:not(.menuShowing) .mobileMenu,
+    body.ucwc-apps:not(.menuShowing) #mobileMenu,
+    body.ucwc-apps.menuHidden .mobileMenu,
+    body.ucwc-apps.menuHidden #mobileMenu,
+    body.ucwc-apps .mobileMenu.menuHidden,
+    body.ucwc-apps #mobileMenu.menuHidden {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        opacity: 0 !important;
+        width: 0 !important;
+        height: 0 !important;
+        max-height: 0 !important;
+        overflow: hidden !important;
+        position: absolute !important;
+        left: -9999px !important;
+    }
+
+    /* open: text-fit width, full height, page scroll */
+    body.ucwc-apps.menuShowing .mobileMenu,
+    body.ucwc-apps.menuShowing #mobileMenu,
+    body.ucwc-apps .mobileMenu.menuShowing,
+    body.ucwc-apps #mobileMenu.menuShowing {
+        display: block !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        opacity: 1 !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 8px !important;
+        width: max-content !important;
+        min-width: 132px !important;
+        max-width: min(200px, calc(100vw - 48px)) !important;
+        max-height: none !important;
+        height: auto !important;
+        margin: 8px 0 16px !important;
+        padding: 6px 0 10px !important;
+        overflow: visible !important;
+        z-index: 20 !important;
+        box-sizing: border-box !important;
+        border-radius: 12px !important;
+        background: rgba(22, 26, 36, 0.98) !important;
+        border: 1px solid rgba(255, 255, 255, 0.10) !important;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.40) !important;
+        filter: none !important;
+        transform: none !important;
+        animation: none !important;
+        transition: none !important;
+    }
+
+    body.ucwc-apps.menuShowing .mobileMenu .menuItems,
+    body.ucwc-apps.menuShowing #mobileMenu .menuItems,
+    body.ucwc-apps.menuShowing .menuItems {
+        display: block !important;
+        position: relative !important;
+        width: max-content !important;
+        max-width: 100% !important;
+        max-height: none !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 4px 6px 8px !important;
+        overflow: visible !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        filter: none !important;
+        transform: none !important;
+        animation: none !important;
+        transition: none !important;
+    }
+
+    body.ucwc-apps.menuShowing .menuItems::before {
+        display: none !important;
+        content: none !important;
+    }
+
+    body.ucwc-apps.menuShowing .caMenuItem,
+    body.ucwc-apps.menuShowing .categoryMenu,
+    body.ucwc-apps.menuShowing .chartMenu,
+    body.ucwc-apps.menuShowing .menuItems li {
+        width: max-content !important;
+        max-width: 100% !important;
+        white-space: nowrap !important;
+        padding: 6px 8px !important;
+        margin: 1px 0 !important;
+        box-sizing: border-box !important;
+        transition: none !important;
+    }
+
+    body.ucwc-apps.menuShowing .mainArea {
+        left: auto !important;
+        width: 100% !important;
+        pointer-events: auto !important;
+        user-select: auto !important;
+        -webkit-user-select: auto !important;
+    }
+
+    /* no mask */
+    body.ucwc-apps .mobileOverlay,
+    body.ucwc-apps .menuOverlay,
+    body.ucwc-apps .ca_overlay,
+    body.ucwc-apps .sidebarOverlay,
+    body.ucwc-apps .menu_overlay {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        background: transparent !important;
+        z-index: -1 !important;
+    }
+
+    /* search suggestions above menu, unclipped */
+    body.ucwc-apps .ui-autocomplete,
+    body.ucwc-apps ul.ui-autocomplete,
+    body.ucwc-apps .ui-menu.ui-autocomplete {
+        z-index: 20060 !important;
+        max-height: min(50vh, 320px) !important;
+        overflow-y: auto !important;
+        pointer-events: auto !important;
+        background: rgba(22, 26, 36, 0.98) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        border-radius: 10px !important;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45) !important;
+    }
+
+    body.ucwc-apps.menuShowing,
+    body.ucwc-apps.menuShowing.body_sidebarScroll {
+        overflow: auto !important;
+        overflow-x: hidden !important;
+        height: auto !important;
+        max-height: none !important;
+        position: static !important;
+    }
+}
+
+/* ===== end Apps mobile overlay ===== */
+
+
+/* ===== ThemeEffects:suggest-no-glass:start ===== */
+/* CA 2026.x uses Awesomplete (ul under .awesomplete / body-mounted .caSearchSuggestions).
+   JS sets --ca-suggest-* and fixed left/top; keep list above search strip, no glass blur. */
+body.ucwc-apps .ui-autocomplete,
+body.ucwc-apps ul.ui-autocomplete,
+body.ucwc-apps .ui-menu.ui-autocomplete,
+body.ucwc-apps .ui-front .ui-autocomplete,
+body.ucwc-apps .awesomplete > ul,
+body.ucwc-apps ul.caSearchSuggestions,
+body.ucwc-apps > ul.caSearchSuggestions,
+body > ul.caSearchSuggestions,
+.ui-autocomplete.ui-front,
+ul.ui-autocomplete.ui-menu {
+    position: fixed !important;
+    left: var(--ca-suggest-left, 0px) !important;
+    top: var(--ca-suggest-top, 0px) !important;
+    width: var(--ca-suggest-width, 300px) !important;
+    min-width: var(--ca-suggest-width, 300px) !important;
+    max-width: min(90vw, 480px) !important;
+    max-height: min(50vh, 360px) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    z-index: 20060 !important;
+    margin: 0 !important;
+    padding: 4px 0 !important;
+    list-style: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    clip: auto !important;
+    clip-path: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    filter: none !important;
+    background: rgba(22, 26, 36, 0.98) !important;
+    background-color: rgba(22, 26, 36, 0.98) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45) !important;
+    color: var(--text, #eee) !important;
+    text-shadow: none !important;
+    font-size: 14px !important;
+}
+
+body.ucwc-apps .awesomplete > ul[hidden],
+body.ucwc-apps ul.caSearchSuggestions[hidden],
+body > ul.caSearchSuggestions[hidden],
+body.ucwc-apps .awesomplete > ul:empty,
+body.ucwc-apps ul.caSearchSuggestions:empty,
+body > ul.caSearchSuggestions:empty {
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transform: none !important;
+}
+
+body.ucwc-apps .awesomplete > ul:before,
+body.ucwc-apps ul.caSearchSuggestions:before,
+body > ul.caSearchSuggestions:before {
+    content: none !important;
+    display: none !important;
+}
+
+body.ucwc-apps .awesomplete > ul > li,
+body.ucwc-apps ul.caSearchSuggestions > li,
+body > ul.caSearchSuggestions > li {
+    padding: 8px 12px !important;
+    cursor: pointer !important;
+    color: var(--text, #eee) !important;
+    background: transparent !important;
+}
+
+body.ucwc-apps .awesomplete > ul > li:hover,
+body.ucwc-apps .awesomplete > ul > li[aria-selected="true"],
+body.ucwc-apps ul.caSearchSuggestions > li:hover,
+body.ucwc-apps ul.caSearchSuggestions > li[aria-selected="true"],
+body > ul.caSearchSuggestions > li:hover,
+body > ul.caSearchSuggestions > li[aria-selected="true"] {
+    background: rgba(0, 243, 255, 0.12) !important;
+    color: var(--text-hover, #fff) !important;
+}
+
+body.ucwc-apps .awesomplete mark,
+body.ucwc-apps ul.caSearchSuggestions mark,
+body > ul.caSearchSuggestions mark {
+    background: rgba(255, 121, 198, 0.35) !important;
+    color: inherit !important;
+}
+
+/* Keep search/filter wrappers from clipping the dropdown before JS reparents */
+body.ucwc-apps .awesomplete,
+body.ucwc-apps #searchFilter {
+    overflow: visible !important;
+    position: relative !important;
+    z-index: 52 !important;
+}
+/* ===== ThemeEffects:suggest-no-glass:end ===== */
+
+/* ===== ThemeEffects:hutao-mascot:start ===== */
+/* Mascot as real <img id="ucwc-mascot"> (Loader). CSS background GIF on html::before
+   restarts/flickers on tab minimize→restore; <img> keeps decode frame stable. */
+html::before {
+    content: none !important;
+    display: none !important;
+    background: none !important;
+    background-image: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+#ucwc-mascot,
+#ucwc-mascot-freeze {
+    position: fixed !important;
+    right: max(8px, env(safe-area-inset-right)) !important;
+    bottom: max(36px, calc(1.5rem + env(safe-area-inset-bottom))) !important;
+    left: auto !important;
+    top: auto !important;
+    z-index: 1 !important;
+    pointer-events: none !important;
+    user-select: none !important;
+    -webkit-user-drag: none !important;
+    /* Base medium size; --ucwc-hutao-scale from Theme Effects */
+    width: calc(clamp(96px, 12vw, 224px) * var(--ucwc-hutao-scale, 1)) !important;
+    height: calc(clamp(106px, calc(12vw * 883 / 803), 246px) * var(--ucwc-hutao-scale, 1)) !important;
+    max-width: min(calc(224px * var(--ucwc-hutao-scale, 1)), 40vw) !important;
+    max-height: min(calc(246px * var(--ucwc-hutao-scale, 1)), 42vh) !important;
+    object-fit: contain !important;
+    object-position: center bottom !important;
+    opacity: 0.95 !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    filter: none !important;
+    -webkit-filter: none !important;
+    /* Keep layer; avoid will-change thrash that restarts GIF on some engines */
+    backface-visibility: hidden;
+    image-rendering: auto;
+}
+#ucwc-mascot-freeze {
+    z-index: 2 !important;
+    /* inline left/top/width/height override from JS snapshot */
+}
+/* Hide live GIF under freeze canvas without fighting opacity !important */
+#ucwc-mascot.ucwc-mascot-frozen {
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+html.ucwc-mascot-blur #ucwc-mascot,
+	html.ucwc-mascot-blur #ucwc-mascot-freeze {
+	    /* Single-op blur; drop saturate to cut filter graph cost on GIF frames */
+	    filter: blur(var(--ucwc-mascot-blur, 8px)) !important;
+	    -webkit-filter: blur(var(--ucwc-mascot-blur, 8px)) !important;
+	}
+
+@media (max-width: 767px) {
+    #ucwc-mascot,
+    #ucwc-mascot-freeze {
+        width: calc(clamp(96px, 26vw, 148px) * var(--ucwc-hutao-scale, 1)) !important;
+        height: calc(clamp(106px, calc(26vw * 883 / 803), 163px) * var(--ucwc-hutao-scale, 1)) !important;
+        max-width: min(calc(34vw * var(--ucwc-hutao-scale, 1)), 50vw) !important;
+        max-height: min(calc(28vh * var(--ucwc-hutao-scale, 1)), 36vh) !important;
+        right: max(4px, env(safe-area-inset-right)) !important;
+        bottom: max(4px, env(safe-area-inset-bottom)) !important;
+        opacity: 0.92 !important;
+    }
+}
+
+@media (min-width: 1600px) {
+    #ucwc-mascot,
+    #ucwc-mascot-freeze {
+        width: calc(clamp(128px, 9.6vw, 224px) * var(--ucwc-hutao-scale, 1)) !important;
+        height: calc(clamp(141px, calc(9.6vw * 883 / 803), 246px) * var(--ucwc-hutao-scale, 1)) !important;
+        bottom: max(40px, calc(1.75rem + env(safe-area-inset-bottom))) !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #ucwc-mascot,
+    #ucwc-mascot-freeze {
+        opacity: 0.75 !important;
+    }
+}
+/* ===== ThemeEffects:hutao-mascot:end ===== */
+
+
+/* ===== ThemeEffects:search-spacing-scroll-fix:start ===== */
+/* 2026-07-20: PC search too close to top menu; mobile search row vertical drag */
+@media (min-width: 768px) {
+    body.ucwc-apps .searchAreaHolder {
+        margin-top: 10px !important;
+        margin-bottom: 12px !important;
+    }
+}
+
+/* Search strip: allow horizontal pan only */
+body.ucwc-apps .searchAreaHolder,
+body.ucwc-apps .searchArea {
+    touch-action: pan-x !important;
+    overscroll-behavior-y: none !important;
+}
+body.ucwc-apps .searchAreaHolder {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+}
+/* Keep autocomplete unclipped: suggestions live outside the strip (ui-front) */
+body.ucwc-apps .searchArea {
+    overflow-y: hidden !important;
+}
+
+@media (max-width: 767px) {
+    body.ucwc-apps .searchAreaHolder {
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        touch-action: pan-x !important;
+        overscroll-behavior-x: contain !important;
+        overscroll-behavior-y: none !important;
+    }
+    body.ucwc-apps .searchArea {
+        overflow-x: visible !important;
+        overflow-y: hidden !important;
+        touch-action: pan-x !important;
+    }
+}
+/* ===== ThemeEffects:search-spacing-scroll-fix:end ===== */
+
+/* ===== ThemeEffects:actioncentre-bar:start ===== */
+/* Action Centre bottom controls: same pill language as search-row buttons
+   (dockerSearch / templateSearch / maxPerPage). No bar background. */
+
+body.ucwc-apps .multi_installDiv {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    margin: 8px 0 0 !important;
+    padding: 4px 0 8px !important;
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    z-index: 5 !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    border: 0 !important;
+    border-top: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    color: var(--text, #eee) !important;
+}
+
+/* jQuery .show() → display:block; use flex row like search strip */
+body.ucwc-apps .multi_installDiv[style*="display: block"],
+body.ucwc-apps .multi_installDiv[style*="display:block"] {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+body.ucwc-apps .multi_installDiv[style*="display: none"],
+body.ucwc-apps .multi_installDiv[style*="display:none"] {
+    display: none !important;
+}
+
+/* Match search-row pills: .dockerSearch / .templateSearch / .maxPerPage */
+body.ucwc-apps .multi_installDiv input[type="button"],
+body.ucwc-apps .multi_installDiv input.multi_install,
+body.ucwc-apps .multi_installDiv input.multi_installAll,
+body.ucwc-apps .multi_installDiv input.multi_installClear,
+body.ucwc-apps .multi_installDiv input.multi_deleteButton,
+body.ucwc-apps .multi_installDiv .multi_installButton {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 0 13px !important;
+    min-height: 28px !important;
+    height: 28px !important;
+    max-height: 28px !important;
+    line-height: 1 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 999px !important;
+    background: rgba(255, 255, 255, 0.10) !important;
+    background-color: rgba(255, 255, 255, 0.10) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+    color: rgba(238, 238, 238, 0.90) !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    font-family: inherit !important;
+    text-shadow: none !important;
+    cursor: pointer !important;
+    white-space: nowrap !important;
+    vertical-align: middle !important;
+}
+
+body.ucwc-apps .multi_installDiv input[type="button"]:hover:not([disabled]),
+body.ucwc-apps .multi_installDiv input.multi_installAll:hover:not([disabled]),
+body.ucwc-apps .multi_installDiv input.multi_installClear:hover:not([disabled]),
+body.ucwc-apps .multi_installDiv input.multi_deleteButton:hover:not([disabled]),
+body.ucwc-apps .multi_installDiv input.multi_installButton:hover:not([disabled]),
+body.ucwc-apps .multi_installDiv input.multi_install:hover:not([disabled]) {
+    background: rgba(255, 255, 255, 0.16) !important;
+    background-color: rgba(255, 255, 255, 0.16) !important;
+    color: var(--text-hover, #fff) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Primary Install/Update — same accent language as theme btn, still pill */
+body.ucwc-apps .multi_installDiv input.multi_installButton:not([disabled]),
+body.ucwc-apps .multi_installDiv input.multi_install:not([disabled]) {
+    background: rgba(251, 63, 98, 0.22) !important;
+    background-color: rgba(251, 63, 98, 0.22) !important;
+    border-color: rgba(251, 63, 98, 0.45) !important;
+    color: #ffd0db !important;
+}
+body.ucwc-apps .multi_installDiv input.multi_installButton:hover:not([disabled]),
+body.ucwc-apps .multi_installDiv input.multi_install:hover:not([disabled]) {
+    background: rgba(251, 63, 98, 0.34) !important;
+    background-color: rgba(251, 63, 98, 0.34) !important;
+    color: #fff !important;
+}
+
+/* Delete — soft danger pill, no solid bar */
+body.ucwc-apps .multi_installDiv input.multi_deleteButton:not([disabled]) {
+    background: rgba(231, 76, 60, 0.14) !important;
+    background-color: rgba(231, 76, 60, 0.14) !important;
+    border-color: rgba(231, 76, 60, 0.40) !important;
+    color: #ffb0a8 !important;
+}
+body.ucwc-apps .multi_installDiv input.multi_deleteButton:hover:not([disabled]) {
+    background: rgba(231, 76, 60, 0.24) !important;
+    background-color: rgba(231, 76, 60, 0.24) !important;
+    color: #fff !important;
+}
+
+body.ucwc-apps .multi_installDiv input[disabled],
+body.ucwc-apps .multi_installDiv input[type="button"][disabled] {
+    opacity: 0.45 !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
+    color: rgba(238, 238, 238, 0.55) !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    background-color: rgba(255, 255, 255, 0.06) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+body.ucwc-apps .ca_multiselect {
+    color: var(--text, #eee) !important;
+    opacity: 0.9 !important;
+}
+
+@media (max-width: 767px) {
+    body.ucwc-apps .multi_installDiv,
+    body.ucwc-apps .mainArea .multi_installDiv {
+        position: relative !important;
+        left: auto !important;
+        right: auto !important;
+        bottom: auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 10px 0 12px !important;
+        padding: 0 0 4px !important;
+        background: transparent !important;
+        background-color: transparent !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        z-index: 5 !important;
+    }
+
+    body.ucwc-apps .multi_installDiv[style*="display: block"],
+    body.ucwc-apps .multi_installDiv[style*="display:block"] {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+    }
+
+    body.ucwc-apps .multi_installDiv input[type="button"],
+    body.ucwc-apps .multi_installDiv input.multi_install,
+    body.ucwc-apps .multi_installDiv input.multi_installAll,
+    body.ucwc-apps .multi_installDiv input.multi_installClear,
+    body.ucwc-apps .multi_installDiv input.multi_deleteButton,
+    body.ucwc-apps .multi_installDiv .multi_installButton {
+        flex: 0 0 auto !important;
+        min-width: 0 !important;
+        min-height: 28px !important;
+        height: 28px !important;
+        max-height: 28px !important;
+        padding: 0 13px !important;
+        font-size: 12px !important;
+        border-radius: 999px !important;
+    }
+
+    /* no extra bottom padding reserved for fixed bar */
+    body.ucwc-apps .mainArea {
+        padding-bottom: 12px !important;
+    }
+}
+
+@media (min-width: 768px) {
+    body.ucwc-apps .multi_installDiv {
+        margin: 10px 0 8px !important;
+        padding: 0 !important;
+        background: transparent !important;
+        background-color: transparent !important;
+        border: 0 !important;
+        box-shadow: none !important;
+    }
+    body.ucwc-apps .multi_installDiv[style*="display: block"],
+    body.ucwc-apps .multi_installDiv[style*="display:block"] {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        align-items: center !important;
+    }
+    body.ucwc-apps .multi_installDiv input[type="button"],
+    body.ucwc-apps .multi_installDiv input.multi_install,
+    body.ucwc-apps .multi_installDiv input.multi_installAll,
+    body.ucwc-apps .multi_installDiv input.multi_installClear,
+    body.ucwc-apps .multi_installDiv input.multi_deleteButton,
+    body.ucwc-apps .multi_installDiv .multi_installButton {
+        flex: 0 0 auto !important;
+    }
+    body.ucwc-apps .mainArea {
+        padding-bottom: 16px !important;
+    }
+}
+/* ===== ThemeEffects:actioncentre-bar:end ===== */
+
+/* ThemeEffects:inner-depth:start */
+/* Plan A — in-module icon/content volume (v1.8.0-beta + win-composite).
+   Goal: soft downward shape depth so glyphs sit on the glass, not stickers.
+   Not neon bloom. Outer shells stay box-shadow win-composite. Field effects disabled. */
+
+/* A1 — Dashboard / control glyphs: shape-following vertical drop-shadow
+   Skip GPUStat tile: multi-filter + mixed icon fonts reads as broken NVIDIA/Active Apps icons. */
+table.dashboard i.fa:not(.ups),
+table.dashboard i.control,
+table.dashboard .fa:not(.ups),
+table.dashboard .icon-u-disk,
+table.dashboard .icon-u-docker,
+table.dashboard .icon-u-vm,
+table.dashboard .icon-u-plugin,
+.docker_controls i,
+.docker_controls i.fa,
+.ctrls i,
+.ctrls i.fa,
+#docker_containers i.fa,
+#vm_container i.fa,
+table.disk_status i.fa {
+    filter:
+        drop-shadow(0 1px 1px rgba(0, 0, 0, 0.55))
+        drop-shadow(0 3px 4px rgba(0, 0, 0, 0.28));
+}
+/* GPU Statistics: clean glyphs + app images (Intel / NVIDIA / Active Apps) */
+table.dashboard tbody[id*="gpustat"] i,
+table.dashboard tbody[id*="gpustat"] i.fa,
+table.dashboard tbody[id*="gpustat"] i.ups,
+table.dashboard tr[class*="gpu-"] i,
+table.dashboard tr[class*="gpu-"] i.fa,
+table.dashboard .gpu-active-apps i,
+table.dashboard i.ups.fa.fa-fw {
+    filter: none !important;
+    -webkit-filter: none !important;
+    animation: none !important;
+    text-shadow: none !important;
+    color: inherit;
+}
+table.dashboard tbody[id*="gpustat"] img,
+table.dashboard tbody[id*="gpustat"] img.gpu-image,
+table.dashboard tbody[id*="gpustat"] .vmicon1,
+table.dashboard tbody[id*="gpustat"] .vmicon2,
+table.dashboard tbody[id*="gpustat"] .vmicon3,
+table.dashboard img.gpu-image,
+table.dashboard span.gpu-img-span img,
+table.dashboard tr[class*="gpu-active-apps"] img {
+    filter: none !important;
+    -webkit-filter: none !important;
+    animation: none !important;
+    object-fit: contain !important;
+    max-width: 24px;
+    max-height: 24px;
+    vertical-align: middle;
+}
+
+/* Status play/stop — keep color glow; add volume under glyph */
+.fa.fa-play.started.green-text {
+    filter:
+        drop-shadow(0 1px 1px rgba(0, 0, 0, 0.55))
+        drop-shadow(0 3px 4px rgba(0, 0, 0, 0.28));
+    text-shadow:
+        0 1px 0 rgba(0, 0, 0, 0.45),
+        0 0 12px #2ecc71,
+        0 0 24px #2ecc71;
+}
+.fa.fa-square.stopped.red-text {
+    filter:
+        drop-shadow(0 1px 1px rgba(0, 0, 0, 0.55))
+        drop-shadow(0 3px 4px rgba(0, 0, 0, 0.28));
+    text-shadow:
+        0 1px 0 rgba(0, 0, 0, 0.45),
+        0 0 12px #f0000c,
+        0 0 24px #f0000c;
+}
+
+/* Header system icons — volume under existing color glow */
+.system.icon-u-lock.green-text,
+.system.icon-u-lock-open.red-text,
+.icon-u-search.system,
+.icon-u-logout.system,
+.icon-u-terminal.system,
+.fa.fa-tty.system,
+.icon-u-duplicate.system,
+.icon-u-chat.system,
+.icon-u-display.system,
+.icon-u-log.system,
+.icon-u-help.system,
+.icon-u-delete.system,
+.icon-u-switch.system {
+    filter:
+        drop-shadow(0 1px 1px rgba(0, 0, 0, 0.50))
+        drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25));
+}
+
+/* Gold header mark: volume + existing gold glow */
+.text-header-text-primary svg {
+    filter:
+        drop-shadow(0 1px 1px rgba(0, 0, 0, 0.55))
+        drop-shadow(0 3px 4px rgba(0, 0, 0, 0.28))
+        drop-shadow(0 0 4px #FFD700);
+}
+
+/* Status dots — glow + soft contact shadow (box-shadow, no filter) */
+.fa-circle,
+.ball {
+    box-shadow:
+        0 0 6px currentColor,
+        0 1px 2px rgba(0, 0, 0, 0.45),
+        0 2px 4px rgba(0, 0, 0, 0.22);
+}
+
+/* A2 — In-module image icons (shape depth; exclude mycase / GPUStat active-app icons) */
+table.dashboard img:not(#mycase):not(.gpu-image):not(.vmicon1):not(.vmicon2):not(.vmicon3),
+#docker_containers img,
+#vm_container img,
+.docker img {
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.40));
+}
+/* GPUStat active apps / vendor process icons — no theme filter thrash */
+table.dashboard img.gpu-image,
+table.dashboard span.gpu-img-span img,
+table.dashboard tr[class*="gpu-active-apps"] img {
+    filter: none !important;
+    -webkit-filter: none !important;
+}
+
+/* ThemeEffects:docker-icon-flicker-fix:start */
+/*
+ * Dashboard / Docker missing icons (video 2026-07-28, other Mac device):
+ * Many containers use FA silhouette i.img (no PNG). Theme pulse on
+ * .fa.fa-play.started.green-text (2s infinite text-shadow) next to plain
+ * silhouettes reads as continuous tile flicker. Also pin PNG size / kill
+ * broken-img drop-shadow loops on mobile GPUs.
+ */
+table.dashboard span.outer.apps img.img,
+table.dashboard span.outer.vms img.img,
+#docker_view img.img,
+#docker_containers img.img,
+#vm_view img.img,
+#vm_container img.img,
+span.outer.apps img.img,
+span.outer.vms img.img {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px;
+    min-height: 32px;
+    max-width: 32px;
+    max-height: 32px;
+    object-fit: contain;
+    flex-shrink: 0;
+    color: transparent;
+    font-size: 0;
+    line-height: 0;
+    vertical-align: middle;
+    background-color: transparent;
+}
+
+/* FA silhouette container icons (no PNG): no animated filter thrash */
+table.dashboard span.outer.apps i.img,
+table.dashboard span.outer.vms i.img,
+#docker_view span.outer.apps i.img,
+#vm_view span.outer.vms i.img,
+span.outer.apps i.img,
+span.outer.vms i.img,
+#docker_containers i.img {
+    filter: none !important;
+    -webkit-filter: none !important;
+    animation: none !important;
+}
+
+/* Fallback / question mark: no drop-shadow (broken decode + filter = GPU flicker) */
+table.dashboard img.img.ucwc-icon-fallback,
+#docker_view img.img.ucwc-icon-fallback,
+#docker_containers img.img.ucwc-icon-fallback,
+#vm_view img.img.ucwc-icon-fallback,
+#vm_container img.img.ucwc-icon-fallback,
+span.outer.apps img.img.ucwc-icon-fallback,
+span.outer.vms img.img.ucwc-icon-fallback,
+table.dashboard img.img[src*="question.png"],
+#docker_view img.img[src*="question.png"],
+#docker_containers img.img[src*="question.png"],
+span.outer.apps img.img[src*="question.png"] {
+    filter: none !important;
+    -webkit-filter: none !important;
+    opacity: 0.85;
+}
+
+/*
+ * Kill status pulse on Dashboard Docker/VM tiles (all viewports).
+ * Global `.fa.fa-play.started.green-text { animation: pulse 2s }` is the
+ * primary “一直闪” in user video — strongest next to missing/silhouette icons.
+ * Keep a static soft glow so started/stopped still read clearly.
+ */
+#docker_view .fa.fa-play.started.green-text,
+#docker_view .fa.fa-square.stopped.red-text,
+#docker_view .fa.fa-pause.paused.orange-text,
+#vm_view .fa.fa-play.started.green-text,
+#vm_view .fa.fa-square.stopped.red-text,
+#vm_view .fa.fa-pause.paused.orange-text,
+table.dashboard span.outer.apps .fa.fa-play.started.green-text,
+table.dashboard span.outer.apps .fa.fa-square.stopped.red-text,
+table.dashboard span.outer.apps .fa.fa-pause.paused.orange-text,
+table.dashboard span.outer.vms .fa.fa-play.started.green-text,
+table.dashboard span.outer.vms .fa.fa-square.stopped.red-text,
+table.dashboard span.outer.vms .fa.fa-pause.paused.orange-text,
+#docker_containers .fa.fa-play.started.green-text,
+#docker_containers .fa.fa-square.stopped.red-text,
+#docker_containers .fa.fa-pause.paused.orange-text,
+span.outer.apps .fa.fa-play.started.green-text,
+span.outer.apps .fa.fa-square.stopped.red-text,
+span.outer.apps .fa.fa-pause.paused.orange-text,
+span.outer.vms .fa.fa-play.started.green-text,
+span.outer.vms .fa.fa-square.stopped.red-text {
+    animation: none !important;
+    filter: none !important;
+    -webkit-filter: none !important;
+}
+#docker_view .fa.fa-play.started.green-text,
+table.dashboard span.outer.apps .fa.fa-play.started.green-text,
+#docker_containers .fa.fa-play.started.green-text,
+span.outer.apps .fa.fa-play.started.green-text,
+#vm_view .fa.fa-play.started.green-text,
+table.dashboard span.outer.vms .fa.fa-play.started.green-text,
+span.outer.vms .fa.fa-play.started.green-text {
+    text-shadow: 0 0 8px #2ecc71, 0 0 14px rgba(46, 204, 113, 0.55) !important;
+}
+#docker_view .fa.fa-square.stopped.red-text,
+table.dashboard span.outer.apps .fa.fa-square.stopped.red-text,
+#docker_containers .fa.fa-square.stopped.red-text,
+span.outer.apps .fa.fa-square.stopped.red-text,
+#vm_view .fa.fa-square.stopped.red-text,
+table.dashboard span.outer.vms .fa.fa-square.stopped.red-text,
+span.outer.vms .fa.fa-square.stopped.red-text {
+    text-shadow: 0 0 8px #f0000c, 0 0 14px rgba(240, 0, 12, 0.5) !important;
+}
+#docker_view .fa.fa-pause.paused.orange-text,
+table.dashboard span.outer.apps .fa.fa-pause.paused.orange-text,
+#docker_containers .fa.fa-pause.paused.orange-text,
+span.outer.apps .fa.fa-pause.paused.orange-text,
+#vm_view .fa.fa-pause.paused.orange-text,
+table.dashboard span.outer.vms .fa.fa-pause.paused.orange-text {
+    text-shadow: 0 0 8px #f39c12, 0 0 14px rgba(243, 156, 18, 0.5) !important;
+}
+
+/* Mobile / narrow: also drop filter on PNG tiles (ANGLE repaint cost) */
+@media (max-width: 900px) {
+    table.dashboard span.outer.apps img.img,
+    table.dashboard span.outer.vms img.img,
+    #docker_view img.img,
+    #docker_containers img.img,
+    #vm_view img.img,
+    #vm_container img.img,
+    span.outer.apps img.img,
+    span.outer.vms img.img,
+    table.dashboard img:not(#mycase):not(.gpu-image),
+    .docker img {
+        filter: none !important;
+        -webkit-filter: none !important;
+    }
+    table.dashboard img.gpu-image,
+    table.dashboard span.gpu-img-span img {
+        filter: none !important;
+        -webkit-filter: none !important;
+        width: 24px !important;
+        height: 24px !important;
+        object-fit: contain !important;
+    }
+}
+/* ThemeEffects:docker-icon-flicker-fix:end */
+
+/* Case / chassis art: volume under existing accent glow */
+img#mycase {
+    filter:
+        drop-shadow(0 1px 1px rgba(0, 0, 0, 0.50))
+        drop-shadow(0 3px 5px rgba(0, 0, 0, 0.30))
+        drop-shadow(0 0 5px var(--btn));
+}
+
+/* A3 — Content plane: top-edge light + soft bottom seat (cells, not shell) */
+table.dashboard > tbody > tr:first-child > td {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.18),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.14) !important;
+}
+
+table.dashboard > tbody > tr.last > td,
+table.dashboard > tbody > tr.tr_last > td,
+table.dashboard > tbody > tr:last-child > td {
+    box-shadow:
+        inset 0 -1px 0 rgba(255, 255, 255, 0.07),
+        inset 0 1px 0 rgba(0, 0, 0, 0.10) !important;
+}
+
+/* Light label depth so text is not flat against glass */
+table.dashboard .title,
+table.dashboard span.next,
+table.dashboard .header,
+table.dashboard td strong,
+table.dashboard th {
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* ThemeEffects:inner-depth:end */
+
+/* ThemeEffects:no-inner-dividers:start */
+/* Remove fine internal split lines inside glass modules; keep outer shell border. */
+table.dashboard > tbody > tr > td,
+table.dashboard > tbody > tr:first-child > td,
+table.dashboard > tbody > tr.last > td,
+table.dashboard > tbody > tr.tr_last > td,
+table.dashboard > tbody > tr:last-child > td {
+    border-top: 0 !important;
+    border-bottom: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+}
+
+/* Nested tables / rows inside dashboard widgets */
+table.dashboard table td,
+table.dashboard table th,
+table.dashboard table tr,
+table.dashboard .dash_card table td,
+table.dashboard table.disk_status td,
+table.dashboard table.share_status td,
+table.dashboard tbody tr.tr_last {
+    border-top: 0 !important;
+    border-bottom: 0 !important;
+}
+
+.dash_card table td,
+.tile table td {
+    border-bottom: 0 !important;
+}
+/* ThemeEffects:no-inner-dividers:end */
+
+/* ThemeEffects:theme-effects:start */
+/* Theme Effects controller: particles canvas + hutao toggle classes.
+   Defaults: particles off, hutao on. Controlled by theme-effects.cfg via Loader.
+   Stack: wallpaper (-2) < particles (-1) < page content (auto) < hutao (1). */
+
+html.ucwc-has-wallpaper #ucwc-wallpaper,
+#ucwc-wallpaper {
+    z-index: -2 !important;
+}
+
+html.ucwc-particles-on body::before,
+body.ucwc-particles-on::before {
+    z-index: -2 !important;
+}
+
+#ucwc-particles,
+canvas#ucwc-particles {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 100% !important;
+    min-height: 100dvh !important;
+    pointer-events: none !important;
+    z-index: -1 !important;
+    opacity: var(--ucwc-particle-opacity, 1);
+    display: none;
+    /* 保证画在壁纸之上、内容之下（部分移动浏览器对负 z 合成异常） */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+}
+
+html.ucwc-particles-on #ucwc-particles,
+html.ucwc-particles-on canvas#ucwc-particles,
+body.ucwc-particles-on #ucwc-particles,
+body.ucwc-particles-on canvas#ucwc-particles {
+    display: block !important;
+    visibility: visible !important;
+    opacity: var(--ucwc-particle-opacity, 1) !important;
+}
+
+/* Mobile: slightly brighter particles so they stay visible over dark wallpapers */
+@media (max-width: 767px) {
+    html.ucwc-particles-on #ucwc-particles,
+    html.ucwc-particles-on canvas#ucwc-particles,
+    body.ucwc-particles-on #ucwc-particles,
+    body.ucwc-particles-on canvas#ucwc-particles {
+        opacity: var(--ucwc-particle-opacity, 1) !important;
+        filter: brightness(1.15) saturate(1.1);
+        -webkit-filter: brightness(1.15) saturate(1.1);
+    }
+}
+
+/* Mascot (#ucwc-mascot z-index: 1) stays above the particle field */
+
+/* Hutao off — class on html or body from Loader / Theme Effects page */
+html.ucwc-hutao-off #ucwc-mascot,
+body.ucwc-hutao-off #ucwc-mascot,
+#ucwc-mascot.ucwc-mascot-off,
+html.ucwc-hutao-off #ucwc-mascot-freeze,
+body.ucwc-hutao-off #ucwc-mascot-freeze {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+/* Reduce motion: pause common theme pulses when user opts in */
+html.ucwc-reduce-motion .fa.fa-play.started.green-text,
+html.ucwc-reduce-motion .fa.fa-square.stopped.red-text,
+html.ucwc-reduce-motion .system.icon-u-lock.green-text,
+html.ucwc-reduce-motion .system.icon-u-lock-open.red-text,
+html.ucwc-reduce-motion .icon-u-search.system,
+html.ucwc-reduce-motion .icon-u-logout.system,
+html.ucwc-reduce-motion .icon-u-terminal.system,
+html.ucwc-reduce-motion .fa.fa-tty.system,
+html.ucwc-reduce-motion .icon-u-duplicate.system,
+html.ucwc-reduce-motion .icon-u-chat.system,
+html.ucwc-reduce-motion .icon-u-display.system,
+html.ucwc-reduce-motion .icon-u-log.system,
+html.ucwc-reduce-motion .icon-u-help.system,
+html.ucwc-reduce-motion .icon-u-delete.system,
+html.ucwc-reduce-motion .icon-u-switch.system,
+body.ucwc-reduce-motion .fa.fa-play.started.green-text,
+body.ucwc-reduce-motion .fa.fa-square.stopped.red-text {
+    animation: none !important;
+}
+/* Hutao size classes (Theme Effects HUTAO_SIZE) */
+html.ucwc-hutao-sm { --ucwc-hutao-scale: 0.78; }
+html.ucwc-hutao-md { --ucwc-hutao-scale: 1; }
+html.ucwc-hutao-lg { --ucwc-hutao-scale: 1.28; }
+
+/* Hutao position (Theme Effects HUTAO_POS): tl/tr/bl/br, default br */
+html.ucwc-hutao-tl #ucwc-mascot {
+    top: max(8px, env(safe-area-inset-top)) !important;
+    left: max(8px, env(safe-area-inset-left)) !important;
+    right: auto !important;
+    bottom: auto !important;
+    object-position: center top !important;
+}
+html.ucwc-hutao-tr #ucwc-mascot {
+    top: max(8px, env(safe-area-inset-top)) !important;
+    right: max(8px, env(safe-area-inset-right)) !important;
+    left: auto !important;
+    bottom: auto !important;
+    object-position: center top !important;
+}
+html.ucwc-hutao-bl #ucwc-mascot {
+    bottom: max(36px, calc(1.5rem + env(safe-area-inset-bottom))) !important;
+    left: max(8px, env(safe-area-inset-left)) !important;
+    right: auto !important;
+    top: auto !important;
+    object-position: center bottom !important;
+}
+html.ucwc-hutao-br #ucwc-mascot {
+    bottom: max(36px, calc(1.5rem + env(safe-area-inset-bottom))) !important;
+    right: max(8px, env(safe-area-inset-right)) !important;
+    left: auto !important;
+    top: auto !important;
+    object-position: center bottom !important;
+}
+@media (max-width: 767px) {
+    html.ucwc-hutao-tl #ucwc-mascot {
+        top: max(4px, env(safe-area-inset-top)) !important;
+        left: max(4px, env(safe-area-inset-left)) !important;
+    }
+    html.ucwc-hutao-tr #ucwc-mascot {
+        top: max(4px, env(safe-area-inset-top)) !important;
+        right: max(4px, env(safe-area-inset-right)) !important;
+    }
+    html.ucwc-hutao-bl #ucwc-mascot {
+        bottom: max(4px, env(safe-area-inset-bottom)) !important;
+        left: max(4px, env(safe-area-inset-left)) !important;
+    }
+    html.ucwc-hutao-br #ucwc-mascot {
+        bottom: max(4px, env(safe-area-inset-bottom)) !important;
+        right: max(4px, env(safe-area-inset-right)) !important;
+    }
+}
+/* Freeze canvas positions come from JS getBoundingClientRect; no corner CSS needed. */
+
+
+/* ThemeEffects:theme-effects:end */
+
+/* ThemeEffects:dash-switch-caret-fix:start */
+/*
+ * Dashboard Docker/VM switch wrappers use class "button" (Unraid markup):
+ *   <span class="apps button">…switch…</span>
+ *   <span class="vms button">…switch…</span>
+ * Theme `.button` draws a 4-edge pink linear-gradient frame (var(--btn)).
+ * On mobile the left/right 2px edges read as pink insertion-caret marks beside
+ * the switch label and the "容器/虚拟机 -- 已启动…" status line.
+ */
+#docker_view span.apps.button,
+#vm_view span.vms.button,
+table.dashboard span.apps.button,
+table.dashboard span.vms.button,
+.tile-header span.apps.button,
+.tile-header span.vms.button,
+span.apps.button,
+span.vms.button {
+    background: none !important;
+    background-image: none !important;
+    background-size: auto !important;
+    background-position: initial !important;
+    background-repeat: initial !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    outline: 0 !important;
+    /* keep layout; do not force display that breaks switch float layout */
+    text-shadow: none !important;
+    filter: none !important;
+    -webkit-filter: none !important;
+    caret-color: transparent !important;
+}
+#docker_view span.apps.button:hover,
+#vm_view span.vms.button:hover,
+table.dashboard span.apps.button:hover,
+table.dashboard span.vms.button:hover,
+span.apps.button:hover,
+span.vms.button:hover {
+    background: none !important;
+    background-image: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    filter: none !important;
+}
+/* Status line under the switch — no chrome, no caret look */
+#docker_view span.apps.switch,
+#vm_view span.vms.switch,
+table.dashboard span.apps.switch,
+table.dashboard span.vms.switch,
+span.apps.switch,
+span.vms.switch {
+    background: none !important;
+    background-image: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    outline: 0 !important;
+    caret-color: transparent !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+}
+#docker_view span.apps.switch::before,
+#docker_view span.apps.switch::after,
+#vm_view span.vms.switch::before,
+#vm_view span.vms.switch::after,
+span.apps.button::before,
+span.apps.button::after,
+span.vms.button::before,
+span.vms.button::after,
+span.apps.switch::before,
+span.apps.switch::after,
+span.vms.switch::before,
+span.vms.switch::after {
+    content: none !important;
+    display: none !important;
+    background: none !important;
+    border: 0 !important;
+}
+/* ThemeEffects:dash-switch-caret-fix:end */
+
+/* ThemeEffects:form-controls-fix:start */
+/* Range slider: ensure visible/interactive under themed inputs */
+input[type="range"] {
+    appearance: auto;
+    -webkit-appearance: auto;
+    cursor: pointer;
+    vertical-align: middle;
+    max-width: 100%;
+}
+input[type="range"]::-webkit-slider-thumb {
+    cursor: pointer;
+}
+
+/* Avoid stray caret selection chrome on non-editable layers */
+	#ucwc-wallpaper,
+	#ucwc-particles,
+	#ucwc-mascot,
+	html::before,
+	body::before,
+	.ucwc-row-hidden {
+	    caret-color: transparent !important;
+	    user-select: none !important;
+	    -webkit-user-select: none !important;
+	}
+
+/*
+ * Dashboard / system icon fonts.
+ * Global `span, i { font-family: Rajdhani }` overrides Unraid default-fonts.css
+ * `[class^='icon-']{font-family:unraid!important}` specificity on some mobile
+ * browsers, turning Docker/VM tile glyphs into tofu / stray insertion marks.
+ * Restore unraid + FontAwesome explicitly (higher specificity + !important).
+ */
+[class^="icon-"],
+[class*=" icon-"],
+i[class^="icon-"],
+i[class*=" icon-"],
+.icon-docker,
+.icon-virtualization,
+.icon-disk,
+.icon-disk1,
+.icon-disk2,
+.f32,
+i.f32,
+table.dashboard i[class^="icon-"],
+table.dashboard i[class*=" icon-"],
+#docker_view i[class^="icon-"],
+#vm_view i[class^="icon-"],
+.tile-header i[class^="icon-"],
+.tile-header-left i[class^="icon-"] {
+    font-family: unraid !important;
+    font-style: normal !important;
+    font-weight: normal !important;
+    font-variant: normal !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+    speak: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* FontAwesome controls (chevron openclose, cog, play/stop, etc.)
+   Exclude Unraid icon-* (GPUStat mixes fa + icon-hardware / icon-ram / icon-cpu). */
+.fa:not([class*="icon-"]):not([class^="icon-"]),
+i.fa:not([class*="icon-"]):not([class^="icon-"]),
+.fas,
+.far,
+.fab,
+i.control.fa:not([class*="icon-"]),
+table.dashboard i.fa:not([class*="icon-"]):not([class^="icon-"]),
+table.dashboard .fa:not([class*="icon-"]):not([class^="icon-"]),
+.tile-header i.fa:not([class*="icon-"]),
+.tile-header-right-controls i.fa:not([class*="icon-"]),
+.tile-header-right-controls .fa:not([class*="icon-"]),
+i.openclose,
+.fa-chevron-up,
+.fa-chevron-down,
+.fa-cog {
+    font-family: "FontAwesome" !important;
+    font-style: normal !important;
+    font-weight: normal !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+    speak: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+/* Re-assert Unraid glyph font after any later FA force (GPUStat / tile headers) */
+table.dashboard i.fa[class*="icon-"],
+table.dashboard i.fa[class^="icon-"],
+table.dashboard i[class*="icon-"],
+table.dashboard i[class^="icon-"],
+table.dashboard .icon-hardware,
+table.dashboard .icon-ram,
+table.dashboard .icon-cpu,
+table.dashboard .icon-fan,
+table.dashboard .icon-disk,
+.tile-header i[class*="icon-"],
+.tile-header i[class^="icon-"],
+i.ups.fa[class*="icon-"],
+i.ups.fa[class^="icon-"] {
+    font-family: unraid !important;
+    font-style: normal !important;
+    font-weight: normal !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+    speak: none;
+}
+
+/* Tile titles: body stack + never force uppercase (CJK + spacing) */
+table.dashboard h3.tile-header-main,
+.tile-header h3.tile-header-main,
+h3.tile-header-main {
+    font-family: var(--ucwc-font-body, "Rajdhani", "Microsoft YaHei", "PingFang SC", sans-serif) !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+}
+
+/* Mobile: drop multi-layer filter on tile header icons (can paint as extra marks) */
+@media (max-width: 900px) {
+    table.dashboard .tile-header i,
+    table.dashboard .tile-header i.fa,
+    table.dashboard .tile-header i[class^="icon-"],
+    table.dashboard .tile-header-right-controls i,
+    #docker_view .tile-header i,
+    #vm_view .tile-header i {
+        filter: none !important;
+        -webkit-filter: none !important;
+    }
+    table.dashboard .tile-header i[class^="icon-"],
+    table.dashboard .tile-header i[class*=" icon-"],
+    #docker_view .tile-header i[class^="icon-"],
+    #vm_view .tile-header i[class^="icon-"] {
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+    }
+}
+
+/* Theme Effects markdown form: labels follow body font, never uppercase */
+form[action*="ThemeEffects"] dt,
+form[action*="/Settings/ThemeEffects"] dt {
+    text-transform: none !important;
+    letter-spacing: normal !important;
+    font-family: var(--ucwc-font-body, "Rajdhani", "Microsoft YaHei", sans-serif) !important;
+    white-space: normal !important;
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+/* Mobile: long Chinese labels center-wrap like other Unraid settings pages */
+@media (max-width: 720px) {
+    form[action*="ThemeEffects"] dt,
+    form[action*="/Settings/ThemeEffects"] dt {
+        text-align: center !important;
+        line-height: 1.35 !important;
+        max-width: 100% !important;
+        padding-left: 6px;
+        padding-right: 6px;
+        box-sizing: border-box;
+    }
+    form[action*="ThemeEffects"] dd,
+    form[action*="/Settings/ThemeEffects"] dd {
+        text-align: center !important;
+    }
+
+    /* Global settings/tools forms: long labels wrap (not only ThemeEffects) */
+    body.ucwc-settings form dt,
+    body.ucwc-tools form dt,
+    body.ucwc-settings dl > dt,
+    body.ucwc-tools dl > dt {
+        white-space: normal !important;
+        overflow-wrap: break-word !important;
+        word-break: break-word !important;
+        max-width: 100% !important;
+        line-height: 1.35 !important;
+    }
+
+    /* Settings/tools long labels only — do NOT override Dashboard Docker/VM chip span.inner
+       (1.8.x keeps fixed ~137px + float layout). */
+    body.ucwc-settings span.inner,
+    body.ucwc-tools span.inner {
+        width: auto !important;
+        max-width: min(137px, 42vw) !important;
+        white-space: normal !important;
+        overflow-wrap: break-word !important;
+        word-break: break-word !important;
+        line-height: 1.2 !important;
+    }
+}
+/* ThemeEffects:form-controls-fix:end */
+
+/* ThemeEffects:dash-docker-vm-layout:start
+ * Restore 1.8.x Dashboard Docker / VM chip arrangement.
+ *
+ * 1.8.x only set:
+ *   span.outer.solid { background: transparent; }
+ *   span.inner { width: 137px !important; }
+ * Stock provides: float:left (DashStats) + margin-bottom:20px (default-base).
+ *
+ * v2 grid-squeeze / flex chips / 6px bottom-gap broke PC multi-col float and spacing.
+ * This block only re-asserts float + 1.8 inner width + stock row gap — no CSS grid.
+ */
+#docker_view span.outer,
+#vm_view span.outer,
+#docker_view span.outer.apps,
+#vm_view span.outer.vms,
+table.dashboard #docker_view span.outer,
+table.dashboard #vm_view span.outer {
+    float: left !important;
+    clear: none !important;
+    display: block !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 0 20px 0 !important; /* stock default-base span.outer */
+    padding: 0 !important;
+    box-sizing: content-box !important;
+    white-space: normal !important;
+    line-height: normal !important;
+}
+#docker_view span.inner,
+#vm_view span.inner,
+table.dashboard #docker_view span.inner,
+table.dashboard #vm_view span.inner {
+    display: inline-block !important;
+    float: none !important;
+    width: 137px !important; /* identical to 1.8.x global rule */
+    max-width: 137px !important;
+    min-width: 0 !important;
+    vertical-align: top !important;
+    white-space: normal !important;
+    line-height: normal !important;
+}
+/* Do not restyle content td — leave stock table.dashboard padding (20px last) */
+#docker_view > tr:not(:first-child) > td,
+#vm_view > tr:not(:first-child) > td,
+#docker_view > tr.updated > td,
+#vm_view > tr.updated > td {
+    display: table-cell !important;
+    overflow: visible !important;
+    white-space: normal !important;
+    vertical-align: top !important;
+}
+
+/* Mobile: only prevent header crush; chips stay stock float (1 or 2 cols by tile width) */
+@media (max-width: 767px) {
+    #docker_view .tile-header,
+    #vm_view .tile-header {
+        flex-wrap: wrap !important;
+        gap: 8px 10px !important;
+        max-width: 100% !important;
+    }
+    #docker_view h3.tile-header-main,
+    #vm_view h3.tile-header-main {
+        white-space: normal !important;
+        overflow-wrap: break-word !important;
+    }
+}
+/* ThemeEffects:dash-docker-vm-layout:end */
+
+
+
+
+
+/* ThemeEffects:code-editor-align:start
+ * Restored from commit 100320a (Fix code editor input alignment).
+ * Global input/textarea theme padding/border/width breaks CodeMirror / Ace /
+ * Monaco hidden input layers → caret and typed text appear offset.
+ * Keep monospace + neutralize form chrome inside editor hosts only.
+ */
+.ace_editor,
+.CodeMirror,
+.cm-editor,
+.monaco-editor {
+    font-family: monospace !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+    text-shadow: none !important;
+    box-sizing: border-box !important;
+}
+
+.ace_editor *,
+.CodeMirror *,
+.cm-editor *,
+.monaco-editor * {
+    font-family: inherit !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+    text-shadow: none !important;
+}
+
+.ace_editor textarea,
+.ace_editor .ace_text-input,
+.CodeMirror textarea,
+.cm-editor textarea,
+.monaco-editor textarea {
+    position: absolute !important;
+    z-index: auto !important;
+    width: 1px !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 1em !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    outline: 0 !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    transform: none !important;
+    color: transparent !important;
+    font: inherit !important;
+    line-height: inherit !important;
+    letter-spacing: normal !important;
+    text-transform: none !important;
+    text-shadow: none !important;
+    resize: none !important;
+    overflow: hidden !important;
+}
+
+.ace_editor input,
+.CodeMirror input,
+.cm-editor input,
+.monaco-editor input {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    filter: none !important;
+    transform: none !important;
+    font: inherit !important;
+    line-height: inherit !important;
+    letter-spacing: normal !important;
+    text-transform: none !important;
+}
+/* ThemeEffects:code-editor-align:end */
+
+/* ===== Perf profiles (client resource hints; no GPU_ACCEL) =====
+   Primary effect is cfg rewrite on apply (particles/blur). CSS is secondary soft-cap. */
+html.ucwc-perf-low.ucwc-bg-blur #ucwc-wallpaper,
+body.ucwc-perf-low.ucwc-bg-blur #ucwc-wallpaper,
+html.ucwc-perf-low body.ucwc-bg-blur #ucwc-wallpaper {
+    filter: blur(min(var(--ucwc-bg-blur, 10px), 6px)) !important;
+    -webkit-filter: blur(min(var(--ucwc-bg-blur, 10px), 6px)) !important;
+    transform: translateZ(0) scale(1.015);
+    -webkit-transform: translateZ(0) scale(1.015);
+}
+html.ucwc-perf-low #ucwc-particles,
+body.ucwc-perf-low #ucwc-particles {
+    opacity: 0.55;
+}
+html.ucwc-perf-balanced.ucwc-bg-blur #ucwc-wallpaper,
+body.ucwc-perf-balanced.ucwc-bg-blur #ucwc-wallpaper {
+    transform: translateZ(0) scale(1.02);
+    -webkit-transform: translateZ(0) scale(1.02);
+}
+html.ucwc-perf-high.ucwc-bg-blur #ucwc-wallpaper,
+body.ucwc-perf-high.ucwc-bg-blur #ucwc-wallpaper {
+    transform: translateZ(0) scale(1.03);
+    -webkit-transform: translateZ(0) scale(1.03);
+}
