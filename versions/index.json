@@ -1,12 +1,22 @@
 {
   "schema": 1,
-  "default": "v2.4.1",
-  "latest_version": "v2.4.1",
+  "default": "v2.4.2",
+  "latest_version": "v2.4.2",
   "versions": [
+    {
+      "id": "v2.4.2",
+      "label": "正式版：Docker/VM 恢复 1.8.x float 排布与间距",
+      "channel": "latest",
+      "released_at": "2026-07-29",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true
+    },
     {
       "id": "v2.4.1",
       "label": "正式版：Docker/VM 底空、Beta 检查门槛、上传文案同行对齐",
-      "channel": "latest",
+      "channel": "history",
       "released_at": "2026-07-29",
       "apps_enhancement": true,
       "particles": true,

@@ -1,5 +1,17 @@
 # 更新日志
 
+## v2.4.2 - 2026-07-29
+
+### 概述
+**第五个 2.x 正式版**。按 1.8.x 方式恢复仪表盘 Docker / 虚拟机芯片排布与间距：去掉 v2 grid-squeeze 与过激 bottom-gap，回到 float + 137px 标签宽 + stock 20px 行距。
+
+### 变更
+- **Docker/VM 排布**：`float:left`（取消 `td display:grid` / chip `flex`）
+- **标签宽**：恢复 1.8.x `span.inner { width: 137px }`
+- **行距**：恢复 stock `margin-bottom: 20px`（取消 6px bottom-gap）
+- **设置页**：移动端 `span.inner` 自动换行仅限 settings/tools，不再误伤仪表盘芯片
+- 版本号：**v2.4.2**（stable / latest）
+
 ## v2.4.1 - 2026-07-29
 
 ### 概述

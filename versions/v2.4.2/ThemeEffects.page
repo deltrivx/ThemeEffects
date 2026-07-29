@@ -1,0 +1,1531 @@
+Menu="UserPreferences"
+Title="主题特效"
+Icon="magic"
+Tag="magic"
+---
+<?php
+/* ThemeEffects: 主题特效
+ * 粒子 + 胡桃 + 背景 + 字体颜色 + 版本管理（检查更新 / 更新日志；安装完整覆盖）。
+ * CSRF：完全交给 Unraid BodyInlineJS 注入（与 CustomCSS.page 一致），本页不写 csrf 字段。
+ */
+$fx_path = "/boot/config/plugins/theme.effects/theme-effects.cfg";
+$ucwc_service_cfg = "/boot/config/plugins/theme.effects/theme.effects.cfg";
+$ucwc_service = "enabled";
+if (is_file($ucwc_service_cfg)) {
+    $ucwc_svc_raw = @parse_ini_file($ucwc_service_cfg);
+    if (is_array($ucwc_svc_raw) && isset($ucwc_svc_raw["SERVICE"]) && $ucwc_svc_raw["SERVICE"] !== "") {
+        $ucwc_service = strtolower(trim((string)$ucwc_svc_raw["SERVICE"]));
+    }
+}
+if (!in_array($ucwc_service, ["enabled", "enable", "1", "yes"], true)) {
+    $ucwc_service = "disabled";
+} else {
+    $ucwc_service = "enabled";
+}
+$ucwc_service_on = ($ucwc_service === "enabled");
+
+$assets_f = "/boot/config/plugins/theme.effects/assets";
+$assets_r = "/usr/local/emhttp/plugins/theme.effects/assets";
+$persist_dir = "/boot/config/plugins/theme.effects";
+$log_path = "/tmp/ucwc-theme-fx-save.log";
+$upd_log = "/tmp/ucwc-theme-update.log";
+$repo_raw = "https://raw.githubusercontent.com/deltrivx/ThemeEffects/main";
+$msg = "";
+$force_reload = false;
+
+/* Free PHP session lock ASAP so nginx auth-request can run while this page works.
+ * Unraid Translations starts+closes session; re-close if anything reopened it. */
+if (function_exists("session_status") && session_status() === PHP_SESSION_ACTIVE) {
+    @session_write_close();
+}
+
+/* Ensure wallpaper PHP upload limits without touching /boot/config/go */
+	(function () {
+	    $src = "/boot/config/plugins/theme.effects/ucwc-upload.ini";
+	    $dst = "/etc/php.d/ucwc-upload.ini";
+	    if (!is_file($src)) {
+	        @file_put_contents($src, "; ThemeEffects: wallpaper upload limits\nupload_max_filesize = 12M\npost_max_size = 16M\nmax_file_uploads = 20\n");
+	        @chmod($src, 0644);
+	    }
+	    if (!is_file($src)) return;
+	    $need = !is_file($dst);
+	    if (!$need) {
+	        $a = @file_get_contents($src);
+	        $b = @file_get_contents($dst);
+	        $need = ($a !== false && $a !== $b);
+	    }
+	    if ($need) {
+	        @mkdir("/etc/php.d", 0755, true);
+	        if (@copy($src, $dst)) @chmod($dst, 0644);
+	    }
+	})();
+
+	/* nginx auth-request inherits CONTENT_LENGTH on large multipart POSTs → PHP-FPM
+	 * waits for a body that never arrives → 504 → UI stuck on「应用中…」.
+	 * Persist snippet on flash; re-inject into locations.conf after rc.nginx rebuild. */
+	(function () {
+	    $src = "/boot/config/plugins/theme.effects/ucwc-auth-request.conf";
+	    $loc = "/etc/nginx/conf.d/locations.conf";
+	    $marker = "ucwc-auth-fix";
+	    $block =
+	        "#\n" .
+	        "# {$marker}: large multipart POST hangs because auth subrequest inherits CONTENT_LENGTH\n" .
+	        "# and PHP-FPM waits for a body that never arrives → 504 → browser stuck on 应用中…\n" .
+	        "#\n" .
+	        "location = /auth-request.php {\n" .
+	        "    internal;\n" .
+	        "    include fastcgi_params;\n" .
+	        "    fastcgi_param CONTENT_LENGTH \"\";\n" .
+	        "    fastcgi_param REQUEST_METHOD GET;\n" .
+	        "}\n";
+	    $needSrc = !is_file($src);
+	    if (!$needSrc) {
+	        $cur = @file_get_contents($src);
+	        $needSrc = ($cur === false || strpos($cur, "fastcgi_param CONTENT_LENGTH") === false);
+	    }
+	    if ($needSrc) {
+	        @file_put_contents($src, $block);
+	        @chmod($src, 0644);
+	    }
+	    if (!is_file($loc) || !is_writable($loc)) return;
+	    $content = @file_get_contents($loc);
+	    if ($content === false) return;
+	    $has =
+	        strpos($content, $marker) !== false &&
+	        strpos($content, "location = /auth-request.php") !== false &&
+	        strpos($content, "fastcgi_param CONTENT_LENGTH") !== false;
+	    if ($has) return;
+	    // Drop any partial prior inject before prepending
+	    if (strpos($content, "location = /auth-request.php") !== false) {
+	        $content = preg_replace(
+	            '/#\s*\n#\s*ucwc-auth-fix:[\s\S]*?location\s*=\s*\/auth-request\.php\s*\{[\s\S]*?\}\s*\n?/m',
+	            "",
+	            $content,
+	            1
+	        );
+	        if (strpos($content, "location = /auth-request.php") !== false) {
+	            $content = preg_replace(
+	                '/location\s*=\s*\/auth-request\.php\s*\{[\s\S]*?\}\s*\n?/m',
+	                "",
+	                $content,
+	                1
+	            );
+	        }
+	    }
+	$new = $block . "\n" . ltrim((string)$content);
+	    if (@file_put_contents($loc, $new) === false) return;
+	    @chmod($loc, 0644);
+	    // Prefer Unraid webGUI master pid file; avoid pgrep (many container nginx masters).
+	    $pid = is_file("/var/run/nginx.pid") ? trim((string)@file_get_contents("/var/run/nginx.pid")) : "";
+	    if ($pid === "" || !ctype_digit($pid)) return;
+	    $n = (int)$pid;
+	    $hupOk = false;
+	    if (function_exists("posix_kill")) {
+	        $hupOk = @posix_kill($n, defined("SIGHUP") ? (int)constant("SIGHUP") : 1);
+	    }
+	    if (!$hupOk && function_exists("shell_exec")) {
+	        @shell_exec("kill -HUP " . $n . " >/dev/null 2>&1");
+	        $hupOk = true;
+	    }
+	    @file_put_contents(
+	        "/tmp/ucwc-nginx-auth-fix.log",
+	        date("c") . " reinject+HUP pid={$n} ok=" . ($hupOk ? "1" : "0") . " via=ThemeEffects\n",
+	        FILE_APPEND
+	    );
+	})();
+
+	$f1 = "background-1.jpg";
+$f2 = "background-2.jpg";
+$fc = "background-custom.jpg";
+$fd = "background-dynamic.jpg";
+
+function ucwc_fx_defaults() {
+    return [
+        "PARTICLES" => "no",
+        "PARTICLES_COUNT" => "60",
+        "HUTAO" => "yes",
+        "HUTAO_SIZE" => "medium",
+        "HUTAO_POS" => "br",
+        "HUTAO_TYPE" => "hutao",
+        "HUTAO_BLUR" => "no",
+        "HUTAO_BLUR_LEVEL" => "md",
+        "REDUCE_MOTION" => "no",
+        "BG_MODE" => "local",
+        "BG_LOCAL_SLOT" => "1",
+        "BG_GALLERY" => "photo",
+        "BG_CUSTOM_API" => "",
+        "BG_BLUR" => "no",
+        "BG_BLUR_LEVEL" => "md",
+        "FONT_BODY" => "rajdhani",
+        "FONT_TITLE" => "orbitron",
+        "FONT_TITLE_UPPER" => "no",
+        "FONT_SIZE" => "14",
+        "FONT_TITLE_SIZE" => "default",
+        "FONT_CUSTOM_BODY" => "",
+        "FONT_CUSTOM_TITLE" => "",
+        "FONT_LOCAL_BODY" => "",
+        "FONT_LOCAL_TITLE" => "",
+        "COLOR_PRESET" => "cyber",
+        "COLOR_TEXT" => "",
+        "COLOR_TITLE" => "",
+        "COLOR_LABEL" => "",
+        "PERF_PROFILE" => "auto",
+        "CLIENT_OPTIMIZED" => "no",
+    ];
+}
+
+function ucwc_hex_ok($v) {
+    $v = trim((string)$v);
+    if ($v === "") return "";
+    if (preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $v)) return strtolower($v);
+    return "";
+}
+
+function ucwc_font_family_ok($v) {
+    $v = trim((string)$v);
+    $v = str_replace(["\"", "'", ";", "{", "}", "<", ">", "\\"], "", $v);
+    $v = preg_replace('/\s+/u', " ", $v);
+    if ($v === null) $v = "";
+    if (function_exists("mb_substr")) $v = mb_substr($v, 0, 48, "UTF-8");
+    else $v = substr($v, 0, 48);
+    $v = trim($v);
+    if ($v === "") return "";
+    if (!preg_match('/^[\p{L}\p{N} ._\-]+$/u', $v)) return "";
+    return $v;
+}
+
+function ucwc_font_local_name_ok($v) {
+    $v = strtolower(trim((string)$v));
+    if ($v === "") return "";
+    if (!preg_match('/^(body|title)-custom\.(woff2|woff|ttf|otf)$/', $v)) return "";
+    return $v;
+}
+
+
+function ucwc_blur_level_ok($v) {
+    $v = strtolower(trim((string)$v));
+    return in_array($v, ["sm", "md", "lg"], true) ? $v : "md";
+}
+
+function ucwc_fx_normalize_font(&$d) {
+    $bodies = ["system", "rajdhani", "noto_sc", "yahei", "inter", "rubik", "source_han", "custom", "local"];
+    $titles = ["orbitron", "match_body", "system", "noto_sc", "yahei", "inter", "rubik", "exo2", "source_han", "custom", "local"];
+    $presets = ["cyber", "ice", "gold", "mint", "violet", "sunset", "custom"];
+    $sizes = ["13", "14", "15", "16", "17", "18"];
+    $titleSizes = ["default", "sm", "md", "lg", "xl"];
+    if (!in_array($d["FONT_BODY"] ?? "rajdhani", $bodies, true)) $d["FONT_BODY"] = "rajdhani";
+    if (!in_array($d["FONT_TITLE"] ?? "orbitron", $titles, true)) $d["FONT_TITLE"] = "orbitron";
+    $d["FONT_TITLE_UPPER"] = (($d["FONT_TITLE_UPPER"] ?? "no") === "yes") ? "yes" : "no";
+    if (!in_array((string)($d["FONT_SIZE"] ?? "14"), $sizes, true)) $d["FONT_SIZE"] = "14";
+    if (!in_array((string)($d["FONT_TITLE_SIZE"] ?? "default"), $titleSizes, true)) $d["FONT_TITLE_SIZE"] = "default";
+    $d["FONT_CUSTOM_BODY"] = ucwc_font_family_ok($d["FONT_CUSTOM_BODY"] ?? "");
+    $d["FONT_CUSTOM_TITLE"] = ucwc_font_family_ok($d["FONT_CUSTOM_TITLE"] ?? "");
+    $d["FONT_LOCAL_BODY"] = ucwc_font_local_name_ok($d["FONT_LOCAL_BODY"] ?? "");
+    $d["FONT_LOCAL_TITLE"] = ucwc_font_local_name_ok($d["FONT_LOCAL_TITLE"] ?? "");
+    if (!in_array($d["COLOR_PRESET"] ?? "cyber", $presets, true)) $d["COLOR_PRESET"] = "cyber";
+    $d["COLOR_TEXT"] = ucwc_hex_ok($d["COLOR_TEXT"] ?? "");
+    $d["COLOR_TITLE"] = ucwc_hex_ok($d["COLOR_TITLE"] ?? "");
+    $d["COLOR_LABEL"] = ucwc_hex_ok($d["COLOR_LABEL"] ?? "");
+}
+
+function ucwc_fx_load($path) {
+    $d = ucwc_fx_defaults();
+    if (is_file($path)) {
+        $raw = @parse_ini_file($path);
+        if (is_array($raw)) {
+            foreach ($d as $k => $v) {
+                if (isset($raw[$k]) && $raw[$k] !== "") $d[$k] = (string)$raw[$k];
+            }
+        }
+    }
+    $d["PARTICLES"] = ($d["PARTICLES"] === "yes") ? "yes" : "no";
+    $d["HUTAO"] = ($d["HUTAO"] === "no") ? "no" : "yes";
+    if (!in_array($d["HUTAO_SIZE"], ["small", "medium", "large"], true)) $d["HUTAO_SIZE"] = "medium";
+    if (!in_array($d["HUTAO_POS"], ["tl", "tr", "bl", "br"], true)) $d["HUTAO_POS"] = "br";
+    $d["HUTAO_TYPE"] = ($d["HUTAO_TYPE"] === "custom") ? "custom" : "hutao";
+    $d["HUTAO_BLUR"] = ($d["HUTAO_BLUR"] === "yes") ? "yes" : "no";
+    $d["HUTAO_BLUR_LEVEL"] = ucwc_blur_level_ok($d["HUTAO_BLUR_LEVEL"] ?? "md");
+    $d["REDUCE_MOTION"] = ($d["REDUCE_MOTION"] === "yes") ? "yes" : "no";
+    $n = intval($d["PARTICLES_COUNT"]);
+    if ($n < 30) $n = 30;
+    if ($n > 120) $n = 120;
+    $d["PARTICLES_COUNT"] = (string)$n;
+    $d["BG_MODE"] = ($d["BG_MODE"] === "dynamic") ? "dynamic" : "local";
+    if (!in_array($d["BG_LOCAL_SLOT"], ["1", "2", "custom"], true)) $d["BG_LOCAL_SLOT"] = "1";
+    if (!in_array($d["BG_GALLERY"], ["photo", "anime", "gufeng", "custom"], true)) $d["BG_GALLERY"] = "photo";
+    $d["BG_CUSTOM_API"] = trim((string)$d["BG_CUSTOM_API"]);
+    $d["BG_BLUR"] = ($d["BG_BLUR"] === "yes") ? "yes" : "no";
+    $d["BG_BLUR_LEVEL"] = ucwc_blur_level_ok($d["BG_BLUR_LEVEL"] ?? "md");
+    $pp = strtolower(trim((string)($d["PERF_PROFILE"] ?? "auto")));
+    $d["PERF_PROFILE"] = in_array($pp, ["auto", "high", "balanced", "low"], true) ? $pp : "auto";
+    $d["CLIENT_OPTIMIZED"] = (($d["CLIENT_OPTIMIZED"] ?? "no") === "yes") ? "yes" : "no";
+    ucwc_fx_normalize_font($d);
+    return $d;
+}
+
+function ucwc_fx_save($path, $fx) {
+    $keys = ["PARTICLES","PARTICLES_COUNT","HUTAO","HUTAO_SIZE","HUTAO_POS","HUTAO_TYPE","HUTAO_BLUR","HUTAO_BLUR_LEVEL","REDUCE_MOTION","BG_MODE","BG_LOCAL_SLOT","BG_GALLERY","BG_CUSTOM_API","BG_BLUR","BG_BLUR_LEVEL","FONT_BODY","FONT_TITLE","FONT_TITLE_UPPER","FONT_SIZE","FONT_TITLE_SIZE","FONT_CUSTOM_BODY","FONT_CUSTOM_TITLE","FONT_LOCAL_BODY","FONT_LOCAL_TITLE","COLOR_PRESET","COLOR_TEXT","COLOR_TITLE","COLOR_LABEL","PERF_PROFILE","CLIENT_OPTIMIZED"];
+    $lines = [];
+    foreach ($keys as $k) {
+        $lines[] = $k . '="' . str_replace(['\\', '"'], ['\\\\', '\\"'], (string)$fx[$k]) . '"';
+    }
+    $lines[] = "";
+    $ok = @file_put_contents($path, implode("\n", $lines)) !== false;
+    if ($ok) @chmod($path, 0644);
+    return $ok;
+}
+
+function ucwc_has($file) {
+    return is_file($file) && @filesize($file) > 0;
+}
+
+function ucwc_chmod_pub($file) {
+    if (is_file($file)) @chmod($file, 0644);
+}
+
+function ucwc_write_image($data, $dst_f, $dst_r) {
+    if (@file_put_contents($dst_f, $data) === false) return false;
+    @chmod($dst_f, 0644);
+    @copy($dst_f, $dst_r);
+    @chmod($dst_r, 0644);
+    return true;
+}
+
+function ucwc_sync_pair($src, $dst_f, $dst_r) {
+    if (!ucwc_has($src)) return false;
+    if (!@copy($src, $dst_f)) return false;
+    @chmod($dst_f, 0644);
+    @copy($dst_f, $dst_r);
+    @chmod($dst_r, 0644);
+    return true;
+}
+
+function ucwc_is_image_bytes($data) {
+    if ($data === false || $data === null || strlen($data) < 24 || strlen($data) > 15 * 1024 * 1024) return false;
+    $h = substr($data, 0, 12);
+    if (substr($h, 0, 3) === "\xFF\xD8\xFF") return true;
+    if (substr($h, 0, 8) === "\x89PNG\r\n\x1a\n") return true;
+    if (substr($h, 0, 6) === "GIF87a" || substr($h, 0, 6) === "GIF89a") return true;
+    if (substr($h, 0, 4) === "RIFF" && substr($data, 8, 4) === "WEBP") return true;
+    return false;
+}
+
+function ucwc_gallery_url($gallery, $custom) {
+    if ($gallery === "anime") return "https://cdn.seovx.com/d/?mom=302";
+    if ($gallery === "gufeng") return "https://cdn.seovx.com/ha/?mom=302";
+    if ($gallery === "custom") return trim((string)$custom);
+    return "https://cdn.seovx.com/?mom=302";
+}
+
+function ucwc_fetch_dynamic($url, $dst_f, $dst_r) {
+    $url = trim($url);
+    if ($url === "" || !preg_match('#^https?://#i', $url)) return "在线图库地址无效（需 http/https）。";
+    if (!function_exists("curl_init")) return "服务器缺少 curl 扩展。";
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_MAXREDIRS => 5,
+        CURLOPT_CONNECTTIMEOUT => 8,
+        CURLOPT_TIMEOUT => 25,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => 0,
+        CURLOPT_USERAGENT => "UCWC-ThemeEffects/1.0",
+        CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+        CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+    ]);
+    $data = curl_exec($ch);
+    $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $err = curl_error($ch);
+    curl_close($ch);
+    if ($data === false || $data === "") return "拉取失败：" . ($err !== "" ? $err : "空响应");
+    if ($code >= 400) return "拉取失败 HTTP " . $code;
+    if (!ucwc_is_image_bytes($data)) return "返回内容不是有效图片。";
+    if (!ucwc_write_image($data, $dst_f, $dst_r)) return "写入 background-dynamic.jpg 失败。";
+    return "";
+}
+
+function ucwc_upload_err_msg($code) {
+    $code = (int)$code;
+    $uploadMax = ini_get("upload_max_filesize") ?: "?";
+    $postMax = ini_get("post_max_size") ?: "?";
+    switch ($code) {
+        case UPLOAD_ERR_INI_SIZE:
+            return "上传失败：文件超过 PHP upload_max_filesize（当前 {$uploadMax}）。请压缩壁纸后重试。";
+        case UPLOAD_ERR_FORM_SIZE:
+            return "上传失败：文件超过表单 MAX_FILE_SIZE 限制。";
+        case UPLOAD_ERR_PARTIAL:
+            return "上传失败：文件只上传了一部分，请重试。";
+        case UPLOAD_ERR_NO_FILE:
+            return "";
+        case UPLOAD_ERR_NO_TMP_DIR:
+            return "上传失败：服务器临时目录不可用。";
+        case UPLOAD_ERR_CANT_WRITE:
+            return "上传失败：无法写入临时文件。";
+        case UPLOAD_ERR_EXTENSION:
+            return "上传失败：被 PHP 扩展中断。";
+        default:
+            return "上传失败，错误码 {$code}（upload_max={$uploadMax}, post_max={$postMax}）。";
+    }
+}
+
+function ucwc_peek_header($path, $n = 16) {
+    $fh = @fopen($path, "rb");
+    if (!$fh) return "";
+    $h = @fread($fh, $n);
+    @fclose($fh);
+    return $h === false ? "" : $h;
+}
+
+function ucwc_is_image_file($path, $gif_only = false) {
+    if (!is_file($path) || @filesize($path) <= 0) return false;
+    $h = ucwc_peek_header($path, 16);
+    if ($h === "" || strlen($h) < 6) return false;
+    if ($gif_only) return (substr($h, 0, 6) === "GIF87a" || substr($h, 0, 6) === "GIF89a");
+    if (substr($h, 0, 3) === "\xFF\xD8\xFF") return true;
+    if (substr($h, 0, 8) === "\x89PNG\r\n\x1a\n") return true;
+    if (substr($h, 0, 6) === "GIF87a" || substr($h, 0, 6) === "GIF89a") return true;
+    if (substr($h, 0, 4) === "RIFF") {
+        $h2 = ucwc_peek_header($path, 12);
+        return strlen($h2) >= 12 && substr($h2, 8, 4) === "WEBP";
+    }
+    return false;
+}
+
+function ucwc_write_upload_file($tmp, $dst_f, $dst_r) {
+    @mkdir(dirname($dst_r), 0755, true);
+    @mkdir(dirname($dst_f), 0755, true);
+    $okR = @move_uploaded_file($tmp, $dst_r);
+    if (!$okR) {
+        $okR = @copy($tmp, $dst_r);
+        @unlink($tmp);
+    }
+    if (!$okR || !is_file($dst_r) || @filesize($dst_r) <= 0) return false;
+    @chmod($dst_r, 0644);
+    @copy($dst_r, $dst_f);
+    @chmod($dst_f, 0644);
+    return true;
+}
+
+function ucwc_handle_upload($file, $dst_f, $dst_r, $label = "background-custom.jpg", $gif_only = false) {
+    // Empty POST + empty FILES often means post_max_size exceeded (PHP drops the body)
+    if (!isset($file) || !is_array($file)) {
+        $contentLen = isset($_SERVER["CONTENT_LENGTH"]) ? (int)$_SERVER["CONTENT_LENGTH"] : 0;
+        $postMax = ini_get("post_max_size");
+        if ($contentLen > 0 && empty($_POST) && empty($_FILES)) {
+            return "上传失败：请求体被丢弃（可能超过 post_max_size={$postMax}）。请压缩文件后重试。";
+        }
+        return "";
+    }
+    $err = (int)($file["error"] ?? UPLOAD_ERR_NO_FILE);
+    if ($err === UPLOAD_ERR_NO_FILE) return "";
+    if ($err !== UPLOAD_ERR_OK) return ucwc_upload_err_msg($err);
+    $tmp = $file["tmp_name"] ?? "";
+    if ($tmp === "" || !is_uploaded_file($tmp)) return "上传临时文件无效。";
+    $size = (int)($file["size"] ?? 0);
+    if ($size <= 0) $size = (int)@filesize($tmp);
+    if ($size <= 0) return "上传文件为空。";
+    $uploadMax = ini_get("upload_max_filesize") ?: "2M";
+    $maxBytes = $gif_only ? 8 * 1024 * 1024 : 15 * 1024 * 1024;
+    if ($size > $maxBytes) {
+        return $gif_only
+            ? "自定义吉祥物不能超过 8MB（当前 PHP upload_max_filesize={$uploadMax}）。"
+            : "自定义壁纸不能超过 15MB（当前 PHP upload_max_filesize={$uploadMax}）。";
+    }
+    if ($gif_only) {
+        if (!ucwc_is_image_file($tmp, true)) return "自定义吉祥物仅支持 GIF。";
+    } elseif (!ucwc_is_image_file($tmp, false)) {
+        return "仅支持 jpg / png / webp / gif。";
+    }
+    if (!ucwc_write_upload_file($tmp, $dst_f, $dst_r)) {
+        $perm = is_writable(dirname($dst_r)) ? "ok" : "no";
+        return "保存 {$label} 失败（runtime 可写: {$perm}）。";
+    }
+    if (!ucwc_has($dst_f) && !ucwc_has($dst_r)) return "保存后未找到 {$label}。";
+    return "";
+}
+
+
+function ucwc_handle_local_path($path, $dst_f, $dst_r, $label = "background-custom.jpg", $gif_only = false) {
+    global $log_path;
+    $path = trim((string)$path);
+    if ($path === "") return "";
+    $path = str_replace("\\", "/", $path);
+    if (strpos($path, "\0") !== false) return "本地路径无效。";
+    if (strpos($path, "/mnt/user/") !== 0 && strpos($path, "/mnt/user0/") !== 0
+        && $path !== "/mnt/user" && $path !== "/mnt/user0") {
+        return "本地路径仅允许 /mnt/user 或 /mnt/user0 下的文件。";
+    }
+    if (strpos($path, "..") !== false) return "本地路径不能包含 ..。";
+    if (!is_file($path)) return "本地文件不存在：" . $path;
+    $real = @realpath($path);
+    if ($real === false || !is_file($real)) return "无法解析本地路径。";
+    $real = str_replace("\\", "/", $real);
+    $okRoot = false;
+    foreach (["/mnt/user", "/mnt/user0"] as $root) {
+        $rr = @realpath($root);
+        if ($rr === false) continue;
+        $rr = str_replace("\\", "/", $rr);
+        if ($real === $rr || strpos($real, rtrim($rr, "/") . "/") === 0) {
+            $okRoot = true;
+            break;
+        }
+    }
+    if (!$okRoot) return "本地路径超出允许目录（/mnt/user、/mnt/user0）。";
+    $size = (int)@filesize($real);
+    if ($size <= 0) return "本地文件为空。";
+    $maxBytes = $gif_only ? 8 * 1024 * 1024 : 15 * 1024 * 1024;
+    if ($size > $maxBytes) {
+        return $gif_only
+            ? "自定义吉祥物不能超过 8MB。"
+            : "自定义壁纸不能超过 15MB。";
+    }
+    if ($gif_only) {
+        if (!ucwc_is_image_file($real, true)) return "自定义吉祥物仅支持 GIF。";
+    } elseif (!ucwc_is_image_file($real, false)) {
+        return "仅支持 jpg / png / webp / gif。";
+    }
+    @mkdir(dirname($dst_r), 0755, true);
+    @mkdir(dirname($dst_f), 0755, true);
+    if (!@copy($real, $dst_r)) return "复制到运行目录失败：{$label}。";
+    @chmod($dst_r, 0644);
+    @copy($dst_r, $dst_f);
+    @chmod($dst_f, 0644);
+    if (!ucwc_has($dst_f) && !ucwc_has($dst_r)) return "保存后未找到 {$label}。";
+    if (!empty($log_path)) {
+        ucwc_log($log_path, "local-path-ok label={$label} size={$size} src={$real}");
+    }
+    return "";
+}
+
+function ucwc_font_detect_ext($path) {
+    $fh = @fopen($path, "rb");
+    if (!$fh) return "";
+    $h = @fread($fh, 8);
+    @fclose($fh);
+    if ($h === false || strlen($h) < 4) return "";
+    if (substr($h, 0, 4) === "wOF2") return "woff2";
+    if (substr($h, 0, 4) === "wOFF") return "woff";
+    if (substr($h, 0, 4) === "OTTO") return "otf";
+    if (substr($h, 0, 4) === "true" || substr($h, 0, 4) === "typ1") return "ttf";
+    if (strlen($h) >= 4 && $h[0] === "\x00" && $h[1] === "\x01" && $h[2] === "\x00" && $h[3] === "\x00") return "ttf";
+    return "";
+}
+
+function ucwc_handle_font_upload($file, $slot, $assets_f, $assets_r, &$outName) {
+    global $log_path;
+    $outName = "";
+    $slot = ($slot === "title") ? "title" : "body";
+    if (!isset($file) || !is_array($file)) return "";
+    $err = (int)($file["error"] ?? UPLOAD_ERR_NO_FILE);
+    if ($err === UPLOAD_ERR_NO_FILE) return "";
+    if ($err !== UPLOAD_ERR_OK) return ucwc_upload_err_msg($err);
+    $tmp = $file["tmp_name"] ?? "";
+    if ($tmp === "" || !is_uploaded_file($tmp)) return "字体临时文件无效。";
+    $size = (int)($file["size"] ?? 0);
+    if ($size <= 0) $size = (int)@filesize($tmp);
+    if ($size <= 0) return "字体文件为空。";
+    if ($size > 4 * 1024 * 1024) return "本地字体不能超过 4MB，请压缩或子集化后重试。";
+    $ext = ucwc_font_detect_ext($tmp);
+    if ($ext === "") {
+        $orig = strtolower((string)($file["name"] ?? ""));
+        if (preg_match('/\.(woff2|woff|ttf|otf)$/', $orig, $m)) $ext = $m[1];
+    }
+    if ($ext === "") return "仅支持 woff2 / woff / ttf / otf 字体文件。";
+    $name = $slot . "-custom." . $ext;
+    $dir_f = rtrim($assets_f, "/") . "/fonts";
+    $dir_r = rtrim($assets_r, "/") . "/fonts";
+    @mkdir($dir_f, 0755, true);
+    @mkdir($dir_r, 0755, true);
+    foreach (["woff2", "woff", "ttf", "otf"] as $oldExt) {
+        $old = $slot . "-custom." . $oldExt;
+        if ($old === $name) continue;
+        @unlink("$dir_f/$old");
+        @unlink("$dir_r/$old");
+    }
+    if (!ucwc_write_upload_file($tmp, "$dir_f/$name", "$dir_r/$name")) {
+        return "保存本地字体失败（{$name}）。";
+    }
+    $outName = $name;
+    if (!empty($log_path)) {
+        ucwc_log($log_path, "font-upload-ok slot={$slot} name={$name} size={$size}");
+    }
+    return "";
+}
+
+function ucwc_log($path, $line) {
+    @file_put_contents($path, date("c") . " " . $line . "\n", FILE_APPEND);
+}
+
+function ucwc_kv_file($path) {
+    $out = [];
+    if (!is_file($path)) return $out;
+    $lines = @file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    if (!is_array($lines)) return $out;
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line === "" || $line[0] === "#" || strpos($line, "=") === false) continue;
+        [$k, $v] = explode("=", $line, 2);
+        $out[trim($k)] = trim($v, " \t\"'");
+    }
+    return $out;
+}
+
+function ucwc_local_status($persist_dir) {
+    $opts = ucwc_kv_file("$persist_dir/ThemeEffects.options");
+    if (!$opts) $opts = ucwc_kv_file("$persist_dir/ThemeEffects.state");
+    $installed = is_file("$persist_dir/style.css");
+    $version = $opts["version"] ?? "";
+    if ($version === "" && $installed) $version = "unknown";
+    return [
+        "installed" => $installed,
+        "version" => $version,
+        "updated_at" => $opts["updated_at"] ?? "",
+        "particles" => $opts["particles"] ?? "",
+        "hutao" => $opts["hutao"] ?? "",
+        "theme_effects" => $opts["theme_effects"] ?? "",
+        "source" => $opts["source"] ?? "",
+    ];
+}
+
+function ucwc_http_get($url, $timeout = 12) {
+    if (!function_exists("curl_init")) return [false, "服务器缺少 curl 扩展。", 0];
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_MAXREDIRS => 5,
+        CURLOPT_CONNECTTIMEOUT => 5,
+        CURLOPT_TIMEOUT => max(5, (int)$timeout),
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => 0,
+        CURLOPT_USERAGENT => "UCWC-ThemeEffects/1.8",
+        CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+        CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+    ]);
+    $data = curl_exec($ch);
+    $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $err = curl_error($ch);
+    curl_close($ch);
+    if ($data === false || $data === "") return [false, $err !== "" ? $err : "空响应", $code];
+    if ($code >= 400) return [false, "HTTP $code", $code];
+    return [$data, "", $code];
+}
+
+function ucwc_fetch_index($repo_raw) {
+    [$data, $err] = ucwc_http_get("$repo_raw/versions/index.json", 12);
+    if ($data === false) return [null, "拉取版本索引失败：$err"];
+    $json = json_decode($data, true);
+    if (!is_array($json) || !isset($json["versions"]) || !is_array($json["versions"])) {
+        return [null, "版本索引格式无效。"];
+    }
+    return [$json, ""];
+}
+
+function ucwc_fetch_changelog($repo_raw) {
+    [$data, $err] = ucwc_http_get("$repo_raw/CHANGELOG.md", 12);
+    if ($data === false) return ["", "拉取更新日志失败：$err"];
+    return [$data, ""];
+}
+
+function ucwc_changelog_section($md, $version) {
+    if ($md === "" || $version === "") return "";
+    $ver = preg_quote($version, "/");
+    if (!preg_match("/^##\\s+" . $ver . "\\b[^\\n]*\\n([\\s\\S]*?)(?=^##\\s+v|\\z)/m", $md, $m)) {
+        return "";
+    }
+    return trim($m[0]);
+}
+
+function ucwc_normalize_version_flags($v) {
+    return [
+        "id" => (string)($v["id"] ?? ""),
+        "label" => (string)($v["label"] ?? ""),
+        "channel" => (string)($v["channel"] ?? "history"),
+        "released_at" => (string)($v["released_at"] ?? ""),
+        "apps_enhancement" => !empty($v["apps_enhancement"]),
+        "particles" => !empty($v["particles"]),
+        "hutao" => !empty($v["hutao"]),
+        "theme_effects" => !empty($v["theme_effects"]),
+    ];
+}
+
+function ucwc_valid_version_id($id) {
+    return is_string($id) && preg_match('/^v[0-9]+\.[0-9]+(\.[0-9]+)?$/', $id);
+}
+
+function ucwc_run_install($repo_raw, $upd_log, $mode, $version = "") {
+    @ini_set("max_execution_time", "300");
+    @set_time_limit(300);
+    if (!function_exists("curl_init")) return [false, "服务器缺少 curl 扩展。", ""];
+    if ($mode === "install_version") {
+        if (!ucwc_valid_version_id($version)) return [false, "版本号格式无效。", ""];
+    } elseif ($mode !== "install_latest" && $mode !== "uninstall") {
+        return [false, "未知安装动作。", ""];
+    }
+
+    // 写操作前再校验版本是否在索引中
+    if ($mode === "install_version" || $mode === "install_latest") {
+        [$index, $ierr] = ucwc_fetch_index($repo_raw);
+        if ($index === null) return [false, $ierr, ""];
+        $latest = (string)($index["latest_version"] ?? "");
+        if ($mode === "install_latest") {
+            $version = $latest;
+            if (!ucwc_valid_version_id($version)) return [false, "远程 latest_version 无效。", ""];
+        }
+        $found = false;
+        $has_fx = false;
+        foreach ($index["versions"] as $v) {
+            if (($v["id"] ?? "") === $version) {
+                $found = true;
+                $has_fx = !empty($v["theme_effects"]);
+                break;
+            }
+        }
+        if (!$found) return [false, "未知版本：$version", ""];
+    } else {
+        $has_fx = false;
+        $version = "";
+    }
+
+    $script = "/tmp/ucwc-install-web.sh";
+    [$body, $err] = ucwc_http_get("$repo_raw/scripts/install.sh", 60);
+    if ($body === false) return [false, "下载 install.sh 失败：$err", ""];
+    if (@file_put_contents($script, $body) === false) return [false, "写入临时脚本失败。", ""];
+    @chmod($script, 0755);
+
+    if ($mode === "uninstall") {
+        $cmd = "sh " . escapeshellarg($script) . " uninstall 2>&1";
+    } else {
+        $cmd = "sh " . escapeshellarg($script) . " install " . escapeshellarg($version) . " 2>&1";
+    }
+
+    ucwc_log($upd_log, "run mode=$mode version=" . ($version !== "" ? $version : "-") . " cmd=$cmd");
+    $output = [];
+    $code = 1;
+    @exec($cmd, $output, $code);
+    $text = implode("\n", $output);
+    ucwc_log($upd_log, "exit=$code\n$text");
+
+    $ok = ($code === 0);
+    $msg = $ok
+        ? ($mode === "uninstall" ? "主题已卸载。" : "已安装 $version。")
+        : ("操作失败（exit $code）。" . ($text !== "" ? " " . mb_substr($text, 0, 500) : ""));
+    return [$ok, $msg, $text, $version, $has_fx ?? false];
+}
+
+function ucwc_json_out($payload, $http = 200) {
+    if (!headers_sent()) {
+        http_response_code($http);
+        header("Content-Type: application/json; charset=utf-8");
+        header("Cache-Control: no-store");
+    }
+    echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
+// ---------- 版本管理 API（早退，不渲染页面）----------
+$ucwc_action = "";
+if (!empty($_POST["UCWC_ACTION"])) {
+    $ucwc_action = (string)$_POST["UCWC_ACTION"];
+} elseif (isset($_GET["ucwc_api"]) && (string)$_GET["ucwc_api"] === "1" && !empty($_GET["UCWC_ACTION"])) {
+    $ucwc_action = (string)$_GET["UCWC_ACTION"];
+}
+
+if ($ucwc_action !== "") {
+    $local = ucwc_local_status($persist_dir);
+    if ($ucwc_action === "status" || $ucwc_action === "check_update") {
+        [$index, $err] = ucwc_fetch_index($repo_raw);
+        if ($index === null) {
+            ucwc_json_out(["ok" => false, "error" => $err, "local" => $local], 502);
+        }
+        $latest = (string)($index["latest_version"] ?? "");
+        $latest_meta = null;
+        $versions = [];
+        foreach ($index["versions"] as $v) {
+            $nv = ucwc_normalize_version_flags($v);
+            if ($nv["id"] === "") continue;
+            $versions[] = $nv;
+            if ($nv["id"] === $latest) $latest_meta = $nv;
+        }
+        $update_available = $local["installed"] && $local["version"] !== "" && $latest !== "" && $local["version"] !== $latest;
+        ucwc_json_out([
+            "ok" => true,
+            "action" => $ucwc_action,
+            "local" => $local,
+            "latest_version" => $latest,
+            "latest" => $latest_meta,
+            "update_available" => $update_available,
+            "versions" => $versions,
+        ]);
+    }
+
+    if ($ucwc_action === "changelog" || $ucwc_action === "list_versions") {
+        [$index, $err] = ucwc_fetch_index($repo_raw);
+        if ($index === null) {
+            ucwc_json_out(["ok" => false, "error" => $err, "local" => $local], 502);
+        }
+        [$md, $cerr] = ucwc_fetch_changelog($repo_raw);
+        $versions = [];
+        $want = isset($_POST["version"]) ? (string)$_POST["version"] : (isset($_GET["version"]) ? (string)$_GET["version"] : "");
+        foreach ($index["versions"] as $v) {
+            $nv = ucwc_normalize_version_flags($v);
+            if ($nv["id"] === "") continue;
+            $nv["changelog"] = ucwc_changelog_section($md, $nv["id"]);
+            if ($nv["changelog"] === "" && $nv["label"] !== "") {
+                $nv["changelog"] = $nv["label"];
+            }
+            $versions[] = $nv;
+        }
+        $selected = null;
+        if ($want !== "" && ucwc_valid_version_id($want)) {
+            foreach ($versions as $nv) {
+                if ($nv["id"] === $want) { $selected = $nv; break; }
+            }
+        }
+        if ($selected === null && $versions) $selected = $versions[0];
+        ucwc_json_out([
+            "ok" => true,
+            "action" => $ucwc_action,
+            "local" => $local,
+            "latest_version" => (string)($index["latest_version"] ?? ""),
+            "versions" => $versions,
+            "selected" => $selected,
+            "changelog_error" => $cerr,
+        ]);
+    }
+
+    if ($ucwc_action === "install_latest" || $ucwc_action === "install_version" || $ucwc_action === "uninstall") {
+        // 写操作仅接受 POST
+        if (($_SERVER["REQUEST_METHOD"] ?? "") !== "POST") {
+            ucwc_json_out(["ok" => false, "error" => "写操作需要 POST。"], 405);
+        }
+        $ver = isset($_POST["version"]) ? trim((string)$_POST["version"]) : "";
+        $result = ucwc_run_install($repo_raw, $upd_log, $ucwc_action, $ver);
+        $ok = $result[0];
+        $message = $result[1];
+        $output = $result[2] ?? "";
+        $used_ver = $result[3] ?? $ver;
+        $has_fx = $result[4] ?? false;
+        $local2 = ucwc_local_status($persist_dir);
+        ucwc_json_out([
+            "ok" => $ok,
+            "action" => $ucwc_action,
+            "message" => $message,
+            "output" => $output,
+            "version" => $used_ver,
+            "theme_effects" => $has_fx,
+            "local" => $local2,
+            "page_may_vanish" => ($ucwc_action === "uninstall") || ($ucwc_action === "install_version" && !$has_fx),
+        ], $ok ? 200 : 500);
+    }
+
+    ucwc_json_out(["ok" => false, "error" => "未知动作：$ucwc_action"], 400);
+}
+
+@mkdir($assets_f, 0755, true);
+@mkdir($assets_r, 0755, true);
+foreach ([$f1, $f2, $fc, $fd, "background.jpg"] as $bn) {
+    ucwc_chmod_pub("$assets_f/$bn");
+    ucwc_chmod_pub("$assets_r/$bn");
+}
+
+if (!ucwc_has("$assets_f/$f1") && ucwc_has("$assets_f/background.jpg")) {
+    ucwc_sync_pair("$assets_f/background.jpg", "$assets_f/$f1", "$assets_r/$f1");
+}
+
+// 仅「应用」提交才保存主题特效（避免版本管理 POST 误写 cfg）
+if (!empty($_POST) && isset($_POST["SAVE_THEME_FX"])) {
+    // Drop session lock before disk/network work so auth-request is not blocked
+    if (function_exists("session_status") && session_status() === PHP_SESSION_ACTIVE) {
+        @session_write_close();
+    }
+    $post_keys = implode(",", array_keys($_POST));
+    $has_csrf = isset($_POST["csrf_token"]) ? "1" : "0";
+    $csrf_len = isset($_POST["csrf_token"]) ? strlen((string)$_POST["csrf_token"]) : 0;
+    $is_xhr = !empty($_SERVER["HTTP_X_REQUESTED_WITH"]);
+    $sectionRaw = strtolower(trim((string)($_POST["UCWC_SECTION"] ?? ($_POST["section"] ?? "all"))));
+    if (in_array($sectionRaw, ["bg", "background", "wallpaper"], true)) $section = "bg";
+    elseif (in_array($sectionRaw, ["particles", "particle", "fx"], true)) $section = "particles";
+    elseif (in_array($sectionRaw, ["mascot", "hutao"], true)) $section = "mascot";
+    elseif (in_array($sectionRaw, ["font", "fonts", "color", "colors", "typo", "字体"], true)) $section = "font";
+    elseif (in_array($sectionRaw, ["perf", "performance", "gpu", "client"], true)) $section = "perf";
+    else $section = "all";
+    $doBg = ($section === "all" || $section === "bg");
+    $doParticles = ($section === "all" || $section === "particles");
+    $doMascot = ($section === "all" || $section === "mascot");
+    $doFont = ($section === "all" || $section === "font");
+    $doPerf = ($section === "all" || $section === "perf");
+    ucwc_log($log_path, "browser-post section={$section} keys={$post_keys} csrf={$has_csrf} csrf_len={$csrf_len} xhr=" . ($is_xhr ? "1" : "0"));
+
+    // Partial apply: keep other sections from existing cfg
+    $fx = ucwc_fx_load($fx_path);
+    if ($doParticles) {
+        $fx["PARTICLES"] = (($_POST["PARTICLES"] ?? "no") === "yes") ? "yes" : "no";
+        $fx["REDUCE_MOTION"] = (($_POST["REDUCE_MOTION"] ?? "no") === "yes") ? "yes" : "no";
+        $rawCount = $_POST["PARTICLES_COUNT_COMMIT"] ?? ($_POST["PARTICLES_COUNT"] ?? ($fx["PARTICLES_COUNT"] ?? 60));
+        $n = intval($rawCount);
+        if ($n < 30) $n = 30;
+        if ($n > 120) $n = 120;
+        $fx["PARTICLES_COUNT"] = (string)$n;
+        ucwc_log($log_path, "particles_count_raw=" . json_encode([
+            "PARTICLES_COUNT" => $_POST["PARTICLES_COUNT"] ?? null,
+            "PARTICLES_COUNT_COMMIT" => $_POST["PARTICLES_COUNT_COMMIT"] ?? null,
+            "resolved" => $fx["PARTICLES_COUNT"],
+        ], JSON_UNESCAPED_UNICODE));
+    }
+    if ($doMascot) {
+        $fx["HUTAO"] = (($_POST["HUTAO"] ?? "yes") === "no") ? "no" : "yes";
+        $hs = (string)($_POST["HUTAO_SIZE"] ?? ($fx["HUTAO_SIZE"] ?? "medium"));
+        $fx["HUTAO_SIZE"] = in_array($hs, ["small", "medium", "large"], true) ? $hs : "medium";
+        $hp = (string)($_POST["HUTAO_POS"] ?? ($fx["HUTAO_POS"] ?? "br"));
+        $fx["HUTAO_POS"] = in_array($hp, ["tl", "tr", "bl", "br"], true) ? $hp : "br";
+        $fx["HUTAO_TYPE"] = (((string)($_POST["HUTAO_TYPE"] ?? ($fx["HUTAO_TYPE"] ?? "hutao"))) === "custom") ? "custom" : "hutao";
+        $fx["HUTAO_BLUR"] = (($_POST["HUTAO_BLUR"] ?? "no") === "yes") ? "yes" : "no";
+        $fx["HUTAO_BLUR_LEVEL"] = ucwc_blur_level_ok($_POST["HUTAO_BLUR_LEVEL"] ?? ($fx["HUTAO_BLUR_LEVEL"] ?? "md"));
+    }
+    if ($doBg) {
+        $fx["BG_MODE"] = (($_POST["BG_MODE"] ?? "local") === "dynamic") ? "dynamic" : "local";
+        $slot = (string)($_POST["BG_LOCAL_SLOT"] ?? ($fx["BG_LOCAL_SLOT"] ?? "1"));
+        $fx["BG_LOCAL_SLOT"] = in_array($slot, ["1", "2", "custom"], true) ? $slot : "1";
+        $gal = (string)($_POST["BG_GALLERY"] ?? ($fx["BG_GALLERY"] ?? "photo"));
+        $fx["BG_GALLERY"] = in_array($gal, ["photo", "anime", "gufeng", "custom"], true) ? $gal : "photo";
+        $fx["BG_CUSTOM_API"] = trim((string)($_POST["BG_CUSTOM_API"] ?? ($fx["BG_CUSTOM_API"] ?? "")));
+        $fx["BG_BLUR"] = (($_POST["BG_BLUR"] ?? "no") === "yes") ? "yes" : "no";
+        $fx["BG_BLUR_LEVEL"] = ucwc_blur_level_ok($_POST["BG_BLUR_LEVEL"] ?? ($fx["BG_BLUR_LEVEL"] ?? "md"));
+    }
+
+    if ($doPerf) {
+        $pp = strtolower(trim((string)($_POST["PERF_PROFILE"] ?? ($fx["PERF_PROFILE"] ?? "auto"))));
+        $fx["PERF_PROFILE"] = in_array($pp, ["auto", "high", "balanced", "low"], true) ? $pp : "auto";
+        if (isset($_POST["CLIENT_OPTIMIZED"])) {
+            $fx["CLIENT_OPTIMIZED"] = (($_POST["CLIENT_OPTIMIZED"] ?? "no") === "yes") ? "yes" : "no";
+        }
+        // Mirror ajax save: non-auto profile rewrites effect knobs (perf section or flag)
+        $applyPreset = ($section === "perf") || (($_POST["APPLY_PERF_PRESET"] ?? "") === "1");
+        if ($applyPreset && isset($_POST["PERF_PROFILE"]) && $fx["PERF_PROFILE"] !== "auto") {
+            $pr = $fx["PERF_PROFILE"];
+            if ($pr === "low") {
+                $fx["PARTICLES"] = "no";
+                $fx["REDUCE_MOTION"] = "yes";
+                $n = intval($fx["PARTICLES_COUNT"] ?? 40);
+                if ($n > 40) $n = 40;
+                if ($n < 30) $n = 30;
+                $fx["PARTICLES_COUNT"] = (string)$n;
+                if (($fx["BG_BLUR"] ?? "no") === "yes") $fx["BG_BLUR_LEVEL"] = "sm";
+                $fx["HUTAO_BLUR"] = "no";
+                $fx["HUTAO_BLUR_LEVEL"] = "sm";
+            } elseif ($pr === "balanced") {
+                $fx["REDUCE_MOTION"] = "no";
+                $n = intval($fx["PARTICLES_COUNT"] ?? 60);
+                if ($n > 80) $n = 80;
+                if ($n < 40) $n = 60;
+                $fx["PARTICLES_COUNT"] = (string)$n;
+                if (($fx["BG_BLUR"] ?? "no") === "yes" && ($fx["BG_BLUR_LEVEL"] ?? "") === "lg") $fx["BG_BLUR_LEVEL"] = "md";
+                if (($fx["HUTAO_BLUR"] ?? "no") === "yes" && ($fx["HUTAO_BLUR_LEVEL"] ?? "") === "lg") $fx["HUTAO_BLUR_LEVEL"] = "md";
+            } elseif ($pr === "high") {
+                $fx["PARTICLES"] = "yes";
+                $fx["REDUCE_MOTION"] = "no";
+                $n = intval($fx["PARTICLES_COUNT"] ?? 80);
+                if ($n < 80) $n = 80;
+                if ($n > 120) $n = 120;
+                $fx["PARTICLES_COUNT"] = (string)$n;
+                if (($fx["BG_BLUR"] ?? "no") === "yes" && ($fx["BG_BLUR_LEVEL"] ?? "") === "sm") $fx["BG_BLUR_LEVEL"] = "md";
+            }
+        }
+    }
+    if ($doFont) {
+        $fx["FONT_BODY"] = (string)($_POST["FONT_BODY"] ?? $fx["FONT_BODY"]);
+        $fx["FONT_TITLE"] = (string)($_POST["FONT_TITLE"] ?? $fx["FONT_TITLE"]);
+        $fx["FONT_TITLE_UPPER"] = (($_POST["FONT_TITLE_UPPER"] ?? $fx["FONT_TITLE_UPPER"]) === "yes") ? "yes" : "no";
+        $fx["FONT_SIZE"] = (string)($_POST["FONT_SIZE"] ?? $fx["FONT_SIZE"]);
+        $fx["FONT_TITLE_SIZE"] = (string)($_POST["FONT_TITLE_SIZE"] ?? $fx["FONT_TITLE_SIZE"] ?? "default");
+        $fx["FONT_CUSTOM_BODY"] = (string)($_POST["FONT_CUSTOM_BODY"] ?? $fx["FONT_CUSTOM_BODY"] ?? "");
+        $fx["FONT_CUSTOM_TITLE"] = (string)($_POST["FONT_CUSTOM_TITLE"] ?? $fx["FONT_CUSTOM_TITLE"] ?? "");
+        $fx["FONT_LOCAL_BODY"] = (string)($fx["FONT_LOCAL_BODY"] ?? "");
+        $fx["FONT_LOCAL_TITLE"] = (string)($fx["FONT_LOCAL_TITLE"] ?? "");
+        $fx["COLOR_PRESET"] = (string)($_POST["COLOR_PRESET"] ?? $fx["COLOR_PRESET"]);
+        $fx["COLOR_TEXT"] = (string)($_POST["COLOR_TEXT"] ?? $fx["COLOR_TEXT"]);
+        $fx["COLOR_TITLE"] = (string)($_POST["COLOR_TITLE"] ?? $fx["COLOR_TITLE"]);
+        $fx["COLOR_LABEL"] = (string)($_POST["COLOR_LABEL"] ?? $fx["COLOR_LABEL"]);
+        ucwc_fx_normalize_font($fx);
+        if ($fx["COLOR_PRESET"] !== "custom") {
+            $fx["COLOR_TEXT"] = "";
+            $fx["COLOR_TITLE"] = "";
+            $fx["COLOR_LABEL"] = "";
+        }
+    }
+
+    @mkdir("$assets_f/fonts", 0755, true);
+    @mkdir("$assets_r/fonts", 0755, true);
+
+    $err = "";
+    if ($doFont) {
+        $bodyLocalName = "";
+        $titleLocalName = "";
+        $ferr = ucwc_handle_font_upload($_FILES["FONT_BODY_UPLOAD"] ?? null, "body", $assets_f, $assets_r, $bodyLocalName);
+        if ($ferr !== "") $err = $ferr;
+        if ($err === "" && $bodyLocalName !== "") $fx["FONT_LOCAL_BODY"] = $bodyLocalName;
+        if ($err === "") {
+            $ferr = ucwc_handle_font_upload($_FILES["FONT_TITLE_UPLOAD"] ?? null, "title", $assets_f, $assets_r, $titleLocalName);
+            if ($ferr !== "") $err = $ferr;
+            if ($err === "" && $titleLocalName !== "") $fx["FONT_LOCAL_TITLE"] = $titleLocalName;
+        }
+        if ($err === "" && $fx["FONT_BODY"] === "custom" && $fx["FONT_CUSTOM_BODY"] === "") {
+            $err = "正文字体选「自定义名称」时请填写 CSS 字体名（如 Microsoft YaHei）。";
+        }
+        if ($err === "" && $fx["FONT_TITLE"] === "custom" && $fx["FONT_CUSTOM_TITLE"] === "" && $fx["FONT_CUSTOM_BODY"] === "") {
+            $err = "标题字体选「自定义名称」时请填写标题字体名。";
+        }
+        if ($err === "" && $fx["FONT_BODY"] === "local") {
+            $lb = $fx["FONT_LOCAL_BODY"];
+            if ($lb === "" || (!ucwc_has("$assets_f/fonts/$lb") && !ucwc_has("$assets_r/fonts/$lb"))) {
+                $err = "正文字体选「本地字体」时请先上传 woff2/woff/ttf/otf（≤4MB）。";
+            }
+        }
+        if ($err === "" && $fx["FONT_TITLE"] === "local") {
+            $lt = $fx["FONT_LOCAL_TITLE"];
+            if ($lt === "" || (!ucwc_has("$assets_f/fonts/$lt") && !ucwc_has("$assets_r/fonts/$lt"))) {
+                $err = "标题字体选「本地字体」时请先上传字体文件（≤4MB）。";
+            }
+        }
+        ucwc_fx_normalize_font($fx);
+    }
+    $fm = "mascot-custom.gif";
+    if ($doMascot && $err === "" && $fx["HUTAO"] === "yes" && $fx["HUTAO_TYPE"] === "custom") {
+        $hadUploadM = isset($_FILES["HUTAO_UPLOAD"]) && is_array($_FILES["HUTAO_UPLOAD"])
+            && (int)($_FILES["HUTAO_UPLOAD"]["error"] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
+        $err = ucwc_handle_upload($_FILES["HUTAO_UPLOAD"] ?? null, "$assets_f/$fm", "$assets_r/$fm", $fm, true);
+        if ($err === "" && !$hadUploadM) {
+            $localM = trim((string)($_POST["HUTAO_LOCAL_PATH"] ?? ""));
+            if ($localM !== "") {
+                $err = ucwc_handle_local_path($localM, "$assets_f/$fm", "$assets_r/$fm", $fm, true);
+            }
+        }
+        if ($err === "" && !ucwc_has("$assets_f/$fm") && !ucwc_has("$assets_r/$fm")) {
+            $err = "请先从电脑上传或填写 Unraid 本地路径（自定义吉祥物 GIF）。";
+        }
+    }
+    if ($doBg && $fx["BG_MODE"] === "local" && $fx["BG_LOCAL_SLOT"] === "1") {
+        if (!ucwc_has("$assets_f/$f1") && !ucwc_has("$assets_r/$f1")) {
+            if (ucwc_has("$assets_f/background.jpg")) {
+                ucwc_sync_pair("$assets_f/background.jpg", "$assets_f/$f1", "$assets_r/$f1");
+            } elseif (ucwc_has("$assets_r/background.jpg")) {
+                ucwc_sync_pair("$assets_r/background.jpg", "$assets_f/$f1", "$assets_r/$f1");
+            }
+        }
+        if (!ucwc_has("$assets_f/$f1") && !ucwc_has("$assets_r/$f1")) {
+            $err = "本地壁纸1 不存在（assets/background-1.jpg）。";
+        } else {
+            if (ucwc_has("$assets_f/$f1") && !ucwc_has("$assets_r/$f1")) @copy("$assets_f/$f1", "$assets_r/$f1");
+            ucwc_chmod_pub("$assets_f/$f1");
+            ucwc_chmod_pub("$assets_r/$f1");
+        }
+    }
+
+    if ($doBg && $err === "" && $fx["BG_MODE"] === "local" && $fx["BG_LOCAL_SLOT"] === "2") {
+        if (!ucwc_has("$assets_f/$f2") && !ucwc_has("$assets_r/$f2")) {
+            $err = "本地壁纸2 不存在（assets/background-2.jpg）。";
+        } else {
+            if (ucwc_has("$assets_f/$f2") && !ucwc_has("$assets_r/$f2")) @copy("$assets_f/$f2", "$assets_r/$f2");
+            ucwc_chmod_pub("$assets_f/$f2");
+            ucwc_chmod_pub("$assets_r/$f2");
+        }
+    }
+
+    if ($doBg && $err === "" && $fx["BG_MODE"] === "local" && $fx["BG_LOCAL_SLOT"] === "custom") {
+        $uploadInfo = isset($_FILES["BG_UPLOAD"]) ? json_encode([
+            "error" => $_FILES["BG_UPLOAD"]["error"] ?? null,
+            "size" => $_FILES["BG_UPLOAD"]["size"] ?? null,
+            "name" => $_FILES["BG_UPLOAD"]["name"] ?? null,
+            "type" => $_FILES["BG_UPLOAD"]["type"] ?? null,
+        ], JSON_UNESCAPED_UNICODE) : "null";
+        ucwc_log($log_path, "upload_debug files=" . (empty($_FILES) ? "empty" : "set") . " post_keys=" . implode(",", array_keys($_POST)) . " BG_UPLOAD=" . $uploadInfo . " content_length=" . (int)($_SERVER["CONTENT_LENGTH"] ?? 0) . " upload_max=" . ini_get("upload_max_filesize") . " post_max=" . ini_get("post_max_size"));
+        $hadUploadB = isset($_FILES["BG_UPLOAD"]) && is_array($_FILES["BG_UPLOAD"])
+            && (int)($_FILES["BG_UPLOAD"]["error"] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
+        $err = ucwc_handle_upload($_FILES["BG_UPLOAD"] ?? null, "$assets_f/$fc", "$assets_r/$fc");
+        if ($err === "" && !$hadUploadB) {
+            $localB = trim((string)($_POST["BG_LOCAL_PATH"] ?? ""));
+            if ($localB !== "") {
+                $err = ucwc_handle_local_path($localB, "$assets_f/$fc", "$assets_r/$fc", $fc, false);
+            }
+        }
+        if ($err === "" && !ucwc_has("$assets_f/$fc") && !ucwc_has("$assets_r/$fc")) {
+            $err = "请先从电脑上传或填写 Unraid 本地路径（自定义壁纸，jpg/png/webp/gif，建议 ≤12MB）。";
+        }
+    }
+
+    if ($doBg && $err === "" && $fx["BG_MODE"] === "dynamic") {
+        $url = ucwc_gallery_url($fx["BG_GALLERY"], $fx["BG_CUSTOM_API"]);
+        $err = ucwc_fetch_dynamic($url, "$assets_f/$fd", "$assets_r/$fd");
+    }
+
+    $saved = ucwc_fx_save($fx_path, $fx);
+    ucwc_log($log_path, "browser-saved saved=" . ($saved ? "1" : "0") . " err=" . ($err === "" ? "-" : $err) . " " . json_encode($fx, JSON_UNESCAPED_UNICODE));
+
+    // Browser AJAX uses /plugins/theme.effects/ucwc-theme-fx-save.php (clean JSON).
+    // Full-page POST fallback still works here.
+    if ($saved && $err === "") {
+        $force_reload = true;
+        $msg = "主题特效已保存，正在刷新页面…";
+    } elseif (!$saved) {
+        $msg = "写入 theme-effects.cfg 失败。";
+    } else {
+        $msg = $err . "（配置已记录，但资源未就绪）";
+    }
+} elseif (isset($_GET["applied"]) && $_GET["applied"] === "1") {
+    $msg = "主题特效已应用并生效。";
+} elseif (isset($_GET["updated"]) && $_GET["updated"] === "1") {
+    // 版本安装/升级完成后静默刷新，不再显示「主题版本操作已完成」提示
+    $msg = "";
+}
+
+$fx = ucwc_fx_load($fx_path);
+$count = intval($fx["PARTICLES_COUNT"]);
+$has_wp1 = ucwc_has("$assets_f/$f1") || ucwc_has("$assets_r/$f1") || ucwc_has("$assets_f/background.jpg");
+$has_wp2 = ucwc_has("$assets_f/$f2") || ucwc_has("$assets_r/$f2");
+$has_custom = ucwc_has("$assets_f/$fc") || ucwc_has("$assets_r/$fc");
+$has_dyn = ucwc_has("$assets_f/$fd") || ucwc_has("$assets_r/$fd");
+$custom_bg_url = "";
+$custom_bg_meta = "";
+if ($has_custom) {
+    $pick_custom = ucwc_has("$assets_r/$fc") ? "$assets_r/$fc" : "$assets_f/$fc";
+    $custom_bg_url = "/plugins/theme.effects/assets/background-custom.jpg?v=" . @filemtime($pick_custom);
+    $sz = @filesize($pick_custom);
+    $sz_h = $sz >= 1048576 ? (round($sz / 1048576, 1) . "MB") : (round(max($sz, 0) / 1024) . "KB");
+    $custom_bg_meta = "已上传 · " . $sz_h;
+}
+
+$color_text_ui = $fx["COLOR_TEXT"] !== "" ? $fx["COLOR_TEXT"] : "#eeeeee";
+$color_title_ui = $fx["COLOR_TITLE"] !== "" ? $fx["COLOR_TITLE"] : "#ffffff";
+$color_label_ui = $fx["COLOR_LABEL"] !== "" ? $fx["COLOR_LABEL"] : "#fb7299";
+$font_body_local_meta = "";
+$font_title_local_meta = "";
+$lb = $fx["FONT_LOCAL_BODY"] ?? "";
+$lt = $fx["FONT_LOCAL_TITLE"] ?? "";
+if ($lb !== "" && (ucwc_has("$assets_f/fonts/$lb") || ucwc_has("$assets_r/fonts/$lb"))) {
+    $pickf = ucwc_has("$assets_r/fonts/$lb") ? "$assets_r/fonts/$lb" : "$assets_f/fonts/$lb";
+    $sz = @filesize($pickf);
+    $sz_h = $sz >= 1048576 ? (round($sz / 1048576, 1) . "MB") : (round(max($sz, 0) / 1024) . "KB");
+    $font_body_local_meta = "已上传 · " . $lb . " · " . $sz_h;
+}
+if ($lt !== "" && (ucwc_has("$assets_f/fonts/$lt") || ucwc_has("$assets_r/fonts/$lt"))) {
+    $pickf = ucwc_has("$assets_r/fonts/$lt") ? "$assets_r/fonts/$lt" : "$assets_f/fonts/$lt";
+    $sz = @filesize($pickf);
+    $sz_h = $sz >= 1048576 ? (round($sz / 1048576, 1) . "MB") : (round(max($sz, 0) / 1024) . "KB");
+    $font_title_local_meta = "已上传 · " . $lt . " · " . $sz_h;
+}
+$ucwc_local = ucwc_local_status($persist_dir);
+$ucwc_ver_label = $ucwc_local["installed"]
+    ? (($ucwc_local["version"] !== "" && $ucwc_local["version"] !== "unknown") ? $ucwc_local["version"] : "已安装（版本未知）")
+    : "未安装";
+$ucwc_fx_js = "/usr/local/emhttp/plugins/theme.effects/assets/ucwc-theme-fx.js";
+$ucwc_fx_css = "/usr/local/emhttp/plugins/theme.effects/assets/ucwc-theme-fx.css";
+$ucwc_fx_js_v = is_file($ucwc_fx_js) ? filemtime($ucwc_fx_js) : time();
+$ucwc_fx_css_v = is_file($ucwc_fx_css) ? filemtime($ucwc_fx_css) : time();
+?>
+<?if ($force_reload):?>
+<script>
+(function () {
+  var u = "/Settings/ThemeEffects?applied=1&_ts=" + Date.now();
+  try { window.location.replace(u); }
+  catch (e) { window.location.href = u; }
+})();
+</script>
+<?endif;?>
+<?php
+$ucwc_ft_css = "/usr/local/emhttp/webGui/styles/jquery.filetree.css";
+$ucwc_ft_js = "/usr/local/emhttp/webGui/javascript/jquery.filetree.js";
+$ucwc_ft_css_v = is_file($ucwc_ft_css) ? filemtime($ucwc_ft_css) : time();
+$ucwc_ft_js_v = is_file($ucwc_ft_js) ? filemtime($ucwc_ft_js) : time();
+$ucwc_pickroot = is_dir("/mnt/user") ? "/mnt/user" : "/mnt";
+?>
+<link rel="stylesheet" href="/webGui/styles/jquery.filetree.css?v=<?=$ucwc_ft_css_v?>">
+<link rel="stylesheet" href="/plugins/theme.effects/assets/ucwc-theme-fx.css?v=<?=$ucwc_fx_css_v?>">
+<script>
+window.__UCWC_FX_BOOT__ = {
+  version: <?= json_encode($ucwc_local["version"] ?? "", JSON_UNESCAPED_UNICODE) ?>,
+  updated_at: <?= json_encode($ucwc_local["updated_at"] ?? "", JSON_UNESCAPED_UNICODE) ?>,
+  installed: <?= !empty($ucwc_local["installed"]) ? "true" : "false" ?>,
+  perf_profile: <?= json_encode($fx["PERF_PROFILE"] ?? "auto") ?>,
+  client_optimized: <?= json_encode($fx["CLIENT_OPTIMIZED"] ?? "no") ?>,
+  pickroot: <?= json_encode($ucwc_pickroot) ?>
+};
+</script>
+<script src="/webGui/javascript/jquery.filetree.js?v=<?=$ucwc_ft_js_v?>" charset="utf-8"></script>
+<script src="/plugins/theme.effects/assets/ucwc-theme-fx.js?v=<?=$ucwc_fx_js_v?>"></script>
+
+<div markdown="1">
+<?if ($msg):?>
+<span class="green"><?= htmlspecialchars($msg) ?></span>
+<?endif;?>
+</div>
+
+<!-- 总开关挂到「主题特效」标题文字后（左侧）；版本号 + 操作按钮仍在右侧 -->
+<div id="ucwc-ver-bar" class="ucwc-ver-bar-source" hidden aria-hidden="true"
+     data-ucwc-service="<?= $ucwc_service_on ? 'enabled' : 'disabled' ?>">
+  <label class="ucwc-service-switch" title="开启或关闭主题特效运行（壁纸/粒子/吉祥物/字体等）">
+    <span class="ucwc-service-switch-text">特效</span>
+    <input type="checkbox" id="ucwc-service-toggle" <?= $ucwc_service_on ? 'checked' : '' ?>
+           role="switch" aria-checked="<?= $ucwc_service_on ? 'true' : 'false' ?>"
+           aria-label="主题特效运行开关">
+    <span class="ucwc-service-track" aria-hidden="true"><span class="ucwc-service-thumb"></span></span>
+    <span class="ucwc-service-state" id="ucwc-service-state"><?= $ucwc_service_on ? '开' : '关' ?></span>
+  </label>
+  <span class="ucwc-ver-meta">
+    <strong id="ucwc-bar-current"><?= htmlspecialchars($ucwc_ver_label) ?></strong>
+    <span class="ucwc-muted" id="ucwc-bar-extra" hidden></span>
+    <span class="ucwc-muted" id="ucwc-bar-latest"></span>
+  </span>
+  <span class="ucwc-ver-actions" role="group" aria-label="版本操作">
+    <button type="button" id="ucwc-btn-check" class="ucwc-pill-btn" title="检查主题更新">检查更新</button>
+    <button type="button" id="ucwc-btn-log" class="ucwc-pill-btn" title="查看更新日志">更新日志</button>
+  </span>
+</div>
+
+<form markdown="1" method="POST" action="/Settings/ThemeEffects" id="ucwc-fx-form">
+
+<div class="title ucwc-fx-sec-title"><span class="left">背景</span><span class="right"></span></div>
+
+背景模式:
+: <select name="BG_MODE" size="1">
+  <?=mk_option($fx["BG_MODE"], "local", "本地壁纸")?>
+  <?=mk_option($fx["BG_MODE"], "dynamic", "在线图库")?>
+  </select>
+
+本地壁纸:
+: <select name="BG_LOCAL_SLOT" size="1">
+  <?=mk_option($fx["BG_LOCAL_SLOT"], "1", "本地壁纸1")?>
+  <?=mk_option($fx["BG_LOCAL_SLOT"], "2", "本地壁纸2")?>
+  <?=mk_option($fx["BG_LOCAL_SLOT"], "custom", "自定义本地壁纸")?>
+  </select>
+
+自定义本地壁纸:
+: <span class="ucwc-upload-row ucwc-upload-dual">
+    <span class="ucwc-upload-src ucwc-upload-src-pc">
+      <span class="ucwc-upload-src-head">
+        <span class="ucwc-upload-src-label">从电脑上传</span>
+        <span class="ucwc-upload-hint ucwc-upload-hint-inline">jpg / png / webp / gif · ≤12MB</span>
+      </span>
+      <span class="ucwc-upload-pc-col">
+        <input type="file" name="BG_UPLOAD" accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif">
+      </span>
+    </span>
+    <span class="ucwc-upload-src ucwc-upload-src-local">
+      <span class="ucwc-upload-src-head">
+        <span class="ucwc-upload-src-label">从本地上传</span>
+        <span class="ucwc-upload-hint ucwc-upload-hint-inline">手输或点选 Unraid 路径 · 点本段「应用」复制</span>
+      </span>
+      <span class="ucwc-upload-local-col">
+        <input type="text" class="ucwc-local-path" id="ucwc-bg-local-path" name="BG_LOCAL_PATH" maxlength="512" value="" placeholder="点击选择或手动输入路径" autocomplete="off" spellcheck="false" data-pickcloseonfile="true" data-pickfilter="jpg,jpeg,png,webp,gif" data-pickroot="<?= htmlspecialchars($ucwc_pickroot) ?>" data-picktop="<?= htmlspecialchars($ucwc_pickroot) ?>" data-pickmatch=".*">
+      </span>
+    </span>
+<?if ($has_custom):?>
+    <span class="ucwc-asset-status" id="ucwc-bg-custom-status">
+      <img class="ucwc-asset-thumb" src="<?= htmlspecialchars($custom_bg_url) ?>" alt="自定义壁纸预览" width="72" height="42" loading="lazy">
+      <span class="ucwc-asset-meta"><?= htmlspecialchars($custom_bg_meta) ?>（可重新选择文件或路径替换）</span>
+    </span>
+<?else:?>
+    <span class="ucwc-asset-status ucwc-asset-missing" id="ucwc-bg-custom-status">尚未上传自定义壁纸</span>
+<?endif;?>
+  </span>
+
+云端图库:
+: <select name="BG_GALLERY" size="1">
+  <?=mk_option($fx["BG_GALLERY"], "photo", "写真图库")?>
+  <?=mk_option($fx["BG_GALLERY"], "anime", "二次元图库")?>
+  <?=mk_option($fx["BG_GALLERY"], "gufeng", "古风图库")?>
+  <?=mk_option($fx["BG_GALLERY"], "custom", "自定义图库API")?>
+  </select>
+
+自定义图库API:
+: <input type="text" name="BG_CUSTOM_API" maxlength="500" value="<?=htmlspecialchars($fx["BG_CUSTOM_API"])?>" style="width:min(560px,100%);" placeholder="https://example.com/random.jpg">
+
+背景模糊:
+: <select name="BG_BLUR" size="1">
+  <?=mk_option($fx["BG_BLUR"], "no", "关闭")?>
+  <?=mk_option($fx["BG_BLUR"], "yes", "开启")?>
+  </select>
+
+背景模糊等级:
+: <select name="BG_BLUR_LEVEL" size="1">
+  <?=mk_option($fx["BG_BLUR_LEVEL"] ?? "md", "sm", "弱")?>
+  <?=mk_option($fx["BG_BLUR_LEVEL"] ?? "md", "md", "中")?>
+  <?=mk_option($fx["BG_BLUR_LEVEL"] ?? "md", "lg", "强")?>
+  </select>
+
+> 开启后对壁纸施加柔和模糊；等级仅在开启时显示。点本段「应用」生效。
+
+&nbsp;
+: <span class="buttons-spaced ucwc-section-actions" data-ucwc-section="bg">
+    <input type="submit" name="SAVE_THEME_FX" id="ucwc-btn-save-bg" value="应用" class="lock" data-ucwc-section="bg">
+    <input type="button" id="ucwc-btn-done-bg" value="完成" onclick="done()">
+  </span>
+
+<div class="title ucwc-fx-sec-title"><span class="left">粒子</span><span class="right"></span></div>
+
+粒子特效:
+: <select name="PARTICLES" size="1">
+  <?=mk_option($fx["PARTICLES"], "no", "关闭")?>
+  <?=mk_option($fx["PARTICLES"], "yes", "开启")?>
+  </select>
+
+粒子数量:
+: <span style="display:inline-flex;align-items:center;gap:10px;max-width:420px;width:100%;">
+    <input type="range" name="PARTICLES_COUNT" min="30" max="120" step="5" value="<?=$count?>" style="flex:1;min-width:160px;">
+    <span class="mono" id="ucwc-count-val"><?=$count?></span>
+  </span>
+
+减少动效:
+: <select name="REDUCE_MOTION" size="1">
+  <?=mk_option($fx["REDUCE_MOTION"], "no", "否")?>
+  <?=mk_option($fx["REDUCE_MOTION"], "yes", "是")?>
+  </select>
+
+&nbsp;
+: <span class="buttons-spaced ucwc-section-actions" data-ucwc-section="particles">
+    <input type="submit" name="SAVE_THEME_FX" id="ucwc-btn-save-particles" value="应用" class="lock" data-ucwc-section="particles">
+    <input type="button" id="ucwc-btn-done-particles" value="完成" onclick="done()">
+  </span>
+
+<div class="title ucwc-fx-sec-title"><span class="left">吉祥物</span><span class="right"></span></div>
+
+吉祥物开关:
+: <select name="HUTAO" size="1">
+  <?=mk_option($fx["HUTAO"], "yes", "开启")?>
+  <?=mk_option($fx["HUTAO"], "no", "关闭")?>
+  </select>
+
+吉祥物类型:
+: <select name="HUTAO_TYPE" size="1">
+  <?=mk_option($fx["HUTAO_TYPE"] ?? "hutao", "hutao", "胡桃")?>
+  <?=mk_option($fx["HUTAO_TYPE"] ?? "hutao", "custom", "自定义吉祥物")?>
+  </select>
+
+自定义吉祥物:
+: <span class="ucwc-upload-row ucwc-upload-dual">
+    <span class="ucwc-upload-src ucwc-upload-src-pc">
+      <span class="ucwc-upload-src-head">
+        <span class="ucwc-upload-src-label">从电脑上传</span>
+        <span class="ucwc-upload-hint ucwc-upload-hint-inline">仅 GIF · ≤8MB</span>
+      </span>
+      <span class="ucwc-upload-pc-col">
+        <input type="file" name="HUTAO_UPLOAD" accept="image/gif,.gif">
+      </span>
+    </span>
+    <span class="ucwc-upload-src ucwc-upload-src-local">
+      <span class="ucwc-upload-src-head">
+        <span class="ucwc-upload-src-label">从本地上传</span>
+        <span class="ucwc-upload-hint ucwc-upload-hint-inline">手输或点选 Unraid GIF 路径 · 点本段「应用」复制</span>
+      </span>
+      <span class="ucwc-upload-local-col">
+        <input type="text" class="ucwc-local-path" id="ucwc-hutao-local-path" name="HUTAO_LOCAL_PATH" maxlength="512" value="" placeholder="点击选择或手动输入 GIF 路径" autocomplete="off" spellcheck="false" data-pickcloseonfile="true" data-pickfilter="gif" data-pickroot="<?= htmlspecialchars($ucwc_pickroot) ?>" data-picktop="<?= htmlspecialchars($ucwc_pickroot) ?>" data-pickmatch=".*">
+      </span>
+    </span>
+<?php
+  $has_mascot_custom = ucwc_has("$assets_f/mascot-custom.gif") || ucwc_has("$assets_r/mascot-custom.gif");
+  if ($has_mascot_custom):
+    $mp = ucwc_has("$assets_r/mascot-custom.gif") ? "$assets_r/mascot-custom.gif" : "$assets_f/mascot-custom.gif";
+    $mu = "/plugins/theme.effects/assets/mascot-custom.gif?v=" . @filemtime($mp);
+?>
+    <span class="ucwc-asset-status" id="ucwc-mascot-custom-status">
+      <img class="ucwc-asset-thumb ucwc-asset-thumb-gif" src="<?= htmlspecialchars($mu) ?>" alt="自定义吉祥物" width="48" height="48" loading="lazy">
+      <span class="ucwc-asset-meta">已上传（可重新选择 GIF 或路径替换）</span>
+    </span>
+<?else:?>
+    <span class="ucwc-asset-status ucwc-asset-missing" id="ucwc-mascot-custom-status">尚未上传自定义吉祥物</span>
+<?endif;?>
+  </span>
+
+吉祥物大小:
+: <select name="HUTAO_SIZE" size="1">
+  <?=mk_option($fx["HUTAO_SIZE"], "small", "小")?>
+  <?=mk_option($fx["HUTAO_SIZE"], "medium", "中")?>
+  <?=mk_option($fx["HUTAO_SIZE"], "large", "大")?>
+  </select>
+
+吉祥物位置:
+: <select name="HUTAO_POS" size="1">
+  <?=mk_option($fx["HUTAO_POS"], "tl", "左上")?>
+  <?=mk_option($fx["HUTAO_POS"], "tr", "右上")?>
+  <?=mk_option($fx["HUTAO_POS"], "bl", "左下")?>
+  <?=mk_option($fx["HUTAO_POS"], "br", "右下")?>
+  </select>
+
+吉祥物模糊:
+: <select name="HUTAO_BLUR" size="1">
+  <?=mk_option($fx["HUTAO_BLUR"] ?? "no", "no", "关闭")?>
+  <?=mk_option($fx["HUTAO_BLUR"] ?? "no", "yes", "开启")?>
+  </select>
+
+吉祥物模糊等级:
+: <select name="HUTAO_BLUR_LEVEL" size="1">
+  <?=mk_option($fx["HUTAO_BLUR_LEVEL"] ?? "md", "sm", "弱")?>
+  <?=mk_option($fx["HUTAO_BLUR_LEVEL"] ?? "md", "md", "中")?>
+  <?=mk_option($fx["HUTAO_BLUR_LEVEL"] ?? "md", "lg", "强")?>
+  </select>
+
+&nbsp;
+: <span class="buttons-spaced ucwc-section-actions" data-ucwc-section="mascot">
+    <input type="submit" name="SAVE_THEME_FX" id="ucwc-btn-save-mascot" value="应用" class="lock" data-ucwc-section="mascot">
+    <input type="button" id="ucwc-btn-done-mascot" value="完成" onclick="done()">
+  </span>
+
+<div class="title ucwc-fx-sec-title"><span class="left">字体</span><span class="right"></span></div>
+
+正文字体:
+: <select name="FONT_BODY" size="1" id="ucwc-font-body">
+  <?=mk_option($fx["FONT_BODY"], "rajdhani", "Rajdhani（默认）")?>
+  <?=mk_option($fx["FONT_BODY"], "system", "系统字体")?>
+  <?=mk_option($fx["FONT_BODY"], "inter", "Inter")?>
+  <?=mk_option($fx["FONT_BODY"], "rubik", "Rubik")?>
+  <?=mk_option($fx["FONT_BODY"], "noto_sc", "Noto Sans SC")?>
+  <?=mk_option($fx["FONT_BODY"], "source_han", "思源黑体")?>
+  <?=mk_option($fx["FONT_BODY"], "yahei", "微软雅黑")?>
+  <?=mk_option($fx["FONT_BODY"], "custom", "自定义名称")?>
+  <?=mk_option($fx["FONT_BODY"], "local", "本地字体文件")?>
+  </select>
+
+自定义正文字体名:
+: <input type="text" name="FONT_CUSTOM_BODY" id="ucwc-font-custom-body" maxlength="48" value="<?= htmlspecialchars($fx["FONT_CUSTOM_BODY"] ?? "") ?>" placeholder="例如 Microsoft YaHei 或 MyFont" style="width:16rem;">
+
+本地正文字体:
+: <span class="ucwc-upload-row" id="ucwc-font-body-upload-row">
+    <input type="file" name="FONT_BODY_UPLOAD" id="ucwc-font-body-upload" accept=".woff2,.woff,.ttf,.otf,font/woff2,font/woff,font/ttf,font/otf">
+    <?php if (!empty($font_body_local_meta)): ?>
+    <span class="ucwc-asset-status" id="ucwc-font-body-status"><?= htmlspecialchars($font_body_local_meta) ?></span>
+    <?php else: ?>
+    <span class="ucwc-asset-status ucwc-asset-missing" id="ucwc-font-body-status">尚未上传（woff2/woff/ttf/otf ≤4MB）</span>
+    <?php endif; ?>
+  </span>
+
+标题字体:
+: <select name="FONT_TITLE" size="1" id="ucwc-font-title">
+  <?=mk_option($fx["FONT_TITLE"], "orbitron", "Orbitron（默认）")?>
+  <?=mk_option($fx["FONT_TITLE"], "match_body", "与正文相同")?>
+  <?=mk_option($fx["FONT_TITLE"], "exo2", "Exo 2")?>
+  <?=mk_option($fx["FONT_TITLE"], "inter", "Inter")?>
+  <?=mk_option($fx["FONT_TITLE"], "rubik", "Rubik")?>
+  <?=mk_option($fx["FONT_TITLE"], "system", "系统字体")?>
+  <?=mk_option($fx["FONT_TITLE"], "noto_sc", "Noto Sans SC")?>
+  <?=mk_option($fx["FONT_TITLE"], "source_han", "思源黑体")?>
+  <?=mk_option($fx["FONT_TITLE"], "yahei", "微软雅黑")?>
+  <?=mk_option($fx["FONT_TITLE"], "custom", "自定义名称")?>
+  <?=mk_option($fx["FONT_TITLE"], "local", "本地字体文件")?>
+  </select>
+
+自定义标题字体名:
+: <input type="text" name="FONT_CUSTOM_TITLE" id="ucwc-font-custom-title" maxlength="48" value="<?= htmlspecialchars($fx["FONT_CUSTOM_TITLE"] ?? "") ?>" placeholder="例如 Orbitron 或标题专用名" style="width:16rem;">
+
+本地标题字体:
+: <span class="ucwc-upload-row" id="ucwc-font-title-upload-row">
+    <input type="file" name="FONT_TITLE_UPLOAD" id="ucwc-font-title-upload" accept=".woff2,.woff,.ttf,.otf,font/woff2,font/woff,font/ttf,font/otf">
+    <?php if (!empty($font_title_local_meta)): ?>
+    <span class="ucwc-asset-status" id="ucwc-font-title-status"><?= htmlspecialchars($font_title_local_meta) ?></span>
+    <?php else: ?>
+    <span class="ucwc-asset-status ucwc-asset-missing" id="ucwc-font-title-status">尚未上传（woff2/woff/ttf/otf ≤4MB）</span>
+    <?php endif; ?>
+  </span>
+
+标题大写:
+: <select name="FONT_TITLE_UPPER" size="1" id="ucwc-font-upper">
+  <?=mk_option($fx["FONT_TITLE_UPPER"], "no", "关闭（中文友好）")?>
+  <?=mk_option($fx["FONT_TITLE_UPPER"], "yes", "开启（英文大写）")?>
+  </select>
+
+正文字号:
+: <select name="FONT_SIZE" size="1" id="ucwc-font-size">
+  <?=mk_option($fx["FONT_SIZE"], "13", "13")?>
+  <?=mk_option($fx["FONT_SIZE"], "14", "14（默认）")?>
+  <?=mk_option($fx["FONT_SIZE"], "15", "15")?>
+  <?=mk_option($fx["FONT_SIZE"], "16", "16")?>
+  <?=mk_option($fx["FONT_SIZE"], "17", "17")?>
+  <?=mk_option($fx["FONT_SIZE"], "18", "18")?>
+  </select>
+
+标题字号:
+: <select name="FONT_TITLE_SIZE" size="1" id="ucwc-font-title-size">
+  <?=mk_option($fx["FONT_TITLE_SIZE"] ?? "default", "default", "跟随（默认）")?>
+  <?=mk_option($fx["FONT_TITLE_SIZE"] ?? "default", "sm", "稍小")?>
+  <?=mk_option($fx["FONT_TITLE_SIZE"] ?? "default", "md", "中等")?>
+  <?=mk_option($fx["FONT_TITLE_SIZE"] ?? "default", "lg", "较大")?>
+  <?=mk_option($fx["FONT_TITLE_SIZE"] ?? "default", "xl", "特大")?>
+  </select>
+
+颜色预设:
+: <select name="COLOR_PRESET" size="1" id="ucwc-color-preset">
+  <?=mk_option($fx["COLOR_PRESET"], "cyber", "赛博粉青（默认）")?>
+  <?=mk_option($fx["COLOR_PRESET"], "ice", "冰蓝")?>
+  <?=mk_option($fx["COLOR_PRESET"], "gold", "金色")?>
+  <?=mk_option($fx["COLOR_PRESET"], "mint", "薄荷")?>
+  <?=mk_option($fx["COLOR_PRESET"], "violet", "紫罗兰")?>
+  <?=mk_option($fx["COLOR_PRESET"], "sunset", "日落")?>
+  <?=mk_option($fx["COLOR_PRESET"], "custom", "自定义")?>
+  </select>
+
+正文颜色:
+: <span class="ucwc-color-row" data-ucwc-color-row="text">
+    <input type="color" id="ucwc-color-text-picker" value="<?= htmlspecialchars($color_text_ui) ?>" aria-label="正文颜色">
+    <input type="text" name="COLOR_TEXT" id="ucwc-color-text" maxlength="7" value="<?= htmlspecialchars($fx["COLOR_TEXT"]) ?>" placeholder="#eeeeee" style="width:7.5rem;">
+  </span>
+
+标题颜色:
+: <span class="ucwc-color-row" data-ucwc-color-row="title">
+    <input type="color" id="ucwc-color-title-picker" value="<?= htmlspecialchars($color_title_ui) ?>" aria-label="标题颜色">
+    <input type="text" name="COLOR_TITLE" id="ucwc-color-title" maxlength="7" value="<?= htmlspecialchars($fx["COLOR_TITLE"]) ?>" placeholder="#ffffff" style="width:7.5rem;">
+  </span>
+
+标签颜色:
+: <span class="ucwc-color-row" data-ucwc-color-row="label">
+    <input type="color" id="ucwc-color-label-picker" value="<?= htmlspecialchars($color_label_ui) ?>" aria-label="标签颜色">
+    <input type="text" name="COLOR_LABEL" id="ucwc-color-label" maxlength="7" value="<?= htmlspecialchars($fx["COLOR_LABEL"]) ?>" placeholder="#fb7299" style="width:7.5rem;">
+  </span>
+
+字体预览:
+: <span class="ucwc-font-preview-wrap"><span id="ucwc-font-preview" class="ucwc-font-preview" aria-live="polite"><span class="ucwc-font-preview-title">主题特效 Theme Effects</span><span class="ucwc-font-preview-body">正文预览 Body text 预览 Aa 123 — 设置磁贴与表单</span><span class="ucwc-font-preview-label">标签 / 链接色 Label</span></span></span>
+
+> 预设会覆盖三项颜色；选「自定义」后可改色。「自定义名称」填系统已安装的 CSS 字体名；「本地字体」上传 woff2/woff/ttf/otf（≤4MB）。Google 字体需外网。
+
+&nbsp;
+: <span class="buttons-spaced ucwc-section-actions" data-ucwc-section="font">
+    <input type="submit" name="SAVE_THEME_FX" id="ucwc-btn-save-font" value="应用" class="lock" data-ucwc-section="font">
+    <input type="button" id="ucwc-btn-done-font" value="完成" onclick="done()">
+  </span>
+
+
+
+<div class="title ucwc-fx-sec-title"><span class="left">性能</span><span class="right"></span></div>
+
+性能档位:
+: <select name="PERF_PROFILE" size="1" id="ucwc-perf-profile">
+  <?=mk_option($fx["PERF_PROFILE"] ?? "auto", "auto", "自动（按客户端）")?>
+  <?=mk_option($fx["PERF_PROFILE"] ?? "auto", "high", "高（全特效）")?>
+  <?=mk_option($fx["PERF_PROFILE"] ?? "auto", "balanced", "均衡")?>
+  <?=mk_option($fx["PERF_PROFILE"] ?? "auto", "low", "低（省资源）")?>
+  </select>
+
+<input type="hidden" name="CLIENT_OPTIMIZED" id="ucwc-client-optimized" value="<?= htmlspecialchars($fx["CLIENT_OPTIMIZED"] ?? "no") ?>">
+
+> **说明**：点「应用」后，档位会**直接改写**主题特效配置：
+> - **低**：关粒子、开减少动效、已开的背景模糊降为弱、关吉祥物模糊
+> - **均衡**：关减少动效、粒子数量封顶 80、强模糊降为中
+> - **高**：开粒子（数量≥80）、关减少动效
+> - **自动**：不改上述开关，仅按客户端在运行时软调节
+> 首次建议弹窗也会写入相同规则。与服务器显卡无关。
+
+&nbsp;
+: <span class="buttons-spaced ucwc-section-actions" data-ucwc-section="perf">
+    <input type="submit" name="SAVE_THEME_FX" id="ucwc-btn-save-perf" value="应用" class="lock" data-ucwc-section="perf">
+    <input type="button" id="ucwc-btn-done-perf" value="完成" onclick="done()">
+  </span>
+
+
+</form>
+
+<div id="ucwc-panel-mask"></div>
+<div id="ucwc-panel" role="dialog" aria-modal="true">
+  <button type="button" class="ucwc-close" id="ucwc-panel-close" title="关闭">×</button>
+  <h3 id="ucwc-panel-title">版本管理</h3>
+  <div id="ucwc-panel-body"></div>
+  <div class="ucwc-panel-actions" id="ucwc-panel-actions"></div>
+</div>
