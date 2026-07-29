@@ -20,7 +20,7 @@
 ###2026.07.29g
 - v2.5.0: mouse FX stable (glow/ring/trail/spark), install %, check switch
 ###2026.07.29b
-- v2.4.2: restore 1.8.x Docker/VM float layout & spacing
+- v2.4.2: restore 1.8.x Docker/VM float layout &amp; spacing
 ###2026.07.29a
 - v2.4.1: fourth stable — docker/vm bottom gap, beta check floor, upload layout
 ###2026.07.29
