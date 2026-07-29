@@ -9,7 +9,7 @@
 <!ENTITY github    "deltrivx/ThemeEffects">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/theme.effects.plg">
 <!ENTITY installSH "https://raw.githubusercontent.com/&github;/main/scripts/install.sh">
-<!ENTITY ver       "v2.5.0">
+<!ENTITY ver       "v2.5.1">
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" icon="magic" support="https://github.com/&github;">
 

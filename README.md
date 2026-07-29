@@ -2,7 +2,7 @@
 
 独立 Unraid WebGUI 主题插件（**不依赖** Custom WebUI CSS）。仓库：[deltrivx/ThemeEffects](https://github.com/deltrivx/ThemeEffects)
 
-当前正式版：**v2.5.0**（鼠标特效）；`latest_version` 指向 **v2.5.0**
+当前正式版：**v2.5.1**（OTA/全量更新）；`latest_version` 指向 **v2.5.1**
 
 ## 功能
 
@@ -20,6 +20,15 @@
 - 字体 / 颜色可配置（含本地字体）
 - 检查更新 / 更新日志
 
+## 更新模式（OTA / 全量）
+
+| 模式 | 行为 | 适用 |
+|------|------|------|
+| **OTA**（默认） | 下载版本包 `files.manifest`，按 sha256 与本地 flash 比对，**只下载变更/缺失**文件 | 日常升级、重装未改大资源 |
+| **全量** | 重新下载包内全部文件 | 本地文件损坏、强制修复 |
+
+Web「检查更新 / 检查 Beta」面板与「更新日志」安装均提供 **OTA** 与 **全量** 两个按钮。
+
 ## 系统要求
 
 - Unraid **6.12+**（主测 **7.3.2**）
@@ -35,9 +44,11 @@ bash <(curl -fsSL https://raw.githubusercontent.com/deltrivx/ThemeEffects/main/s
 ```
 
 - 交互终端：菜单（最新版 / 历史版本 / 卸载 / 退出）
-- 非交互（管道）：直接安装最新版
+- 非交互（管道）：直接安装最新版（默认 **OTA**）
 - 指定版本：`bash scripts/install.sh install v2.4.3`
-- 正式版：`bash scripts/install.sh install v2.5.0`
+- 正式版 OTA：`bash scripts/install.sh install v2.5.1 ota`（默认，可省略 `ota`）
+- 正式版全量：`bash scripts/install.sh install v2.5.1 full`
+- 环境变量：`UCWC_INSTALL_MODE=ota|full`
 
 ### 插件方式
 

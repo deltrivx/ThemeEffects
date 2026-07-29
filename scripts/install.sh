@@ -79,6 +79,7 @@ migrate_from_legacy_custom_css() {
 }
 
 VERSION=""
+INSTALL_MODE="ota"
 INSTALL_PARTICLES="yes"
 INSTALL_HUTAO="yes"
 IS_LATEST="no"
@@ -116,6 +117,101 @@ fetch_index() {
     *) printf '%s\n' "$_idx" | sed -n '/^{/,$p' ;;
   esac
 }
+
+
+file_sha256() {
+  # stdout: hex digest or empty
+  if [ ! -f "$1" ]; then echo ""; return 0; fi
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" 2>/dev/null | awk '{print $1}'
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$1" 2>/dev/null | awk '{print $1}'
+  elif command -v openssl >/dev/null 2>&1; then
+    openssl dgst -sha256 "$1" 2>/dev/null | awk '{print $NF}'
+  else
+    echo ""
+  fi
+}
+
+file_size() {
+  if [ ! -f "$1" ]; then echo "0"; return 0; fi
+  wc -c < "$1" 2>/dev/null | tr -d ' \t\r\n'
+}
+
+# Map package-relative path → local persist path used for OTA compare
+local_path_for() {
+  case "$1" in
+    style.css) printf '%s\n' "$PERSIST_DIR/style.css" ;;
+    style-black.css) printf '%s\n' "$PERSIST_DIR/style-black.css" ;;
+    assets/*) printf '%s\n' "$PERSIST_DIR/$1" ;;
+    ThemeEffects.page) printf '%s\n' "$THEME_FX_PAGE" ;;
+    ThemeEffects_Loader.page) printf '%s\n' "$LOADER_PAGE" ;;
+    theme-effects.cfg) printf '%s\n' "$THEME_FX_CFG" ;;
+    ucwc-update.php) printf '%s\n' "$PERSIST_DIR/ucwc-update.php" ;;
+    ucwc-theme-fx-save.php) printf '%s\n' "$PERSIST_DIR/ucwc-theme-fx-save.php" ;;
+    ucwc-auth-request.conf) printf '%s\n' "$PERSIST_DIR/ucwc-auth-request.conf" ;;
+    apps-enhancement.js)
+      # 注入进 Loader，无稳定独立副本；OTA 无法可靠比对 → 空
+      printf '\n'
+      ;;
+    *) printf '%s\n' "$PERSIST_DIR/$1" ;;
+  esac
+}
+
+manifest_get() {
+  # $1=path $2=field(sha256|size) → value or empty
+  _mp=$1
+  _mf=$2
+  if [ -z "${MANIFEST_JSON:-}" ]; then echo ""; return 0; fi
+  printf '%s' "$MANIFEST_JSON" | jq -r --arg p "$_mp" --arg f "$_mf" \
+    '.files[]? | select(.path == $p) | .[$f] // empty' 2>/dev/null || true
+}
+
+# 下载或 OTA 复用：$1=tmp目标 $2=远程URL $3=包内相对路径 $4=显示名
+# 成功返回 0；失败返回非 0（与 download/curl 一致）
+fetch_pkg() {
+  _dest=$1
+  _url=$2
+  _rel=$3
+  _label=${4:-$_rel}
+  mkdir -p "$(dirname "$_dest")"
+
+  _expect_sha=$(manifest_get "$_rel" sha256)
+  _expect_sz=$(manifest_get "$_rel" size)
+  _local=$(local_path_for "$_rel")
+
+  if [ "$INSTALL_MODE" = "ota" ] && [ -n "$_local" ] && [ -f "$_local" ]; then
+    _skip=0
+    if [ -n "$_expect_sha" ]; then
+      _cur=$(file_sha256 "$_local")
+      if [ -n "$_cur" ] && [ "$_cur" = "$_expect_sha" ]; then
+        _skip=1
+      fi
+    else
+      # 无 sha：用清单 size 或 HEAD Content-Length 粗比对
+      if [ -z "$_expect_sz" ] || [ "$_expect_sz" = "0" ] || [ "$_expect_sz" = "null" ]; then
+        _expect_sz=$(curl -4 -fsSI --connect-timeout 8 --max-time 20 "$_url" 2>/dev/null \
+          | tr -d '\r' | awk 'BEGIN{IGNORECASE=1} /^Content-Length:/ {print $2; exit}')
+      fi
+      if [ -n "$_expect_sz" ] && [ "$_expect_sz" != "0" ]; then
+        _csz=$(file_size "$_local")
+        if [ "$_csz" = "$_expect_sz" ]; then
+          _skip=1
+        fi
+      fi
+    fi
+    if [ "$_skip" = "1" ]; then
+      echo "OTA 跳过（未变）：$_label" >&2
+      OTA_SKIPPED=$(( ${OTA_SKIPPED:-0} + 1 ))
+      cp -a "$_local" "$_dest"
+      return 0
+    fi
+  fi
+
+  OTA_FETCHED=$(( ${OTA_FETCHED:-0} + 1 ))
+  download -o "$_dest" "$_url"
+}
+
 
 read_display_value() {
   key=$1
@@ -255,6 +351,7 @@ remove_theme_effects() {
 write_options() {
   {
     printf 'version=%s\n' "$VERSION"
+    printf 'install_mode=%s\n' "$INSTALL_MODE"
     printf 'particles=%s\n' "$INSTALL_PARTICLES"
     printf 'hutao=%s\n' "$INSTALL_HUTAO"
     printf 'theme_effects=%s\n' "$THEME_EFFECTS"
@@ -273,6 +370,11 @@ install_pair() {
 }
 
 install_version() {
+  case "$INSTALL_MODE" in
+    ota|full) ;;
+    *) INSTALL_MODE="ota" ;;
+  esac
+
   index=$(fetch_index)
   printf '%s' "$index" | jq -e --arg version "$VERSION" \
     '.versions[] | select(.id == $version)' >/dev/null || {
@@ -311,51 +413,80 @@ install_version() {
   base="$REPO_RAW/versions/$VERSION"
   tmp=$(mktemp -d /tmp/ThemeEffects.XXXXXX)
   trap 'rm -rf "$tmp"' EXIT INT TERM
+  OTA_SKIPPED=0
+  OTA_FETCHED=0
+  MANIFEST_JSON=""
 
-  echo "正在安装 $VERSION …"
-  progress 20 "准备安装" "创建临时目录并迁移旧配置"
+  if [ "$INSTALL_MODE" = "full" ]; then
+    echo "正在全量安装 $VERSION …"
+    progress 18 "准备安装" "全量模式：将重新下载全部包文件"
+  else
+    echo "正在 OTA 安装 $VERSION …"
+    progress 18 "准备安装" "OTA 模式：比对本地后仅下载变更文件"
+  fi
   mkdir -p "$tmp/assets" "$PERSIST_DIR/assets" "$RUNTIME_DIR/assets"
   migrate_from_legacy_custom_css
+
+  # 清单：用于 OTA 哈希比对；缺失时 OTA 退化为「有本地同名则按 size 试跳，否则下载」
+  progress 22 "拉取清单" "files.manifest（OTA 差异比对）"
+  if curl -4 -fsSL --connect-timeout 12 --max-time 60 --retry 2 \
+      "$base/files.manifest?_ts=$(date +%s)" -o "$tmp/files.manifest" 2>/dev/null; then
+    MANIFEST_JSON=$(cat "$tmp/files.manifest" 2>/dev/null || true)
+    case "$MANIFEST_JSON" in
+      "{"*) echo "已加载文件清单（OTA 可用 sha256 比对）" >&2 ;;
+      *) MANIFEST_JSON=""; echo "清单无效，OTA 将仅按本地存在性/大小尝试跳过" >&2 ;;
+    esac
+  else
+    echo "无 files.manifest（旧包），OTA 将尽量复用同尺寸本地文件" >&2
+  fi
+
   progress 28 "下载文件" "主题样式与壁纸"
-  download -o "$tmp/style.css" "$base/style.css"
-  download -o "$tmp/style-black.css" "$base/style-black.css"
-  download -o "$tmp/assets/background.jpg" "$base/assets/background.jpg"
+  fetch_pkg "$tmp/style.css" "$base/style.css" "style.css" "style.css" || exit 1
+  fetch_pkg "$tmp/style-black.css" "$base/style-black.css" "style-black.css" "style-black.css" || exit 1
+  fetch_pkg "$tmp/assets/background.jpg" "$base/assets/background.jpg" "assets/background.jpg" "background.jpg" || exit 1
 
   if [ "$apps_enhancement" = "true" ]; then
     progress 36 "下载文件" "应用页增强脚本"
+    # 无稳定本地副本，OTA/全量均下载
     download -o "$tmp/apps-enhancement.js" "$base/apps-enhancement.js"
+    OTA_FETCHED=$((OTA_FETCHED + 1))
   fi
 
   if [ "$INSTALL_HUTAO" = "yes" ]; then
-    progress 42 "下载文件" "吉祥物 GIF（体积较大，可能需数十秒）"
-    download -o "$tmp/assets/hutao.gif" "$base/assets/hutao.gif"
+    progress 42 "下载文件" "吉祥物 GIF（体积较大；OTA 未变则跳过）"
+    fetch_pkg "$tmp/assets/hutao.gif" "$base/assets/hutao.gif" "assets/hutao.gif" "hutao.gif" || exit 1
   fi
 
   if [ "$THEME_EFFECTS" = "true" ]; then
     progress 52 "下载文件" "主题特效页面与资源"
-    download -o "$tmp/ThemeEffects.page" "$base/ThemeEffects.page"
-    download -o "$tmp/ThemeEffects_Loader.page" "$base/ThemeEffects_Loader.page"
-    download -o "$tmp/theme-effects.cfg" "$base/theme-effects.cfg"
-    download -o "$tmp/assets/background-1.jpg" "$base/assets/background-1.jpg"
-    download -o "$tmp/assets/background-2.jpg" "$base/assets/background-2.jpg"
-    download -o "$tmp/assets/ucwc-particles.js" "$base/assets/ucwc-particles.js"
-    download -o "$tmp/assets/ucwc-mouse-fx.js" "$base/assets/ucwc-mouse-fx.js" || true
+    fetch_pkg "$tmp/ThemeEffects.page" "$base/ThemeEffects.page" "ThemeEffects.page" "ThemeEffects.page" || exit 1
+    fetch_pkg "$tmp/ThemeEffects_Loader.page" "$base/ThemeEffects_Loader.page" "ThemeEffects_Loader.page" "ThemeEffects_Loader.page" || exit 1
+    fetch_pkg "$tmp/theme-effects.cfg" "$base/theme-effects.cfg" "theme-effects.cfg" "theme-effects.cfg" || exit 1
+    fetch_pkg "$tmp/assets/background-1.jpg" "$base/assets/background-1.jpg" "assets/background-1.jpg" "background-1.jpg" || exit 1
+    fetch_pkg "$tmp/assets/background-2.jpg" "$base/assets/background-2.jpg" "assets/background-2.jpg" "background-2.jpg" || exit 1
+    fetch_pkg "$tmp/assets/ucwc-particles.js" "$base/assets/ucwc-particles.js" "assets/ucwc-particles.js" "ucwc-particles.js" || exit 1
+    fetch_pkg "$tmp/assets/ucwc-mouse-fx.js" "$base/assets/ucwc-mouse-fx.js" "assets/ucwc-mouse-fx.js" "ucwc-mouse-fx.js" || true
     # 主题特效页 UI + AJAX 保存 + 版本管理 API（优先版本包，回退仓库根）
     for f in ucwc-update.php ucwc-theme-fx-save.php ucwc-auth-request.conf assets/ucwc-theme-fx.js assets/ucwc-theme-fx.css; do
       bn=$(basename "$f")
       dir=$(dirname "$f")
       mkdir -p "$tmp/$dir"
-      if download -o "$tmp/$f" "$base/$f"; then
+      if fetch_pkg "$tmp/$f" "$base/$f" "$f" "$bn"; then
         :
       elif download -o "$tmp/$f" "$REPO_RAW/$f"; then
-        :
-      elif download -o "$tmp/$f" "$REPO_RAW/assets-$bn" 2>/dev/null; then
-        :
+        OTA_FETCHED=$((OTA_FETCHED + 1))
+      elif download -o "$tmp/$f" "$REPO_RAW/assets/$bn" 2>/dev/null; then
+        OTA_FETCHED=$((OTA_FETCHED + 1))
       else
         echo "警告：未找到 $f，相关 WebUI 功能可能不可用。" >&2
         rm -f "$tmp/$f"
       fi
     done
+  fi
+
+  if [ "$INSTALL_MODE" = "ota" ]; then
+    echo "OTA 统计：跳过 ${OTA_SKIPPED:-0} 个未变文件，下载 ${OTA_FETCHED:-0} 个" >&2
+    progress 65 "OTA 比对完成" "跳过 ${OTA_SKIPPED:-0} · 下载 ${OTA_FETCHED:-0}"
   fi
 
   progress 70 "写入主题文件" "安装样式与资源到插件目录"
@@ -457,8 +588,9 @@ install_version() {
   apply_display_settings
   write_options
   {
-    grep -vE '^(version|particles|hutao|apps_enhancement|theme_effects|updated_at|source)=' "$STATE_FILE" 2>/dev/null || true
+    grep -vE '^(version|install_mode|particles|hutao|apps_enhancement|theme_effects|updated_at|source)=' "$STATE_FILE" 2>/dev/null || true
     printf 'version=%s\n' "$VERSION"
+    printf 'install_mode=%s\n' "$INSTALL_MODE"
     printf 'particles=%s\n' "$INSTALL_PARTICLES"
     printf 'hutao=%s\n' "$INSTALL_HUTAO"
     printf 'apps_enhancement=%s\n' "$apps_enhancement"
@@ -469,7 +601,10 @@ install_version() {
   mv "$STATE_FILE.tmp" "$STATE_FILE"
 
   progress 92 "收尾" "写入状态并应用显示设置"
-  echo "已安装：主题 $VERSION"
+  echo "已安装：主题 $VERSION（模式：$INSTALL_MODE）"
+  if [ "$INSTALL_MODE" = "ota" ]; then
+    echo "  OTA：跳过 ${OTA_SKIPPED:-0} 个未变文件，实际下载 ${OTA_FETCHED:-0} 个"
+  fi
   if [ "$THEME_EFFECTS" = "true" ]; then
     echo "  主题特效页：已安装（设置 → 用户偏好 → 主题特效）"
   fi
@@ -552,6 +687,11 @@ EOF
   esac
 }
 
+# 环境变量可覆盖模式：UCWC_INSTALL_MODE=ota|full
+if [ -n "${UCWC_INSTALL_MODE:-}" ]; then
+  case "$UCWC_INSTALL_MODE" in ota|full) INSTALL_MODE="$UCWC_INSTALL_MODE" ;; esac
+fi
+
 [ "$(id -u)" -eq 0 ] || { echo "请使用 root 用户运行。" >&2; exit 77; }
 command -v curl >/dev/null 2>&1 || { echo "缺少 curl。" >&2; exit 69; }
 command -v jq >/dev/null 2>&1 || { echo "缺少 jq。" >&2; exit 69; }
@@ -571,12 +711,29 @@ fi
 
 case "$1" in
   install)
-    if [ "$#" -ge 2 ]; then
-      VERSION=$2
-    else
+    VERSION=""
+    # 保留环境变量 UCWC_INSTALL_MODE；命令行 ota|full 可再覆盖
+    case "${INSTALL_MODE:-}" in
+      ota|full) ;;
+      *) INSTALL_MODE="ota" ;;
+    esac
+    shift
+    for _arg in "$@"; do
+      case "$_arg" in
+        ota|full) INSTALL_MODE="$_arg" ;;
+        v[0-9]*) VERSION="$_arg" ;;
+        *)
+          # 兼容旧调用：第二参为版本
+          if [ -z "$VERSION" ] && printf '%s' "$_arg" | grep -qE '^v[0-9]'; then
+            VERSION="$_arg"
+          fi
+          ;;
+      esac
+    done
+    if [ -z "$VERSION" ]; then
       VERSION=$(fetch_index | jq -r '.latest_version')
     fi
-    echo "正在安装：$VERSION…"
+    echo "正在安装：$VERSION（模式：$INSTALL_MODE）…"
     install_version
     ;;
   uninstall)
