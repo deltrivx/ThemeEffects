@@ -1,5 +1,21 @@
 # 更新日志
 
+## v2.6.0-Beta - 2026-07-29
+
+### 概述
+**Beta：音乐组件第一期（V1）**。仪表盘右下角播放卡片 + 本地目录音源；默认关闭，需在「主题特效 → 音乐」中开启。正式版 `latest` 仍为 **v2.5.1**，本版通过 **检查 Beta 更新** 安装。
+
+### 变更
+- **音乐 V1**
+  - 设置页新增「音乐」分段：`MUSIC_ENABLE` / `MUSIC_UI` / `MUSIC_SOURCE` / `MUSIC_LOCAL_DIR` / `MUSIC_VOLUME` / `MUSIC_AUTOPLAY` / `MUSIC_SHUFFLE` / `MUSIC_REPEAT` / `MUSIC_DASH_ONLY`
+  - 本地音源：扫描 `/mnt/` 下目录（如 `/mnt/user/Music`），支持 mp3/flac/m4a/aac/ogg/opus/wav/wma
+  - API：`ucwc-music-api.php`（`config` / `list` / `stream`，含 Range 流式）
+  - 前端：`assets/ucwc-music.js` + `assets/ucwc-music.css` 固定玻璃卡片（播放/进度/音量/列表/随机/循环）
+  - Loader 注入 `window.__UCWC_THEME__.music`；开启时按需加载 CSS/JS；默认仅仪表盘显示
+  - 默认 `MUSIC_ENABLE=no`；V1 仅卡片 UI + 本地源（浮层 / Emby·JF·Navidrome 留待后续）
+- **安装**：`install.sh` 拉取并安装音乐 API 与资源；OTA `files.manifest` 含新文件
+- 版本号：**v2.6.0-Beta**（beta 通道）；正式 latest 仍为 **v2.5.1**
+
 ## v2.5.1 - 2026-07-29
 
 ### 概述
