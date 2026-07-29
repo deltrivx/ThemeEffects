@@ -11,6 +11,7 @@
 - **Web UI**：检查更新 / Beta 检查 / 更新日志安装均提供 OTA 与全量按钮
 - **install.sh**：`install <version> [ota|full]`，环境变量 `UCWC_INSTALL_MODE`；默认 OTA
 - **进度日志**：显示「OTA 跳过 / 下载」统计与模式
+- **插件页安装（2026.07.29h）**：修复 Plugins 页安装「卡死无进度」——`theme.effects.plg` 将 install.sh 的 stderr 合并到 stdout，并用 `stdbuf -oL` 行缓冲；`UCWC_PLUGIN_INSTALL=1` 时进度双写 stdout，插件管理器 `popen` 可实时显示
 - 版本号：**v2.5.1**（stable / latest）
 
 ## v2.5.0 - 2026-07-29

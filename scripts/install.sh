@@ -85,15 +85,25 @@ INSTALL_HUTAO="yes"
 IS_LATEST="no"
 THEME_EFFECTS="false"
 
+# 日志：默认只写 stderr（Web 任务 2>&1 捕获；$(fetch_index) 等 stdout 必须纯净）。
+# 插件管理器 popen 只读 stdout → UCWC_PLUGIN_INSTALL=1 时改写 stdout（plg 另 2>&1 合并错误）。
+# 勿双写，否则 plg 的 2>&1 会把同一行显示两次。
+ucwc_log() {
+  if [ "${UCWC_PLUGIN_INSTALL:-}" = "1" ]; then
+    echo "$*"
+  else
+    echo "$*" >&2
+  fi
+}
+
 progress() {
   # $1=建议百分比 $2=阶段 $3=说明 — Web 安装 UI 会解析这些行
-  # 必须写 stderr：download 常被 $(...) 捕获 stdout（如 fetch_index）
-  echo "[进度 $1%] $2：$3" >&2
+  ucwc_log "[进度 $1%] $2：$3"
 }
 
 download() {
   # Large assets (hutao.gif ~3MB, wallpapers) need headroom on slow links
-  # Progress goes to stderr only — stdout must stay pure for curl body / -o files
+  # Progress goes via ucwc_log — never to bare stdout unless plugin mode
   _ucwc_dl_url=""
   for _ucwc_a in "$@"; do
     case "$_ucwc_a" in
@@ -102,7 +112,7 @@ download() {
   done
   if [ -n "$_ucwc_dl_url" ]; then
     _ucwc_bn=$(basename "$_ucwc_dl_url" | sed 's/[?].*$//')
-    echo "下载文件：$_ucwc_bn" >&2
+    ucwc_log "下载文件：$_ucwc_bn"
   fi
   curl -4 -fsSL --connect-timeout 15 --max-time 300 --retry 4 "$@"
 }
@@ -201,7 +211,7 @@ fetch_pkg() {
       fi
     fi
     if [ "$_skip" = "1" ]; then
-      echo "OTA 跳过（未变）：$_label" >&2
+      ucwc_log "OTA 跳过（未变）：$_label"
       OTA_SKIPPED=$(( ${OTA_SKIPPED:-0} + 1 ))
       cp -a "$_local" "$_dest"
       return 0
@@ -433,11 +443,11 @@ install_version() {
       "$base/files.manifest?_ts=$(date +%s)" -o "$tmp/files.manifest" 2>/dev/null; then
     MANIFEST_JSON=$(cat "$tmp/files.manifest" 2>/dev/null || true)
     case "$MANIFEST_JSON" in
-      "{"*) echo "已加载文件清单（OTA 可用 sha256 比对）" >&2 ;;
-      *) MANIFEST_JSON=""; echo "清单无效，OTA 将仅按本地存在性/大小尝试跳过" >&2 ;;
+      "{"*) ucwc_log "已加载文件清单（OTA 可用 sha256 比对）" ;;
+      *) MANIFEST_JSON=""; ucwc_log "清单无效，OTA 将仅按本地存在性/大小尝试跳过" ;;
     esac
   else
-    echo "无 files.manifest（旧包），OTA 将尽量复用同尺寸本地文件" >&2
+    ucwc_log "无 files.manifest（旧包），OTA 将尽量复用同尺寸本地文件"
   fi
 
   progress 28 "下载文件" "主题样式与壁纸"
@@ -478,14 +488,14 @@ install_version() {
       elif download -o "$tmp/$f" "$REPO_RAW/assets/$bn" 2>/dev/null; then
         OTA_FETCHED=$((OTA_FETCHED + 1))
       else
-        echo "警告：未找到 $f，相关 WebUI 功能可能不可用。" >&2
+        ucwc_log "警告：未找到 $f，相关 WebUI 功能可能不可用。"
         rm -f "$tmp/$f"
       fi
     done
   fi
 
   if [ "$INSTALL_MODE" = "ota" ]; then
-    echo "OTA 统计：跳过 ${OTA_SKIPPED:-0} 个未变文件，下载 ${OTA_FETCHED:-0} 个" >&2
+    ucwc_log "OTA 统计：跳过 ${OTA_SKIPPED:-0} 个未变文件，下载 ${OTA_FETCHED:-0} 个"
     progress 65 "OTA 比对完成" "跳过 ${OTA_SKIPPED:-0} · 下载 ${OTA_FETCHED:-0}"
   fi
 

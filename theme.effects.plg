@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "theme.effects">
 <!ENTITY author    "deltrivx">
-<!ENTITY version   "2026.07.29g">
+<!ENTITY version   "2026.07.29h">
 <!ENTITY launch    "Settings/ThemeEffects">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY flash     "/boot/config/plugins/&name;">
@@ -15,6 +15,8 @@
 
 <CHANGES>
 ## Theme Effects
+###2026.07.29h
+- Fix Plugins-page install hang: stream install progress to plugin UI (stdout + line-buffered)
 ###2026.07.29g
 - v2.5.0: mouse FX stable (glow/ring/trail/spark), install %, check switch
 ###2026.07.29b
@@ -56,26 +58,56 @@ Repo: https://github.com/deltrivx/ThemeEffects
 </INLINE>
 </FILE>
 
-<!-- Install / upgrade latest package via install.sh -->
+<!-- Install / upgrade latest package via install.sh
+     Plugin manager popen() only reads stdout. install.sh progress is on stderr
+     (so Web jobs / command substitution stay clean). Merge + line-buffer here. -->
 <FILE Run="/bin/bash">
 <INLINE>
 set -e
 export PATH="/usr/local/sbin:/usr/sbin:/sbin:/usr/local/bin:/usr/bin:/bin"
+export UCWC_PLUGIN_INSTALL=1
+export UCWC_INSTALL_MODE="${UCWC_INSTALL_MODE:-ota}"
+
+echo "===================================================="
+echo " Theme Effects plugin install"
+echo " package: &ver;  mode: $UCWC_INSTALL_MODE"
+echo "===================================================="
+
 if ! command -v curl >/dev/null 2>&amp;1; then
-  echo "curl required" &gt;&amp;2
+  echo "ERROR: curl required" &gt;&amp;2
   exit 1
 fi
 if ! command -v jq >/dev/null 2>&amp;1; then
-  echo "jq required" &gt;&amp;2
+  echo "ERROR: jq required" &gt;&amp;2
   exit 1
 fi
-TMP=$(mktemp)
-curl -4 -fsSL --connect-timeout 15 --max-time 120 --retry 2 -o "$TMP" "&installSH;"
+
+echo "[1/4] downloading install.sh…"
+TMP=$(mktemp /tmp/theme.effects.install.XXXXXX)
+if ! curl -4 -fsSL --connect-timeout 15 --max-time 120 --retry 3 \
+    -o "$TMP" "&installSH;?_ts=$(date +%s)"; then
+  echo "ERROR: failed to download install.sh from GitHub" &gt;&amp;2
+  rm -f "$TMP"
+  exit 1
+fi
 chmod +x "$TMP"
-# Non-interactive install of pinned version (install.sh also accepts install &lt;ver&gt;)
-sh "$TMP" install "&ver;"
+echo "[1/4] install.sh ready ($(wc -c &lt; "$TMP" | tr -d ' ') bytes)"
+
+echo "[2/4] running install &ver; (progress below; large assets may take a minute)…"
+# popen only sees stdout — merge stderr; prefer line-buffered I/O
+if command -v stdbuf >/dev/null 2>&amp;1; then
+  stdbuf -oL -eL sh "$TMP" install "&ver;" 2&gt;&amp;1
+else
+  sh "$TMP" install "&ver;" 2&gt;&amp;1
+fi
 rm -f "$TMP"
-# Ensure plugin manager sees our runtime pages (install.sh already copies)
+
+echo "[3/4] verifying runtime files…"
+if [ ! -f "&plugdir;/ThemeEffects.page" ] &amp;&amp; [ ! -f "&flash;/ThemeEffects.page" ]; then
+  echo "WARNING: ThemeEffects.page not found after install (check network / logs)"
+fi
+
+echo "[4/4] done."
 echo "----------------------------------------------------"
 echo " theme.effects &ver; installed."
 echo " Open Settings → User Preferences → 主题特效"
@@ -89,10 +121,16 @@ exit 0
 <INLINE>
 set +e
 export PATH="/usr/local/sbin:/usr/sbin:/sbin:/usr/local/bin:/usr/bin:/bin"
-TMP=$(mktemp)
-if curl -4 -fsSL --connect-timeout 10 --max-time 60 -o "$TMP" "&installSH;" 2>/dev/null; then
+export UCWC_PLUGIN_INSTALL=1
+echo "Theme Effects: uninstalling…"
+TMP=$(mktemp /tmp/theme.effects.uninstall.XXXXXX)
+if curl -4 -fsSL --connect-timeout 10 --max-time 60 -o "$TMP" "&installSH;?_ts=$(date +%s)" 2>/dev/null; then
   chmod +x "$TMP"
-  sh "$TMP" uninstall || true
+  if command -v stdbuf >/dev/null 2>&amp;1; then
+    stdbuf -oL -eL sh "$TMP" uninstall 2&gt;&amp;1 || true
+  else
+    sh "$TMP" uninstall 2&gt;&amp;1 || true
+  fi
 fi
 rm -f "$TMP"
 rm -rf &plugdir;
