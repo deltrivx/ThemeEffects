@@ -1,5 +1,26 @@
 # 更新日志
 
+## v2.6.0-Beta10 - 2026-07-29
+
+### 概述
+**Beta10**：切换页面后自动多次重试续播；chip 拖动修复；歌词出站代理 + 插件缓存；自定义鼠标显隐对齐壁纸 `hideRow`。
+
+### 变更
+- **续播**
+  - 导航后短时多次 `play()` 重试 + Media Session
+  - `pageshow` / 可见性变化时再试；被策略拦截时 chip 提示「自动续播中…」
+- **chip**
+  - 用 `setProperty(..., important)` 覆盖定位；同时监听 pointer/mouse/touch
+  - 默认 CSS 的 right/bottom 不再 `!important` 卡死拖动
+- **歌词**
+  - `m_http_get` 读取 Unraid 出站代理
+  - 音频目录不可写时写入 `/boot/config/plugins/theme.effects/lyrics-cache`
+  - 多查询/打分匹配；失败原因回传到状态栏
+- **鼠标**
+  - 自定义样式文件 / 热点坐标改用与壁纸相同的 `hideRow`（含 `syncUi`）
+  - 去掉 PHP 行内 display 抢控制
+- 版本号：**v2.6.0-Beta10**（beta）；正式 latest 仍为 **v2.5.1**
+
 ## v2.6.0-Beta9 - 2026-07-29
 
 ### 概述
