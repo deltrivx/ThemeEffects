@@ -63,6 +63,7 @@ migrate_from_legacy_custom_css() {
     "$LEGACY_DIR/ucwc-auth-request.conf" \
     "$LEGACY_DIR/ucwc-upload.ini" \
     "$LEGACY_DIR/assets/ucwc-particles.js" "$LEGACY_RUNTIME/assets/ucwc-particles.js" \
+    "$LEGACY_DIR/assets/ucwc-mouse-fx.js" "$LEGACY_RUNTIME/assets/ucwc-mouse-fx.js" \
     "$LEGACY_DIR/assets/ucwc-theme-fx.js" "$LEGACY_RUNTIME/assets/ucwc-theme-fx.js" \
     "$LEGACY_DIR/assets/ucwc-theme-fx.css" "$LEGACY_RUNTIME/assets/ucwc-theme-fx.css" \
     "$LEGACY_DIR/assets/apps-enhancement.js" "$LEGACY_RUNTIME/assets/apps-enhancement.js"
@@ -211,6 +212,8 @@ remove_theme_effects() {
     "$RUNTIME_DIR/ucwc-theme-fx-save.php" \
     "$PERSIST_DIR/assets/ucwc-particles.js" \
     "$RUNTIME_DIR/assets/ucwc-particles.js" \
+    "$PERSIST_DIR/assets/ucwc-mouse-fx.js" \
+    "$RUNTIME_DIR/assets/ucwc-mouse-fx.js" \
     "$PERSIST_DIR/assets/ucwc-theme-fx.js" \
     "$RUNTIME_DIR/assets/ucwc-theme-fx.js" \
     "$PERSIST_DIR/assets/ucwc-theme-fx.css" \
@@ -306,6 +309,7 @@ install_version() {
     download -o "$tmp/assets/background-1.jpg" "$base/assets/background-1.jpg"
     download -o "$tmp/assets/background-2.jpg" "$base/assets/background-2.jpg"
     download -o "$tmp/assets/ucwc-particles.js" "$base/assets/ucwc-particles.js"
+    download -o "$tmp/assets/ucwc-mouse-fx.js" "$base/assets/ucwc-mouse-fx.js" || true
     # 主题特效页 UI + AJAX 保存 + 版本管理 API（优先版本包，回退仓库根）
     for f in ucwc-update.php ucwc-theme-fx-save.php ucwc-auth-request.conf assets/ucwc-theme-fx.js assets/ucwc-theme-fx.css; do
       bn=$(basename "$f")
@@ -401,6 +405,9 @@ install_version() {
       done
     fi
     install_pair "$tmp/assets/ucwc-particles.js" "$PERSIST_DIR/assets/ucwc-particles.js" "$RUNTIME_DIR/assets/ucwc-particles.js"
+    if [ -f "$tmp/assets/ucwc-mouse-fx.js" ]; then
+      install_pair "$tmp/assets/ucwc-mouse-fx.js" "$PERSIST_DIR/assets/ucwc-mouse-fx.js" "$RUNTIME_DIR/assets/ucwc-mouse-fx.js"
+    fi
     if [ -f "$tmp/assets/ucwc-theme-fx.js" ]; then
       install_pair "$tmp/assets/ucwc-theme-fx.js" "$PERSIST_DIR/assets/ucwc-theme-fx.js" "$RUNTIME_DIR/assets/ucwc-theme-fx.js"
     fi
