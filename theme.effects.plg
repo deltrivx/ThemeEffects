@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "theme.effects">
 <!ENTITY author    "deltrivx">
-<!ENTITY version   "2026.07.30d">
+<!ENTITY version   "2026.07.30e">
 <!ENTITY launch    "Settings/ThemeEffects">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY flash     "/boot/config/plugins/&name;">
@@ -17,6 +17,8 @@
 <CHANGES>
 <![CDATA[
 ## Theme Effects
+###2026.07.30e
+- v2.6.0-Beta15: fileTree bg=title bar, progress no stage next to %, cursor file width align
 ###2026.07.30d
 - v2.6.0-Beta14: fixed music side width, dash card position memory, album cover auto-download
 ###2026.07.30c
