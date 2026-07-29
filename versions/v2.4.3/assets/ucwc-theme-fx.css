@@ -1,0 +1,770 @@
+/* Theme Effects page — 特效 switch after left title; version/actions on right */
+#ucwc-ver-bar.ucwc-ver-bar-source[hidden],
+#ucwc-ver-bar[hidden] {
+  display: none !important;
+}
+/* Hosted inside div.title span.right (version + actions only) */
+.ucwc-title-ver {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 10px;
+  max-width: 100%;
+  font-size: 13px;
+  line-height: 1.3;
+  letter-spacing: normal;
+  font-weight: 400;
+}
+/* Service switch after page title text on the LEFT */
+.ucwc-title-switch {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 10px;
+  vertical-align: middle;
+  line-height: 1;
+}
+div.title > span.left {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
+}
+div.title span.left .ucwc-title-switch {
+  flex: 0 0 auto;
+}
+div.title span.left .ucwc-service-switch {
+  margin: 0 0 0 2px;
+}
+.ucwc-title-ver .ucwc-ver-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  opacity: 0.95;
+}
+.ucwc-title-ver .ucwc-ver-meta strong {
+  font-weight: 600;
+}
+.ucwc-title-ver .ucwc-muted {
+  opacity: 0.7;
+  font-size: 12px;
+}
+.ucwc-title-ver .ucwc-ver-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Master runtime switch — quiet, matches title bar chrome (not a loud green pill) */
+.ucwc-title-ver .ucwc-service-switch,
+.ucwc-title-switch .ucwc-service-switch,
+div.title span.left .ucwc-service-switch,
+#ucwc-ver-bar .ucwc-service-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0 4px 0 0;
+  padding: 1px 6px 1px 4px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  color: rgba(220, 220, 220, 0.78);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1;
+  vertical-align: middle;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.ucwc-title-ver .ucwc-service-switch:hover,
+.ucwc-title-switch .ucwc-service-switch:hover,
+div.title span.left .ucwc-service-switch:hover,
+#ucwc-ver-bar .ucwc-service-switch:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(238, 238, 238, 0.92);
+}
+.ucwc-service-switch-text {
+  opacity: 0.72;
+  letter-spacing: 0.01em;
+  font-size: 11px;
+}
+.ucwc-service-switch input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  pointer-events: none;
+}
+.ucwc-service-track {
+  position: relative;
+  display: inline-block;
+  width: 28px;
+  height: 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  flex: 0 0 auto;
+}
+.ucwc-service-thumb {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(230, 230, 230, 0.92);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.ucwc-service-switch input:checked + .ucwc-service-track {
+  background: rgba(90, 175, 255, 0.28);
+  border-color: rgba(90, 175, 255, 0.35);
+}
+.ucwc-service-switch input:checked + .ucwc-service-track .ucwc-service-thumb {
+  transform: translateX(12px);
+  background: #e8f3ff;
+}
+.ucwc-service-switch input:focus-visible + .ucwc-service-track {
+  outline: 1px solid rgba(90, 175, 255, 0.45);
+  outline-offset: 1px;
+}
+.ucwc-service-switch.is-busy {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.ucwc-service-state {
+  min-width: 1em;
+  font-size: 11px;
+  opacity: 0.65;
+  font-variant-numeric: tabular-nums;
+}
+.ucwc-service-switch input:checked ~ .ucwc-service-state {
+  color: rgba(180, 210, 240, 0.9);
+  opacity: 0.9;
+}
+/* Section titles: match Unraid black bar (div.title already styled by theme) */
+#ucwc-fx-form .title.ucwc-fx-sec-title,
+form#ucwc-fx-form .title.ucwc-fx-sec-title {
+  margin: 1.25rem 0 0.75rem;
+}
+#ucwc-fx-form .title.ucwc-fx-sec-title:first-child,
+form#ucwc-fx-form > .title.ucwc-fx-sec-title:first-of-type {
+  margin-top: 0.35rem;
+}
+/* Match Apps search strip .dockerSearch / .templateSearch pill buttons */
+.ucwc-title-ver .ucwc-pill-btn,
+#ucwc-ver-bar .ucwc-pill-btn,
+button.ucwc-pill-btn {
+  min-height: 28px;
+  height: 28px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.10);
+  background-color: rgba(255, 255, 255, 0.10);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  color: rgba(238, 238, 238, 0.92);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  text-shadow: none;
+  cursor: pointer;
+  vertical-align: middle;
+  font-family: inherit;
+}
+.ucwc-title-ver .ucwc-pill-btn:hover,
+#ucwc-ver-bar .ucwc-pill-btn:hover,
+button.ucwc-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  background-color: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+.ucwc-title-ver .ucwc-pill-btn:active,
+#ucwc-ver-bar .ucwc-pill-btn:active,
+button.ucwc-pill-btn:active {
+  background: rgba(255, 255, 255, 0.20);
+}
+.ucwc-title-ver .ucwc-pill-btn:focus-visible,
+#ucwc-ver-bar .ucwc-pill-btn:focus-visible,
+button.ucwc-pill-btn:focus-visible {
+  outline: 1px solid rgba(90, 175, 255, 0.7);
+  outline-offset: 2px;
+}
+/* Keep title-row pills readable on black title bar */
+div.title .ucwc-title-ver .ucwc-pill-btn {
+  font-size: 12px;
+  letter-spacing: normal;
+}
+.ucwc-section-actions {
+  margin-top: 2px;
+}
+/* Inline size limit next to file chooser */
+.ucwc-upload-hint,
+dd .ucwc-upload-hint {
+  display: inline;
+  margin-left: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  opacity: 0.72;
+  white-space: nowrap;
+  vertical-align: middle;
+  color: inherit;
+}
+
+/* Mobile: long form labels wrap/center like other settings pages on narrow viewports.
+ * Unraid stacks dt above dd; Orbitron-ish letter-spacing + nowrap elsewhere can overflow. */
+@media (max-width: 720px) {
+  form#ucwc-fx-form dt,
+  form[action*="ThemeEffects"] dt {
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    text-align: center;
+    line-height: 1.35 !important;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  form#ucwc-fx-form dd,
+  form[action*="ThemeEffects"] dd {
+    text-align: center;
+    max-width: 100%;
+  }
+  form#ucwc-fx-form dd > *,
+  form[action*="ThemeEffects"] dd > select,
+  form[action*="ThemeEffects"] dd > input[type="text"],
+  form[action*="ThemeEffects"] dd > input[type="file"],
+  form[action*="ThemeEffects"] dd > span {
+    max-width: 100%;
+  }
+  /* upload hint: allow wrap under file input on narrow screens */
+  form#ucwc-fx-form .ucwc-upload-hint,
+  form[action*="ThemeEffects"] .ucwc-upload-hint,
+  dd .ucwc-upload-hint {
+    display: inline-block;
+    white-space: normal;
+    margin: 4px 0 0;
+    text-align: center;
+  }
+  /* title-row version pills: wrap centered under title on very narrow */
+  div.title .ucwc-title-ver {
+    justify-content: center;
+    width: 100%;
+  }
+  div.title span.right:has(.ucwc-title-ver) {
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+  }
+}
+
+#ucwc-panel-mask {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99980;
+  background: rgba(0, 0, 0, 0.55);
+}
+#ucwc-panel {
+  display: none;
+  position: fixed;
+  z-index: 99990;
+  left: 50%;
+  top: 8%;
+  transform: translateX(-50%);
+  width: min(720px, 94vw);
+  max-height: 84vh;
+  overflow: auto;
+  background: #1b1e24;
+  color: #eee;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+  padding: 16px 18px 18px;
+}
+#ucwc-panel h3 { margin: 0 0 10px; font-size: 16px; }
+#ucwc-panel .ucwc-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+#ucwc-panel .ucwc-close {
+  float: right;
+  cursor: pointer;
+  opacity: 0.8;
+  border: 0;
+  background: transparent;
+  color: #ccc;
+  font-size: 18px;
+  line-height: 1;
+}
+#ucwc-panel pre,
+#ucwc-panel .ucwc-log {
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  max-height: 280px;
+  overflow: auto;
+}
+#ucwc-panel .ucwc-ver-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  margin: 0 0 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  cursor: pointer;
+}
+#ucwc-panel .ucwc-ver-item.active {
+  border-color: #5af;
+  background: rgba(80, 160, 255, 0.15);
+}
+#ucwc-panel .ucwc-chip {
+  display: inline-block;
+  margin: 2px 4px 0 0;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.1);
+}
+#ucwc-panel .ucwc-warn { color: #f6c177; margin: 8px 0; }
+#ucwc-panel .ucwc-err { color: #f88; margin: 8px 0; }
+#ucwc-panel .ucwc-ok { color: #8d8; margin: 8px 0; }
+#ucwc-panel.busy { opacity: 0.95; }
+#ucwc-panel.busy .ucwc-panel-actions input { pointer-events: none; opacity: 0.6; }
+#ucwc-progress-wrap { margin-top: 10px; }
+#ucwc-progress-wrap .ucwc-progress {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+#ucwc-progress-wrap .ucwc-progress-bar {
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #5af, #8cf, #5af);
+  background-size: 200% 100%;
+  transition: width 0.35s ease;
+  animation: ucwc-progress-shine 1.2s linear infinite;
+}
+#ucwc-progress-wrap .ucwc-progress-meta {
+  margin: 6px 0 8px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+/* 安装日志固定在进度条下方（Docker 更新风格），不弹窗 */
+#ucwc-progress-wrap #ucwc-out.ucwc-log,
+#ucwc-progress-wrap .ucwc-log {
+  display: block;
+  margin: 0;
+  min-height: 120px;
+  max-height: 320px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  line-height: 1.45;
+  color: #d8dee9;
+}
+#ucwc-progress-wrap #ucwc-busy-msg.ucwc-err,
+#ucwc-panel #ucwc-busy-msg.ucwc-err {
+  color: #f88;
+}
+@keyframes ucwc-progress-shine {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Collapse hidden form rows completely (no reserved blank) */
+tr.ucwc-row-hidden,
+dt.ucwc-row-hidden,
+dd.ucwc-row-hidden,
+dl.ucwc-row-hidden,
+blockquote.ucwc-row-hidden,
+.ucwc-row-hidden {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  visibility: hidden !important;
+  overflow: hidden !important;
+  line-height: 0 !important;
+  max-height: 0 !important;
+  gap: 0 !important;
+}
+tr.ucwc-row-hidden > td,
+tr.ucwc-row-hidden > th {
+  display: none !important;
+  height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  line-height: 0 !important;
+}
+/* Unraid: each field is its own <dl>; hide must kill dl+dl margin gap */
+dl.ucwc-row-hidden + dl,
+dl + dl.ucwc-row-hidden {
+  margin-top: 0 !important;
+}
+form dl.ucwc-row-hidden,
+form blockquote.ucwc-row-hidden.inline_help {
+  display: none !important;
+}
+
+
+/* Custom wallpaper / mascot status + font preview */
+.ucwc-upload-row {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  max-width: 100%;
+}
+.ucwc-asset-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--text, #eee);
+}
+.ucwc-asset-status.ucwc-asset-missing {
+  opacity: 0.75;
+  font-style: italic;
+}
+.ucwc-asset-thumb {
+  width: 72px;
+  height: 42px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.35);
+  flex: 0 0 auto;
+}
+.ucwc-asset-thumb-gif {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+.ucwc-asset-meta {
+  max-width: 280px;
+}
+.ucwc-color-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.ucwc-color-row input[type="color"] {
+  width: 2rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+.ucwc-color-row.ucwc-color-disabled {
+  opacity: 0.55;
+}
+/* Font preview: inline-block in dd, same column as selects (not a floating card) */
+.ucwc-font-preview-wrap,
+dd > .ucwc-font-preview-wrap,
+form#ucwc-fx-form .ucwc-font-preview-wrap {
+  display: inline-block;
+  vertical-align: top;
+  width: auto;
+  max-width: min(420px, 100%);
+  min-width: min(280px, 100%);
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  float: none;
+  clear: none;
+  position: static;
+  text-align: left;
+  line-height: normal;
+}
+.ucwc-font-preview,
+#ucwc-font-preview.ucwc-font-preview {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  line-height: 1.4;
+  box-sizing: border-box;
+  text-align: left;
+  float: none;
+  clear: none;
+  position: static;
+  left: auto;
+  right: auto;
+  top: auto;
+  transform: none;
+  inset: auto;
+}
+.ucwc-font-preview-title,
+.ucwc-font-preview-body,
+.ucwc-font-preview-label {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  float: none;
+  clear: none;
+  position: static;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.ucwc-font-preview-title {
+  font-family: var(--ucwc-preview-title-font, inherit);
+  color: var(--ucwc-preview-title-color, #fff);
+  text-transform: var(--ucwc-preview-transform, none);
+  font-size: var(--ucwc-preview-title-size, 1.1em);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  margin: 0 0 4px;
+  line-height: 1.35;
+}
+.ucwc-font-preview-body {
+  opacity: 0.95;
+  margin: 0 0 4px;
+  line-height: 1.4;
+  font-size: 0.95em;
+}
+.ucwc-font-preview-label {
+  color: var(--ucwc-preview-label-color, #fb7299);
+  font-size: 0.9em;
+  font-weight: 500;
+  margin: 0;
+  line-height: 1.3;
+}
+/* Keep dd of preview in normal form flow */
+form#ucwc-fx-form dd:has(.ucwc-font-preview-wrap),
+form#ucwc-fx-form dd:has(#ucwc-font-preview),
+form[action*="ThemeEffects"] dd:has(.ucwc-font-preview-wrap) {
+  text-align: left !important;
+  display: block;
+  position: static;
+}
+
+/* Dual upload sources: computer file + Unraid local path
+ * Layout: [文案 + 格式/大小] one line → control row below, left-aligned. */
+.ucwc-upload-dual {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  max-width: min(640px, 100%);
+  width: 100%;
+}
+.ucwc-upload-src {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+/* Title line: 从电脑上传 / 从本地上传 + format·size on ONE row */
+.ucwc-upload-src-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 10px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  line-height: 1.35;
+}
+.ucwc-upload-src-label {
+  flex: 0 0 auto;
+  min-width: 0;
+  padding-top: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--label, #9ad);
+  opacity: 0.95;
+  white-space: nowrap;
+}
+.ucwc-upload-hint-inline,
+.ucwc-upload-src .ucwc-upload-hint.ucwc-upload-hint-inline,
+dd .ucwc-upload-hint.ucwc-upload-hint-inline {
+  display: inline !important;
+  margin: 0 !important;
+  padding: 0;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.35;
+  opacity: 0.72;
+  white-space: nowrap;
+  color: inherit;
+  vertical-align: baseline;
+}
+/* Controls under the title line — same left edge for file + path */
+.ucwc-upload-pc-col,
+.ucwc-upload-local-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  padding-left: 0;
+}
+.ucwc-upload-src input[type="file"] {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  width: min(420px, 100%);
+  margin: 0;
+}
+.ucwc-local-path {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  width: min(420px, 100%);
+  box-sizing: border-box;
+  margin: 0;
+}
+/* Legacy under-hint (kept for any residual markup) */
+.ucwc-upload-hint-under,
+.ucwc-upload-src .ucwc-upload-hint.ucwc-upload-hint-under,
+dd .ucwc-upload-hint.ucwc-upload-hint-under {
+  display: block !important;
+  margin: 2px 0 0 !important;
+  padding: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  opacity: 0.72;
+  white-space: normal !important;
+  max-width: min(420px, 100%);
+  color: inherit;
+  text-align: left;
+}
+.ucwc-upload-hint-block {
+  display: block;
+  font-size: 11px;
+  opacity: 0.75;
+  line-height: 1.35;
+  max-width: 100%;
+}
+/* Unraid fileTree dropdown under path input */
+.ucwc-upload-local-col .fileTree,
+dd .ucwc-local-path + .fileTree,
+.fileTree.ucwc-filetree {
+  z-index: 10050;
+  max-height: 260px;
+  overflow: auto;
+  width: min(420px, 92vw);
+  box-sizing: border-box;
+}
+/* First-run optimize toast */
+.ucwc-perf-toast {
+  position: fixed;
+  z-index: 100000;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  max-width: min(520px, 92vw);
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: rgba(20, 24, 32, 0.94);
+  border: 1px solid rgba(90, 175, 255, 0.35);
+  color: #eee;
+  font-size: 13px;
+  line-height: 1.45;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.45);
+}
+.ucwc-perf-toast strong {
+  color: #7dd3fc;
+}
+.ucwc-perf-toast .ucwc-perf-toast-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.ucwc-perf-toast button {
+  cursor: pointer;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.1);
+  color: #eee;
+  padding: 4px 12px;
+  font-size: 12px;
+}
+.ucwc-perf-toast button.ucwc-perf-primary {
+  background: rgba(56, 149, 255, 0.35);
+  border-color: rgba(90, 175, 255, 0.55);
+}
+
+@media (max-width: 720px) {
+  .ucwc-upload-src {
+    align-items: center;
+  }
+  .ucwc-upload-src-head {
+    justify-content: center;
+    text-align: center;
+  }
+  .ucwc-upload-src-label {
+    width: auto;
+    min-width: 0;
+    padding-top: 0;
+    text-align: center;
+  }
+  .ucwc-upload-hint-inline,
+  .ucwc-upload-src .ucwc-upload-hint.ucwc-upload-hint-inline,
+  dd .ucwc-upload-hint.ucwc-upload-hint-inline {
+    white-space: normal !important;
+    text-align: center;
+  }
+  .ucwc-upload-pc-col,
+  .ucwc-upload-local-col {
+    align-items: center;
+  }
+  .ucwc-upload-hint-under,
+  dd .ucwc-upload-hint.ucwc-upload-hint-under {
+    text-align: center !important;
+  }
+  .ucwc-font-preview-wrap,
+  .ucwc-font-preview {
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
