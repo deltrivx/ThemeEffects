@@ -1,5 +1,17 @@
 # 更新日志
 
+## v2.6.0-Beta11 - 2026-07-29
+
+### 概述
+**Beta11**：chip 用 transform 拖动；续播静音解锁重试；歌词 lrclib + 网易云双源；自定义鼠标完全对齐壁纸 hideRow 形态。
+
+### 变更
+- **chip 拖动**：`translate3d` 定位，避开 Unraid CSS 钉死 right/bottom；pointer/mouse/touch + capture
+- **续播**：`tryPlayUnlocked`（正常播放失败则静音 play 再恢复音量）+ 多次重试
+- **歌词**：lrclib 失败时回退网易云搜索/歌词 API；无 mbstring 兼容；缓存目录保留
+- **鼠标**：自定义样式文件改壁纸同款 upload-row 结构；`syncUi`/`hideRow` 统一显隐；`MOUSE_CURSOR` 纳入表单 dirty 列表
+- 版本号：**v2.6.0-Beta11**（beta）；正式 latest 仍为 **v2.5.1**
+
 ## v2.6.0-Beta10 - 2026-07-29
 
 ### 概述

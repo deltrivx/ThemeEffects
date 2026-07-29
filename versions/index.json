@@ -4,6 +4,19 @@
   "latest_version": "v2.5.1",
   "versions": [
     {
+      "id": "v2.6.0-Beta11",
+      "label": "Beta11：transform拖动chip、静音解锁续播、网易云歌词、鼠标壁纸式hideRow",
+      "channel": "beta",
+      "released_at": "2026-07-29",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true,
+      "mouse_fx": true,
+      "music": true,
+      "ota": true
+    },
+    {
       "id": "v2.6.0-Beta10",
       "label": "Beta10：自动续播重试、chip拖动、歌词代理缓存、鼠标hideRow",
       "channel": "beta",
