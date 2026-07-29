@@ -14,9 +14,10 @@
   - 通过 `html[data-ucwc-cursor]` + CSS `cursor: url(data-svg)` 改系统指针外形（非仅 canvas 光晕）
   - 输入框保持文本光标；链接/按钮保持 pointer；与 canvas 光晕特效独立，可单独开启
 - **路径选择器**
-  - `.ucwc-path-field` 宽度改为 **280px**，与典型 select 对齐（不再比其它选项框长一截）
+  - `.ucwc-path-field` 与同页 `<select>` 共用 `--ucwc-ctrl-w`
+  - 打开设置页时测量邻近下拉（如 `MUSIC_SOURCE`）实际像素宽，写回 CSS 变量，路径框与下拉 **同宽对齐**
 - **fileTree 下拉**
-  - 半透明深色渐变 + 描边/阴影，去掉突兀纯黑原生背景；条目 hover 主题青
+  - 半透明深色渐变 + 描边/阴影，去掉突兀纯黑原生背景；条目 hover 主题青；宽度跟随控件列
 - 版本号：**v2.6.0-Beta3**（beta）；正式 latest 仍为 **v2.5.1**
 
 ## v2.6.0-Beta2 - 2026-07-29

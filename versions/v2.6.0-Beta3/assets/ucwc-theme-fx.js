@@ -2377,6 +2377,81 @@
   }
 
 
+  /**
+   * Align path fields to neighboring content-sized <select>s.
+   * Measures natural select width (does not force selects wider) and applies
+   * the same pixel width to every .ucwc-path-field.
+   */
+  function alignPathFieldWidths(root) {
+    try {
+      root = root || document;
+      var form =
+        root.querySelector("#ucwc-fx-form") ||
+        root.querySelector('form[action*="ThemeEffects"]') ||
+        document.querySelector("#ucwc-fx-form") ||
+        document.querySelector('form[action*="ThemeEffects"]');
+      if (!form) return;
+
+      // Temporarily clear path override so we only read select geometry
+      // Prefer music-row selects (same block as the path field in the screenshot)
+      var names = [
+        "MUSIC_UI",
+        "MUSIC_SOURCE",
+        "MUSIC_ENABLE",
+        "MUSIC_AUTOPLAY",
+        "MOUSE_FX",
+        "BG_MODE",
+      ];
+      var probes = [];
+      var i, el, n;
+      for (i = 0; i < names.length; i++) {
+        el = form.querySelector('select[name="' + names[i] + '"]');
+        if (el) probes.push(el);
+      }
+      if (!probes.length) {
+        var all = form.querySelectorAll("dd > select, select");
+        for (i = 0; i < all.length && probes.length < 6; i++) probes.push(all[i]);
+      }
+      if (!probes.length) return;
+
+      // Use the max width among nearby selects so path isn't shorter than the widest label row
+      // (界面形态「仪表盘卡片」usually longest in that block).
+      var w = 0;
+      for (i = 0; i < probes.length; i++) {
+        try {
+          // Ensure select is content-sized for measurement (undo any leftover inline width)
+          if (probes[i].style && probes[i].style.width) probes[i].style.width = "";
+          var r = probes[i].getBoundingClientRect();
+          n = r && r.width ? r.width : probes[i].offsetWidth || 0;
+          if (n > w) w = n;
+        } catch (e0) {}
+      }
+      if (!(w > 40)) return;
+      // Match border-box outer width of select; path-field uses same box-sizing
+      w = Math.round(w);
+      if (w < 100) w = 100;
+      if (w > 420) w = 420;
+      var px = w + "px";
+      form.style.setProperty("--ucwc-ctrl-w", px);
+      try {
+        document.documentElement.style.setProperty("--ucwc-ctrl-w", px);
+      } catch (e2) {}
+      var fields = form.querySelectorAll(".ucwc-path-field");
+      for (i = 0; i < fields.length; i++) {
+        fields[i].style.setProperty("width", px, "important");
+        fields[i].style.setProperty("max-width", "100%", "important");
+        fields[i].style.setProperty("box-sizing", "border-box", "important");
+        // inner input fills the field
+        var inp = fields[i].querySelector(".ucwc-local-path");
+        if (inp) {
+          inp.style.setProperty("width", "100%", "important");
+          inp.style.setProperty("max-width", "none", "important");
+          inp.style.setProperty("box-sizing", "border-box", "important");
+        }
+      }
+    } catch (eAlign) {}
+  }
+
   /** Unraid-style path picker (jquery.fileTree) on local path inputs. */
   function wireFileTreePickers() {
     try {
@@ -2685,6 +2760,28 @@
 
   try { bindMouseFxControls(document); } catch (eMouseBind) {}
   try { bindMouseFxLivePreview(document); } catch (eMouseLive) {}
+  // Path field width ↔ select width (pixel align; re-run after layout / fonts)
+  try {
+    alignPathFieldWidths(document);
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(function () {
+        alignPathFieldWidths(document);
+      }).catch(function () {});
+    }
+    window.addEventListener(
+      "resize",
+      function () {
+        alignPathFieldWidths(document);
+      },
+      { passive: true }
+    );
+    setTimeout(function () {
+      alignPathFieldWidths(document);
+    }, 120);
+    setTimeout(function () {
+      alignPathFieldWidths(document);
+    }, 480);
+  } catch (eAlignBoot) {}
 
   /** One-shot success tip under the section Apply button after ?applied=1&section=… */
   function showAppliedTipOnce() {

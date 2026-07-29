@@ -690,35 +690,46 @@ dd .ucwc-upload-hint.ucwc-upload-hint-inline {
   flex: 0 1 auto;
   min-width: 0;
   max-width: 100%;
-  width: min(420px, 100%);
+  /* Standalone path inputs (legacy): inherit control column; path-field child overrides to 100% */
+  width: var(--ucwc-ctrl-w, auto);
   box-sizing: border-box;
   margin: 0;
 }
-/* Unraid-style path field: text + folder browse — width aligned with selects */
+/*
+ * Path field width tracks neighboring content-sized <select> via --ucwc-ctrl-w.
+ * JS alignPathFieldWidths() measures MUSIC_SOURCE / MUSIC_UI etc. and sets the var.
+ * Do NOT force all selects to a fixed width — Unraid selects stay content-sized.
+ */
+form#ucwc-fx-form,
+form[action*="ThemeEffects"] {
+  /* fallback until JS measures; ~ content width of「仪表盘卡片 (V1)」row */
+  --ucwc-ctrl-w: 12.5rem;
+}
 .ucwc-path-field {
   position: relative;
   display: inline-flex;
   align-items: center;
   flex: 0 0 auto;
   min-width: 0;
-  /* Match typical ThemeEffects select width (content-sized ~220–280, not full 420) */
-  width: 280px;
-  max-width: min(280px, 100%);
-  box-sizing: border-box;
+  width: var(--ucwc-ctrl-w, 12.5rem) !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
   vertical-align: middle;
 }
 form#ucwc-fx-form .ucwc-path-field,
-form[action*="ThemeEffects"] .ucwc-path-field {
-  width: 280px;
-  max-width: min(280px, 100%);
+form[action*="ThemeEffects"] .ucwc-path-field,
+form#ucwc-fx-form dd > .ucwc-path-field,
+form[action*="ThemeEffects"] dd > .ucwc-path-field {
+  width: var(--ucwc-ctrl-w, 12.5rem) !important;
+  max-width: min(100%, var(--ucwc-ctrl-w, 12.5rem)) !important;
 }
 .ucwc-path-field > .ucwc-local-path {
-  flex: 1 1 auto;
+  flex: 1 1 auto !important;
   width: 100% !important;
   max-width: none !important;
-  min-width: 0;
+  min-width: 0 !important;
   padding-right: 36px !important;
-  box-sizing: border-box;
+  box-sizing: border-box !important;
 }
 .ucwc-path-field > .ucwc-path-browse {
   position: absolute;
@@ -801,7 +812,8 @@ ul.jqueryFileTree,
   z-index: 10050;
   max-height: 260px;
   overflow: auto;
-  width: min(280px, 92vw);
+  width: var(--ucwc-ctrl-w, 13.5rem);
+  max-width: min(92vw, 100%);
   box-sizing: border-box;
   background: rgba(28, 32, 48, 0.96) !important;
   background-image: linear-gradient(
