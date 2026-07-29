@@ -1,5 +1,16 @@
 # 更新日志
 
+## v2.6.0-Beta20 - 2026-07-30
+
+### 概述
+**Beta20**：修复移动端点击「曲目/歌词」切换时卡片宽度抖动；清理重复移动端 CSS 覆盖。
+
+### 变更
+- **定宽锁定**：`≤720px` 卡片使用 `width/max-width: min(420px, 100vw-24px)`，list⇄lyrics 同一外宽
+- **防撑开**：右栏 `contain: inline-size` + overflow hidden；列表/歌词同高 148px；`scrollbar-gutter: stable`
+- **清理**：去掉误追加的第二套 `@media (max-width:720px)`（曾把 max-width 覆盖回 100%）
+- 版本号：**v2.6.0-Beta20**（beta）；正式 latest 仍为 **v2.5.1**
+
 ## v2.6.0-Beta19 - 2026-07-30
 
 ### 概述
