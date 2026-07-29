@@ -1,5 +1,17 @@
 # 更新日志
 
+## v2.6.0-Beta16 - 2026-07-30
+
+### 概述
+**Beta16**：修复仪表盘音乐卡片左上角专辑封面不显示；曲库加载后立即拉取封面；联网下载改用图片 Accept 并优先写入 cover-cache。
+
+### 变更
+- **封面触发**：`fetchList` / `updateMeta` 在有曲目时调用 `loadCoverForCurrent`（此前仅 playAt/mount 部分路径会加载）
+- **封面下载**：`m_http_get` 支持自定义 Accept；封面请求使用 `image/*`，避免 CDN 返回非图片
+- **缓存写入**：优先写 flash `cover-cache`；raw 流允许 cover-cache 路径
+- **UI**：封面 img 层级与 has-cover 回退更稳；缓存图 complete 时也能立刻显示
+- 版本号：**v2.6.0-Beta16**（beta）；正式 latest 仍为 **v2.5.1**
+
 ## v2.6.0-Beta15 - 2026-07-30
 
 ### 概述
