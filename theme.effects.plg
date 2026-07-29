@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "theme.effects">
 <!ENTITY author    "deltrivx">
-<!ENTITY version   "2026.07.29h">
+<!ENTITY version   "2026.07.29i">
 <!ENTITY launch    "Settings/ThemeEffects">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY flash     "/boot/config/plugins/&name;">
@@ -13,14 +13,18 @@
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" icon="magic" support="https://github.com/&github;">
 
+<!-- CHANGES in CDATA: bare & in notes must not break simplexml_load_file -->
 <CHANGES>
+<![CDATA[
 ## Theme Effects
+###2026.07.29i
+- CDATA CHANGES + version bump so raw CDN / Plugins install always parse
 ###2026.07.29h
 - Fix Plugins-page install hang: stream install progress to plugin UI (stdout + line-buffered)
 ###2026.07.29g
 - v2.5.0: mouse FX stable (glow/ring/trail/spark), install %, check switch
 ###2026.07.29b
-- v2.4.2: restore 1.8.x Docker/VM float layout &amp; spacing
+- v2.4.2: restore 1.8.x Docker/VM float layout & spacing
 ###2026.07.29a
 - v2.4.1: fourth stable — docker/vm bottom gap, beta check floor, upload layout
 ###2026.07.29
@@ -31,6 +35,7 @@
 - v2.1.2-beta: font phase3 — custom family name + local woff2/ttf upload
 - v2.1.1-beta / v2.1.0-beta: fonts, colors, title size
 - v2.0.0-beta: standalone plugin theme.effects
+]]>
 </CHANGES>
 
 <!-- Prepare dirs -->
