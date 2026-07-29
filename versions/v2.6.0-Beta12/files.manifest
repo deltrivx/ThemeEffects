@@ -6,8 +6,8 @@
   "files": [
     {
       "path": "ThemeEffects.page",
-      "size": 94684,
-      "sha256": "0565384205d752527ccd7d64337035009361684972e15dc20a5d7e44776d9773"
+      "size": 94789,
+      "sha256": "6fe06268fcdee188fcbc149182de775d8360e6d5c48594b9758c9a8130dbe49f"
     },
     {
       "path": "ThemeEffects_Loader.page",
@@ -18,56 +18,6 @@
       "path": "apps-enhancement.js",
       "size": 26159,
       "sha256": "b686e76d39450793b7c169bdd859f99f5baa58c32ee31da5e1374e98c19d9115"
-    },
-    {
-      "path": "assets/background-1.jpg",
-      "size": 960008,
-      "sha256": "0a5ebe851db15cfbb130313f92ea120e4c9dfa7a1ba715f16597b8bb6730528f"
-    },
-    {
-      "path": "assets/background-2.jpg",
-      "size": 41066,
-      "sha256": "bb60386f9ce4799bd299196753f7d934515c7fe489a96ef825b2b19e5767d384"
-    },
-    {
-      "path": "assets/background.jpg",
-      "size": 960008,
-      "sha256": "0a5ebe851db15cfbb130313f92ea120e4c9dfa7a1ba715f16597b8bb6730528f"
-    },
-    {
-      "path": "assets/hutao.gif",
-      "size": 3431327,
-      "sha256": "229e9c30e83abf766003722089e7bb9c61861a3ab5bb3f9ae4c8910fe4037bdd"
-    },
-    {
-      "path": "assets/ucwc-mouse-fx.js",
-      "size": 19843,
-      "sha256": "3eea621589c62eadcd44e762390f0022804a54a54e7263d46f11de96081f2782"
-    },
-    {
-      "path": "assets/ucwc-music.css",
-      "size": 19467,
-      "sha256": "9b6592ff4ff7b82af528660748a4501dfd817ff6a79b98f926f0604feeede3cd"
-    },
-    {
-      "path": "assets/ucwc-music.js",
-      "size": 59207,
-      "sha256": "8fb7602187cd70eb611f792341eb52d51e515b2632f4f601dadde5da0a95495c"
-    },
-    {
-      "path": "assets/ucwc-particles.js",
-      "size": 10122,
-      "sha256": "26659625d4e8a16c2e2a379f17d49d344023dace1bac3059266348eecd4f9311"
-    },
-    {
-      "path": "assets/ucwc-theme-fx.css",
-      "size": 25609,
-      "sha256": "871baa8305a333549bacf7e3ea706f0e23e8d5ed8124e4cc7efbce938169ac4a"
-    },
-    {
-      "path": "assets/ucwc-theme-fx.js",
-      "size": 117681,
-      "sha256": "437c89d99a309e5a8664c5cc2a11032d559571a5269a4e96c1b5888672547d9c"
     },
     {
       "path": "style-black.css",
@@ -113,6 +63,61 @@
       "path": "ucwc-update.php",
       "size": 39959,
       "sha256": "b2b76218d322278a1a0be8b1ac303b6f28f3a0d95d2f6f9218ba1505703f9987"
+    },
+    {
+      "path": "assets/background-1.jpg",
+      "size": 960008,
+      "sha256": "0a5ebe851db15cfbb130313f92ea120e4c9dfa7a1ba715f16597b8bb6730528f"
+    },
+    {
+      "path": "assets/background-2.jpg",
+      "size": 41066,
+      "sha256": "bb60386f9ce4799bd299196753f7d934515c7fe489a96ef825b2b19e5767d384"
+    },
+    {
+      "path": "assets/background.jpg",
+      "size": 960008,
+      "sha256": "0a5ebe851db15cfbb130313f92ea120e4c9dfa7a1ba715f16597b8bb6730528f"
+    },
+    {
+      "path": "assets/hutao.gif",
+      "size": 3431327,
+      "sha256": "229e9c30e83abf766003722089e7bb9c61861a3ab5bb3f9ae4c8910fe4037bdd"
+    },
+    {
+      "path": "assets/ucwc-mouse-fx.js",
+      "size": 19843,
+      "sha256": "3eea621589c62eadcd44e762390f0022804a54a54e7263d46f11de96081f2782"
+    },
+    {
+      "path": "assets/ucwc-music.css",
+      "size": 18652,
+      "sha256": "5277675be87f7467eca7c0ea6666dfdf131af0d10bf92213ede7e9f66adbe00e"
+    },
+    {
+      "path": "assets/ucwc-music.js",
+      "size": 73052,
+      "sha256": "8927036771aa85a3f72d8c16227f119d62133b0d48607b85421eb403525ede5e"
+    },
+    {
+      "path": "assets/ucwc-music-host.html",
+      "size": 10785,
+      "sha256": "0123558d72c4416b2bf7759f179cd9a95b423e4cd25c7d58551f9b286fbdfc0d"
+    },
+    {
+      "path": "assets/ucwc-particles.js",
+      "size": 10122,
+      "sha256": "26659625d4e8a16c2e2a379f17d49d344023dace1bac3059266348eecd4f9311"
+    },
+    {
+      "path": "assets/ucwc-theme-fx.css",
+      "size": 25609,
+      "sha256": "871baa8305a333549bacf7e3ea706f0e23e8d5ed8124e4cc7efbce938169ac4a"
+    },
+    {
+      "path": "assets/ucwc-theme-fx.js",
+      "size": 117681,
+      "sha256": "437c89d99a309e5a8664c5cc2a11032d559571a5269a4e96c1b5888672547d9c"
     }
   ]
 }

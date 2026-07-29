@@ -2,7 +2,8 @@
  * ThemeEffects music player — dashboard card + sitewide engine
  * Layout: left cover/meta + buttons; progress/controls under buttons (full width of btn row);
  *         right panel toggles 曲目 ⇄ 歌词 (default 曲目). Local LRC sidecar sync.
- * Cross-page: localStorage play session + first-gesture unlock + off-dash topbar controls.
+ * Cross-page: localStorage + off-dash resume chip + optional music host window
+ * (host keeps Audio alive across Unraid full-page navigations; chip is remote UI).
  */
 (function (global) {
   "use strict";
@@ -34,8 +35,8 @@
   };
   var audio = null;
   var root = null;
-  var topbar = null;
-  var topbarEls = {};
+  var chip = null;
+  var chipEls = {};
   var els = {};
   var seeking = false;
   var bootDone = false;
@@ -48,12 +49,23 @@
   var lastNavSave = 0;
   var mountTimer = null;
   var resumeAttempted = false;
-  var pendingResume = false; // autoplay blocked/retrying — stabilize play icon
-  var uiPlayStableUntil = 0;
+  var chipDrag = { on: false, moved: false, ox: 0, oy: 0, sx: 0, sy: 0 };
+  var CHIP_POS_KEY = "ucwc_music_chip_pos_v1";
   var audioGen = 0; // bump when reloading src to ignore stale play()
   var lastSrcId = "";
   var playRetryTimer = null;
   var playRetryCount = 0;
+  var pendingResume = false;
+  var uiPlayStableUntil = 0;
+  var HOST_CH = "ucwc-music-host-v1";
+  var HOST_URL = "/plugins/theme.effects/assets/ucwc-music-host.html";
+  var HOST_NAME = "ucwc_themeeffects_music_host";
+  var hostWin = null;
+  var hostBc = null;
+  var hostAlive = false;
+  var hostState = null;
+  var hostBound = false;
+  var preferHost = true;
 
   function cfg() {
     var t = global.__UCWC_THEME__ || {};
@@ -105,6 +117,183 @@
     if (isDashboard()) return true;
     return isSitewidePlay();
   }
+
+  function markPendingResume(on) {
+    pendingResume = !!on;
+    if (on) uiPlayStableUntil = Date.now() + 5000;
+    else uiPlayStableUntil = 0;
+  }
+
+  function isUiPlaying() {
+    if (hostAlive && hostState && hostState.playing) return true;
+    if (audio && !audio.paused) return true;
+    if (pendingResume && (Date.now() < uiPlayStableUntil || playRetryCount > 0 || gestureResumeWanted || resumeIntent)) {
+      return true;
+    }
+    return !!state.playing;
+  }
+
+  function usingHost() {
+    return !!(preferHost && isSitewidePlay() && hostAlive && hostWin && !hostWin.closed);
+  }
+
+  function postToHost(msg) {
+    if (!msg || typeof msg !== "object") return false;
+    msg.from = "page";
+    msg.ts = Date.now();
+    var ok = false;
+    try {
+      if (hostBc) {
+        hostBc.postMessage(msg);
+        ok = true;
+      }
+    } catch (e0) {}
+    try {
+      if (hostWin && !hostWin.closed) {
+        hostWin.postMessage(Object.assign({ channel: HOST_CH }, msg), location.origin);
+        ok = true;
+      }
+    } catch (e1) {}
+    return ok;
+  }
+
+  function bindHostChannel() {
+    if (hostBound) return;
+    hostBound = true;
+    try {
+      hostBc = new BroadcastChannel(HOST_CH);
+      hostBc.onmessage = function (ev) {
+        onHostMessage(ev && ev.data);
+      };
+    } catch (e0) {
+      hostBc = null;
+    }
+    try {
+      window.addEventListener("message", function (ev) {
+        try {
+          if (ev.origin !== location.origin) return;
+          var d = ev.data;
+          if (!d || d.channel !== HOST_CH) return;
+          onHostMessage(d);
+        } catch (e1) {}
+      });
+    } catch (e2) {}
+    setTimeout(function () {
+      postToHost({ type: "ping" });
+    }, 50);
+  }
+
+  function onHostMessage(data) {
+    if (!data || data.from !== "host") return;
+    if (data.type === "host-gone") {
+      hostAlive = false;
+      hostState = null;
+      markPendingResume(!!resumeIntent);
+      updatePlayBtn();
+      syncSitewideChip(resumeIntent ? "宿主已关闭，点播放续播" : "");
+      return;
+    }
+    if (data.type === "host-ready" || data.type === "state") {
+      hostAlive = true;
+      hostState = data;
+      if (data.playing) {
+        markPendingResume(false);
+        resumeIntent = true;
+        state.playing = true;
+        gestureResumeWanted = false;
+        clearPlayRetries();
+        try {
+          if (audio && !audio.paused) audio.pause();
+        } catch (e0) {}
+      } else if (data.type === "state") {
+        if (!pendingResume) state.playing = false;
+      }
+      if (typeof data.index === "number" && data.index >= 0) state.index = data.index;
+      if (typeof data.volume === "number") state.volume = data.volume;
+      updateMeta();
+      updatePlayBtn();
+      updateChipUi();
+      syncSitewideChip();
+      return;
+    }
+  }
+
+  function ensureMusicHost(fromGesture) {
+    if (!preferHost || !isSitewidePlay()) return false;
+    bindHostChannel();
+    try {
+      if (hostWin && !hostWin.closed) {
+        hostAlive = true;
+        postToHost({ type: "ping" });
+        return true;
+      }
+    } catch (e0) {}
+    try {
+      hostWin = window.open("", HOST_NAME);
+      if (hostWin) {
+        var href = "";
+        try { href = String(hostWin.location.href || ""); } catch (eH) { href = ""; }
+        if (href.indexOf("ucwc-music-host.html") !== -1) {
+          hostAlive = true;
+          postToHost({ type: "ping" });
+          return true;
+        }
+        // blank named window — navigate if gesture
+        if (fromGesture) {
+          try { hostWin.location = HOST_URL + "?v=12"; } catch (eN) {}
+          hostAlive = true;
+          setTimeout(function () {
+            postToHost({ type: "hello" });
+            postToHost({ type: "config", volume: state.volume, shuffle: state.shuffle, repeat: state.repeat });
+          }, 150);
+          return true;
+        }
+      }
+    } catch (e1) {}
+    if (!fromGesture) return false;
+    try {
+      hostWin = window.open(HOST_URL + "?v=12", HOST_NAME, "width=360,height=120,resizable=yes,scrollbars=no,status=no");
+      if (hostWin) {
+        hostAlive = true;
+        setTimeout(function () {
+          postToHost({ type: "hello" });
+          postToHost({ type: "config", volume: state.volume, shuffle: state.shuffle, repeat: state.repeat });
+        }, 120);
+        setTimeout(function () { postToHost({ type: "ping" }); }, 400);
+        return true;
+      }
+    } catch (e2) {}
+    return false;
+  }
+
+  function hostPlayAt(idx, autoPlay, startAt) {
+    if (!usingHost() && !ensureMusicHost(false)) return false;
+    var t = state.tracks[idx];
+    postToHost({
+      type: "playAt",
+      index: idx,
+      id: t && t.id ? t.id : "",
+      autoPlay: autoPlay !== false,
+      t: typeof startAt === "number" ? startAt : 0,
+      volume: state.volume,
+    });
+    if (autoPlay !== false) {
+      resumeIntent = true;
+      markPendingResume(true);
+      state.playing = true;
+      state.index = idx;
+      updatePlayBtn();
+      updateChipUi();
+    }
+    return true;
+  }
+
+  function hostCmd(type, extra) {
+    if (!usingHost() && !ensureMusicHost(false)) return false;
+    postToHost(Object.assign({ type: type }, extra || {}));
+    return true;
+  }
+
 
   function writePlaySession(obj) {
     try {
@@ -169,6 +358,10 @@
   function schedulePlayRetries(reason) {
     clearPlayRetries();
     playRetryCount = 0;
+    if (usingHost() || hostAlive) {
+      postToHost({ type: "ping" });
+      return;
+    }
     markPendingResume(true);
     var delays = [120, 280, 500, 900, 1500, 2500, 4000];
     function tick() {
@@ -179,7 +372,7 @@
         gestureResumeWanted = false;
         state.playing = true;
         updatePlayBtn();
-        syncTopbar();
+        syncSitewideChip();
         return;
       }
       if (!(resumeIntent || gestureResumeWanted || sessionWantsResume(loadPlaySession()))) {
@@ -189,12 +382,11 @@
         return;
       }
       if (playRetryCount >= delays.length) {
-        // keep gesture unlock; browser still needs a real user gesture eventually
         gestureResumeWanted = true;
         markPendingResume(true);
         bindGestureUnlock();
         updatePlayBtn();
-        if (!isDashboard() && isSitewidePlay()) syncTopbar("点击播放续播");
+        if (!isDashboard() && isSitewidePlay()) syncSitewideChip("点播放开宿主窗后续播");
         return;
       }
       var wait = delays[playRetryCount++];
@@ -325,6 +517,9 @@
   function stopEngine(clearSession) {
     markPendingResume(false);
     clearPlayRetries();
+    if (clearSession && (usingHost() || hostAlive)) {
+      try { hostCmd("pause"); } catch (eH) {}
+    }
     if (audio) {
       try {
         audio.pause();
@@ -332,7 +527,7 @@
     }
     state.playing = false;
     updatePlayBtn();
-    hideTopbar();
+    hideResumeChip();
     if (clearSession) {
       resumeIntent = false;
       gestureResumeWanted = false;
@@ -357,61 +552,186 @@
     }
   }
 
-  function hideTopbar() {
-    if (!topbar) return;
+  function hideResumeChip() {
+    if (!chip) return;
     try {
-      if (topbar.parentNode) topbar.parentNode.removeChild(topbar);
+      if (chip.parentNode) chip.parentNode.removeChild(chip);
     } catch (e0) {}
   }
 
-  /** Dashboard hides topbar; sitewide off-dash shows controls in #menu row. */
-  function syncTopbar(hint) {
+  /** Dashboard hides chip; sitewide off-dash always shows chip when engine runs. */
+  function syncSitewideChip(hint) {
     if (!enabled() || state.collapsed) {
-      hideTopbar();
+      hideResumeChip();
       return;
     }
     if (isDashboard() || !isSitewidePlay()) {
-      hideTopbar();
+      hideResumeChip();
       return;
     }
-    showTopbar(hint || "");
+    showResumeChip(hint || "");
   }
 
-  function findMenuBarHost() {
-    var menu = null;
+  function loadChipPos() {
     try {
-      menu =
-        document.getElementById("menu") ||
-        document.querySelector("#menu") ||
-        document.querySelector("nav#menu") ||
-        document.querySelector(".menu");
-    } catch (e0) {}
-    if (!menu) return null;
-    var items = [];
-    try {
-      items = menu.querySelectorAll(".nav-item");
-    } catch (e1) {}
-    var last = null;
-    for (var i = 0; i < items.length; i++) {
-      if (items[i].id === "ucwc-music-topbar") continue;
-      if (items[i].classList && items[i].classList.contains("ucwc-music-topbar")) continue;
-      last = items[i];
+      var raw = localStorage.getItem(CHIP_POS_KEY);
+      if (!raw) return null;
+      var o = JSON.parse(raw);
+      if (!o || typeof o.x !== "number" || typeof o.y !== "number") return null;
+      return o;
+    } catch (e0) {
+      return null;
     }
-    return { menu: menu, after: last };
   }
 
-  function markPendingResume(on) {
-    pendingResume = !!on;
-    if (on) uiPlayStableUntil = Date.now() + 5000;
-    else if (!on && audio && !audio.paused) uiPlayStableUntil = 0;
+  function saveChipPos(x, y) {
+    try {
+      localStorage.setItem(CHIP_POS_KEY, JSON.stringify({ x: x, y: y }));
+    } catch (e0) {}
   }
 
-  /** Stable playing state for UI — avoids play/pause icon flicker during autoplay retries. */
-  function isUiPlaying() {
-    if (audio && !audio.paused) return true;
-    if (pendingResume && Date.now() < uiPlayStableUntil) return true;
-    if (pendingResume && (playRetryCount > 0 || gestureResumeWanted || resumeIntent)) return true;
-    return !!state.playing;
+  function setChipXY(x, y) {
+    if (!chip) return;
+    var w = chip.offsetWidth || 280;
+    var h = chip.offsetHeight || 56;
+    var maxX = Math.max(8, (window.innerWidth || 800) - w - 8);
+    var maxY = Math.max(8, (window.innerHeight || 600) - h - 8);
+    x = Math.min(maxX, Math.max(8, Number(x) || 8));
+    y = Math.min(maxY, Math.max(8, Number(y) || 8));
+    // Anchor top-left + transform so Unraid CSS cannot pin right/bottom
+    try {
+      chip.style.setProperty("left", "0px", "important");
+      chip.style.setProperty("top", "0px", "important");
+      chip.style.setProperty("right", "auto", "important");
+      chip.style.setProperty("bottom", "auto", "important");
+      chip.style.setProperty("transform", "translate3d(" + x + "px," + y + "px,0)", "important");
+      chip.style.setProperty("will-change", "transform");
+    } catch (e0) {
+      chip.style.left = "0px";
+      chip.style.top = "0px";
+      chip.style.right = "auto";
+      chip.style.bottom = "auto";
+      chip.style.transform = "translate3d(" + x + "px," + y + "px,0)";
+    }
+    chip.setAttribute("data-ucwc-x", String(Math.round(x)));
+    chip.setAttribute("data-ucwc-y", String(Math.round(y)));
+    return { x: x, y: y };
+  }
+
+  function clearChipXY() {
+    if (!chip) return;
+    try {
+      chip.style.removeProperty("transform");
+      chip.style.removeProperty("will-change");
+      chip.style.removeProperty("left");
+      chip.style.removeProperty("top");
+      chip.style.setProperty("right", "18px", "important");
+      chip.style.setProperty("bottom", "18px", "important");
+    } catch (e0) {
+      chip.style.transform = "";
+      chip.style.left = "";
+      chip.style.top = "";
+      chip.style.right = "18px";
+      chip.style.bottom = "18px";
+    }
+    chip.removeAttribute("data-ucwc-x");
+    chip.removeAttribute("data-ucwc-y");
+  }
+
+  function applyChipPos() {
+    if (!chip) return;
+    var pos = loadChipPos();
+    if (!pos) {
+      // default: bottom-right via CSS; no transform
+      clearChipXY();
+      return;
+    }
+    setChipXY(pos.x, pos.y);
+  }
+
+  function bindChipDrag() {
+    if (!chip || chip._ucwcDragBound) return;
+    chip._ucwcDragBound = true;
+    var onMove = function (ev) {
+      if (!chipDrag.on || !chip) return;
+      var pt = ev.touches && ev.touches[0] ? ev.touches[0] : ev;
+      if (!pt || typeof pt.clientX !== "number") return;
+      var dx = pt.clientX - chipDrag.sx;
+      var dy = pt.clientY - chipDrag.sy;
+      if (Math.abs(dx) + Math.abs(dy) > 2) chipDrag.moved = true;
+      setChipXY(chipDrag.ox + dx, chipDrag.oy + dy);
+      try {
+        if (ev.cancelable) ev.preventDefault();
+        ev.stopPropagation();
+      } catch (eP) {}
+    };
+    var onUp = function (ev) {
+      if (!chipDrag.on) return;
+      chipDrag.on = false;
+      if (chip) chip.classList.remove("ucwc-music-chip-dragging");
+      try {
+        document.removeEventListener("pointermove", onMove, true);
+        document.removeEventListener("pointerup", onUp, true);
+        document.removeEventListener("pointercancel", onUp, true);
+        document.removeEventListener("mousemove", onMove, true);
+        document.removeEventListener("mouseup", onUp, true);
+        document.removeEventListener("touchmove", onMove, true);
+        document.removeEventListener("touchend", onUp, true);
+      } catch (e0) {}
+      if (chip && chipDrag.moved) {
+        var x = parseFloat(chip.getAttribute("data-ucwc-x") || "");
+        var y = parseFloat(chip.getAttribute("data-ucwc-y") || "");
+        if (!isFinite(x) || !isFinite(y)) {
+          var r = chip.getBoundingClientRect();
+          x = r.left;
+          y = r.top;
+        }
+        saveChipPos(x, y);
+      }
+      setTimeout(function () {
+        chipDrag.moved = false;
+      }, 60);
+    };
+    function startDrag(ev) {
+      if (ev.button != null && ev.button !== 0) return;
+      var t = ev.target;
+      if (t && t.closest && t.closest("button, .ucwc-music-chip-btn, a, input")) return;
+      chipDrag.on = true;
+      chipDrag.moved = false;
+      var pt = ev.touches && ev.touches[0] ? ev.touches[0] : ev;
+      chipDrag.sx = pt.clientX;
+      chipDrag.sy = pt.clientY;
+      var ox = parseFloat(chip.getAttribute("data-ucwc-x") || "");
+      var oy = parseFloat(chip.getAttribute("data-ucwc-y") || "");
+      if (!isFinite(ox) || !isFinite(oy)) {
+        var r = chip.getBoundingClientRect();
+        ox = r.left;
+        oy = r.top;
+      }
+      chipDrag.ox = ox;
+      chipDrag.oy = oy;
+      // lock current pos into transform space immediately
+      setChipXY(ox, oy);
+      chip.classList.add("ucwc-music-chip-dragging");
+      try {
+        if (ev.pointerId != null && chip.setPointerCapture) chip.setPointerCapture(ev.pointerId);
+      } catch (eC) {}
+      try {
+        document.addEventListener("pointermove", onMove, true);
+        document.addEventListener("pointerup", onUp, true);
+        document.addEventListener("pointercancel", onUp, true);
+        document.addEventListener("mousemove", onMove, true);
+        document.addEventListener("mouseup", onUp, true);
+        document.addEventListener("touchmove", onMove, { capture: true, passive: false });
+        document.addEventListener("touchend", onUp, true);
+      } catch (e1) {}
+      try {
+        if (ev.cancelable && ev.type === "touchstart") ev.preventDefault();
+      } catch (e2) {}
+    }
+    chip.addEventListener("pointerdown", startDrag, true);
+    chip.addEventListener("mousedown", startDrag, true);
+    chip.addEventListener("touchstart", startDrag, { capture: true, passive: false });
   }
 
   function activeLyricText() {
@@ -427,126 +747,115 @@
     return lines[idx].text || "";
   }
 
-  function updateTopbarUi() {
-    if (!topbar) return;
-    var playing = isUiPlaying();
-    if (topbarEls.lrc) {
-      var line = activeLyricText();
-      if (line) {
-        topbarEls.lrc.textContent = line;
-        topbarEls.lrc.title = line;
-      } else if (pendingResume || (resumeIntent && !(audio && !audio.paused))) {
-        topbarEls.lrc.textContent = "续播中…";
-        topbarEls.lrc.title = "若无声音，点击本按钮或页面任意处";
-      } else if (playing) {
-        topbarEls.lrc.textContent = "♪ 播放中";
-        topbarEls.lrc.title = "";
-      } else {
-        var t = current();
-        var name = (t && t.title) || "";
-        topbarEls.lrc.textContent = name || "音乐";
-        topbarEls.lrc.title = name || "";
+  function updateChipUi() {
+    if (!chip) return;
+    var t = current();
+    var name = (t && t.title) || "音乐";
+    var sess = loadPlaySession();
+    if ((!t || !t.title) && sess && sess.id && state.tracks.length) {
+      for (var i = 0; i < state.tracks.length; i++) {
+        if (state.tracks[i] && state.tracks[i].id === sess.id) {
+          name = state.tracks[i].title || name;
+          break;
+        }
       }
     }
-    if (topbarEls.play) {
-      topbarEls.play.innerHTML = playing ? svgIcon("pause") : svgIcon("play");
-      topbarEls.play.title = playing ? "暂停" : "播放";
-      topbarEls.play.setAttribute("aria-label", topbarEls.play.title);
-      topbarEls.play.classList.toggle("is-playing", playing);
-      topbarEls.play.classList.toggle(
-        "is-pending",
-        !!(pendingResume && !(audio && !audio.paused))
-      );
+    if (chipEls.title) chipEls.title.textContent = name;
+    if (chipEls.lrc) {
+      var line = activeLyricText();
+      if (line) chipEls.lrc.textContent = line;
+      else if (isUiPlaying() && (hostAlive || (audio && !audio.paused))) chipEls.lrc.textContent = "♪ 播放中";
+      else if (pendingResume || resumeIntent) chipEls.lrc.textContent = "续播中…";
+      else chipEls.lrc.textContent = "点击播放续播";
     }
-    topbar.classList.toggle("ucwc-music-tb-playing", playing);
-    topbar.classList.toggle(
-      "ucwc-music-tb-pending",
-      !!(pendingResume && !(audio && !audio.paused))
-    );
+    if (chipEls.play) {
+      var playingChip = isUiPlaying();
+      chipEls.play.innerHTML = playingChip ? svgIcon("pause") : svgIcon("play");
+      chipEls.play.title = playingChip ? "暂停" : "播放";
+      chipEls.play.setAttribute("aria-label", chipEls.play.title);
+    }
   }
 
-  function showTopbar(label) {
+  function showResumeChip(label) {
     if (!enabled() || !isSitewidePlay() || isDashboard() || state.collapsed) {
-      hideTopbar();
+      if (chip && chip.parentNode) {
+        try {
+          chip.parentNode.removeChild(chip);
+        } catch (eH) {}
+      }
       return;
     }
-    if (!topbar) {
-      topbar = document.createElement("div");
-      topbar.id = "ucwc-music-topbar";
-      topbar.className = "ucwc-music-topbar nav-item";
-      topbar.setAttribute("role", "group");
-      topbar.setAttribute("aria-label", "全站音乐控制");
-      topbar.innerHTML =
-        '<div class="ucwc-music-tb-inner">' +
-        '  <button type="button" class="ucwc-music-tb-btn prev" title="上一首" aria-label="上一首"></button>' +
-        '  <button type="button" class="ucwc-music-tb-btn primary play" title="播放" aria-label="播放"></button>' +
-        '  <button type="button" class="ucwc-music-tb-btn next" title="下一首" aria-label="下一首"></button>' +
-        '  <span class="ucwc-music-tb-lrc" aria-live="polite"></span>' +
+    // Always keep chip on non-dashboard sitewide (playing or paused waiting resume)
+    if (!chip) {
+      chip = document.createElement("div");
+      chip.id = "ucwc-music-resume-chip";
+      chip.className = "ucwc-music-resume-chip";
+      chip.setAttribute("role", "region");
+      chip.setAttribute("aria-label", "全站音乐控制");
+      chip.innerHTML =
+        '<div class="ucwc-music-chip-row">' +
+        '  <span class="ucwc-music-chip-handle" title="拖动" aria-hidden="true">⋮⋮</span>' +
+        '  <span class="ucwc-music-chip-ico" aria-hidden="true">♪</span>' +
+        '  <div class="ucwc-music-chip-meta">' +
+        '    <div class="ucwc-music-chip-title"></div>' +
+        '    <div class="ucwc-music-chip-lrc"></div>' +
+        "  </div>" +
+        '  <div class="ucwc-music-chip-btns">' +
+        '    <button type="button" class="ucwc-music-chip-btn prev" title="上一首" aria-label="上一首"></button>' +
+        '    <button type="button" class="ucwc-music-chip-btn primary play" title="播放" aria-label="播放"></button>' +
+        '    <button type="button" class="ucwc-music-chip-btn next" title="下一首" aria-label="下一首"></button>' +
+        "  </div>" +
         "</div>";
-      topbarEls.lrc = topbar.querySelector(".ucwc-music-tb-lrc");
-      topbarEls.prev = topbar.querySelector(".ucwc-music-tb-btn.prev");
-      topbarEls.play = topbar.querySelector(".ucwc-music-tb-btn.play");
-      topbarEls.next = topbar.querySelector(".ucwc-music-tb-btn.next");
-      if (topbarEls.prev) {
-        topbarEls.prev.innerHTML = svgIcon("prev");
-        topbarEls.prev.addEventListener("click", function (ev) {
+      chipEls.title = chip.querySelector(".ucwc-music-chip-title");
+      chipEls.lrc = chip.querySelector(".ucwc-music-chip-lrc");
+      chipEls.prev = chip.querySelector(".ucwc-music-chip-btn.prev");
+      chipEls.play = chip.querySelector(".ucwc-music-chip-btn.play");
+      chipEls.next = chip.querySelector(".ucwc-music-chip-btn.next");
+      if (chipEls.prev) {
+        chipEls.prev.innerHTML = svgIcon("prev");
+        chipEls.prev.addEventListener("click", function (ev) {
           ev.preventDefault();
           ev.stopPropagation();
-          markPendingResume(false);
+          if (chipDrag.moved) return;
           prev();
-          updateTopbarUi();
+          updateChipUi();
         });
       }
-      if (topbarEls.next) {
-        topbarEls.next.innerHTML = svgIcon("next");
-        topbarEls.next.addEventListener("click", function (ev) {
+      if (chipEls.next) {
+        chipEls.next.innerHTML = svgIcon("next");
+        chipEls.next.addEventListener("click", function (ev) {
           ev.preventDefault();
           ev.stopPropagation();
-          markPendingResume(false);
+          if (chipDrag.moved) return;
           next(false);
-          updateTopbarUi();
+          updateChipUi();
         });
       }
-      if (topbarEls.play) {
-        topbarEls.play.innerHTML = svgIcon("play");
-        topbarEls.play.addEventListener("click", function (ev) {
+      if (chipEls.play) {
+        chipEls.play.innerHTML = svgIcon("play");
+        chipEls.play.addEventListener("click", function (ev) {
           ev.preventDefault();
           ev.stopPropagation();
-          markPendingResume(false);
+          if (chipDrag.moved) return;
           gestureResumeWanted = true;
           resumeIntent = true;
-          if (!audio || !audio.src || (audio.paused && sessionWantsResume(loadPlaySession()))) {
-            if (!tryResumeFromSession(true) && state.tracks.length) playAt(state.index, true);
-          } else {
-            togglePlay();
-          }
-          updateTopbarUi();
+          togglePlay();
+          updateChipUi();
         });
       }
+      bindChipDrag();
     }
-    var host = findMenuBarHost();
     try {
-      if (host && host.menu) {
-        topbar.classList.remove("ucwc-music-topbar-fallback");
-        if (topbar.parentNode !== host.menu) {
-          if (host.after && host.after.parentNode === host.menu) {
-            if (host.after.nextSibling) host.menu.insertBefore(topbar, host.after.nextSibling);
-            else host.menu.appendChild(topbar);
-          } else {
-            host.menu.appendChild(topbar);
-          }
-        }
-      } else {
-        var body = document.body || document.documentElement;
-        if (topbar.parentNode !== body) body.appendChild(topbar);
-        topbar.classList.add("ucwc-music-topbar-fallback");
-      }
+      var host = document.body || document.documentElement;
+      if (chip.parentNode !== host) host.appendChild(chip);
     } catch (e1) {
       return;
     }
-    updateTopbarUi();
-    if (label && topbarEls.lrc && !(audio && !audio.paused) && !activeLyricText()) {
-      topbarEls.lrc.textContent = label;
+    applyChipPos();
+    updateChipUi();
+    if (label && chipEls.lrc && !(audio && !audio.paused)) {
+      // soft hint only when not already playing
+      if (!activeLyricText()) chipEls.lrc.textContent = label;
     }
   }
 
@@ -763,7 +1072,7 @@
       els.play.innerHTML = playing ? svgIcon("pause") : svgIcon("play");
       els.play.setAttribute("title", playing ? "暂停" : "播放");
     }
-    updateTopbarUi();
+    updateChipUi();
   }
 
   function updateModeBtns() {
@@ -789,7 +1098,7 @@
       els.lyricsHint.style.display = "";
       els.lyricsHint.textContent = hint || "加载或自动匹配歌词…";
     }
-    updateTopbarUi();
+    updateChipUi();
   }
 
   function renderLyricsLines() {
@@ -847,7 +1156,7 @@
     var idx = hasLines ? findLyricIndex(tMs) : -1;
     var changed = idx !== state.lyrics.active;
     if (!changed && !force) {
-      updateTopbarUi();
+      updateChipUi();
       return;
     }
     state.lyrics.active = idx;
@@ -874,7 +1183,7 @@
         }
       }
     }
-    updateTopbarUi();
+    updateChipUi();
   }
 
   function loadLyricsForCurrent() {
@@ -932,7 +1241,7 @@
         if (norm.length && t) t.has_lrc = true;
         renderLyricsLines();
         renderList();
-        updateTopbarUi();
+        updateChipUi();
         if (j && j.source === "downloaded") {
           setStatus("已自动下载歌词");
           setTimeout(function () {
@@ -998,28 +1307,25 @@
       updatePlayBtn();
       savePlaySession(true);
       gestureResumeWanted = false;
-      // Off-dash: refresh topbar while playing
-      syncTopbar();
-      updateTopbarUi();
+      // Off-dash: keep mini chip visible while playing
+      syncSitewideChip();
+      updateChipUi();
     });
     audio.addEventListener("pause", function () {
-      // Ignore transient pause while autoplay-retry / muted-unlock is in flight
-      if (pendingResume && resumeIntent && isSitewidePlay()) {
-        savePlaySession(true);
-        updateTopbarUi();
+      if ((pendingResume && resumeIntent) || usingHost()) {
+        if (resumeIntent && isSitewidePlay()) savePlaySession(true);
+        updateChipUi();
         return;
       }
       state.playing = false;
       updatePlayBtn();
-      // Keep session playing=true only while resumeIntent (nav/autoplay path).
-      // Intentional pause clears resumeIntent in togglePlay before pause().
       if (resumeIntent && isSitewidePlay()) {
         savePlaySession(true);
       } else {
         savePlaySession(false);
       }
-      syncTopbar();
-      updateTopbarUi();
+      syncSitewideChip();
+      updateChipUi();
     });
     audio.addEventListener("error", function () {
       setStatus("播放失败（格式或路径）");
@@ -1067,8 +1373,8 @@
       state.playing = true;
       updatePlayBtn();
       savePlaySession(true);
-      syncTopbar();
-      updateTopbarUi();
+      syncSitewideChip();
+      updateChipUi();
       updateMediaSessionMeta();
     }
     function fail() {
@@ -1132,6 +1438,16 @@
     state.index = ((idx % state.tracks.length) + state.tracks.length) % state.tracks.length;
     var t = current();
     if (!t) return;
+    if (autoPlay && isSitewidePlay() && (usingHost() || hostAlive)) {
+      if (hostPlayAt(state.index, true, startAt)) {
+        savePlaySession(true);
+        loadLyricsForCurrent();
+        updateMeta();
+        renderList();
+        syncSitewideChip();
+        return;
+      }
+    }
     var a = ensureAudio();
     var seekTo = typeof startAt === "number" && isFinite(startAt) && startAt > 0 ? startAt : 0;
     var gen = ++audioGen;
@@ -1171,7 +1487,6 @@
         if (!(a && !a.paused && lastSrcId === t.id && Math.abs((a.currentTime || 0) - seekTo) < 1.25 && seekTo > 0)) {
           tryPlayUnlocked(a, function () {
             if (gen !== audioGen) return;
-            // Keep UI in "playing/pending" — do not flip to play icon (stops flicker)
             markPendingResume(true);
             resumeIntent = true;
             state.playing = true;
@@ -1190,18 +1505,18 @@
             bindGestureUnlock();
             schedulePlayRetries("autoplay-block");
             if (isDashboard()) {
-              setStatus("正在尝试自动续播…（浏览器限制时点一下页面即可）");
+              setStatus("正在尝试自动续播…（无声时点播放：将打开音乐宿主窗，之后切页可无感续播）");
             } else {
               setStatus("");
-              syncTopbar("续播中…");
+              syncSitewideChip("续播中…点播放可开宿主窗");
             }
-            updateTopbarUi();
+            updateChipUi();
           });
         }
       }
       savePlaySession(!!autoPlay || !!(audio && !audio.paused));
-      syncTopbar();
-      updateTopbarUi();
+      syncSitewideChip();
+      updateChipUi();
       updateMediaSessionMeta();
       if (autoPlay && a && a.paused) schedulePlayRetries("playAt");
     }
@@ -1268,6 +1583,31 @@
       setStatus("无曲目，请检查本地目录");
       return;
     }
+    if (isSitewidePlay()) {
+      ensureMusicHost(true);
+      if (usingHost() || hostAlive) {
+        if (isUiPlaying() && hostState && hostState.playing) {
+          resumeIntent = false;
+          gestureResumeWanted = false;
+          markPendingResume(false);
+          hostCmd("pause");
+          state.playing = false;
+          savePlaySession(false);
+          updatePlayBtn();
+          return;
+        }
+        resumeIntent = true;
+        markPendingResume(false);
+        var sessH = loadPlaySession();
+        var tH = sessH && typeof sessH.t === "number" ? sessH.t : (audio && isFinite(audio.currentTime) ? audio.currentTime : 0);
+        hostPlayAt(state.index, true, tH);
+        try { if (audio && !audio.paused) audio.pause(); } catch (eH) {}
+        savePlaySession(true);
+        updatePlayBtn();
+        syncSitewideChip();
+        return;
+      }
+    }
     var a = ensureAudio();
     if (!a.src) {
       playAt(state.index, true);
@@ -1286,11 +1626,10 @@
           savePlaySession(true);
           bindGestureUnlock();
           updatePlayBtn();
-          if (!isDashboard()) showTopbar("点击播放续播");
+          if (!isDashboard()) showResumeChip("继续播放");
         });
       }
     } else {
-      // intentional stop — do not resume across pages until user plays again
       resumeIntent = false;
       gestureResumeWanted = false;
       markPendingResume(false);
@@ -1304,6 +1643,13 @@
 
   function next(fromEnded) {
     if (!state.tracks.length) return;
+    if (usingHost() || (isSitewidePlay() && hostAlive)) {
+      hostCmd("next");
+      resumeIntent = true;
+      markPendingResume(true);
+      updatePlayBtn();
+      return;
+    }
     var n;
     if (state.shuffle && state.tracks.length > 1) {
       n = state.index;
@@ -1320,7 +1666,7 @@
           resumeIntent = false;
           updatePlayBtn();
           clearPlaySession();
-          hideTopbar();
+          hideResumeChip();
           return;
         } else if (!fromEnded) n = 0;
         else {
@@ -1328,7 +1674,7 @@
           resumeIntent = false;
           updatePlayBtn();
           clearPlaySession();
-          hideTopbar();
+          hideResumeChip();
           return;
         }
       }
@@ -1338,6 +1684,12 @@
 
   function prev() {
     if (!state.tracks.length) return;
+    if (usingHost() || (isSitewidePlay() && hostAlive)) {
+      hostCmd("prev");
+      resumeIntent = true;
+      updatePlayBtn();
+      return;
+    }
     var a = ensureAudio();
     if (a.currentTime > 3) {
       a.currentTime = 0;
@@ -1517,7 +1869,7 @@
     els.close.addEventListener("click", function () {
       state.collapsed = true;
       hideCardUi();
-      hideTopbar();
+      hideResumeChip();
       stopEngine(true);
     });
     els.vol.addEventListener("input", function () {
@@ -1601,18 +1953,26 @@
 
   function maybeResumeOrAutoplay() {
     if (!state.tracks.length) return;
-    // Already playing — never stack another playAt from remount/settings
+    if (isSitewidePlay()) {
+      bindHostChannel();
+      postToHost({ type: "ping" });
+      if (usingHost() || hostAlive) {
+        resumeAttempted = true;
+        markPendingResume(false);
+        syncSitewideChip();
+        updateChipUi();
+        return;
+      }
+    }
     if (audio && !audio.paused) {
-      syncTopbar();
-      updateTopbarUi();
+      syncSitewideChip();
+      updateChipUi();
       return;
     }
-    // One automatic resume/autoplay attempt per page lifecycle.
-    // Further starts only via user gesture (topbar / toggle / gesture unlock).
     if (resumeAttempted) {
       if (!isDashboard() && isSitewidePlay()) {
-        syncTopbar(audio && audio.src ? "点击播放以续播" : "");
-        updateTopbarUi();
+        syncSitewideChip(pendingResume || resumeIntent ? "续播中…点播放开宿主" : "");
+        updateChipUi();
       }
       return;
     }
@@ -1634,7 +1994,7 @@
         if (!isDashboard() && isSitewidePlay()) {
           gestureResumeWanted = true;
           bindGestureUnlock();
-          syncTopbar(audio && !audio.paused ? "" : "续播中…");
+          syncSitewideChip(audio && !audio.paused ? "" : "续播中…");
         }
         schedulePlayRetries("resume");
         return;
@@ -1646,14 +2006,14 @@
       resumeAttempted = true;
       playAt(state.index, true);
     } else if (!isDashboard() && isSitewidePlay()) {
-      syncTopbar();
+      syncSitewideChip();
     }
   }
 
   function mount() {
     if (!enabled()) {
       hideCardUi();
-      hideTopbar();
+      hideResumeChip();
       stopEngine(true);
       return;
     }
@@ -1663,7 +2023,7 @@
     // 仅仪表盘播放：离开仪表盘时停播并清会话
     if (!isDashboard() && !isSitewidePlay()) {
       hideCardUi();
-      hideTopbar();
+      hideResumeChip();
       stopEngine(true);
       return;
     }
@@ -1672,7 +2032,7 @@
     if (!shouldShowCard()) {
       hideCardUi();
     } else {
-      hideTopbar();
+      hideResumeChip();
       buildUi();
       if (!placeInDashboard(root)) {
         root.classList.add("ucwc-music-hidden");
@@ -1689,7 +2049,10 @@
 
     if (!shouldRunEngine()) return;
 
-    ensureAudio().volume = state.volume;
+    if (isSitewidePlay()) bindHostChannel();
+    if (!(isSitewidePlay() && hostAlive)) {
+      ensureAudio().volume = state.volume;
+    }
     bindGestureUnlock();
 
     var earlySess = loadPlaySession();
@@ -1698,8 +2061,11 @@
       if (!isDashboard()) gestureResumeWanted = true;
     }
 
-    // Off-dash sitewide: topbar controls
-    if (!isDashboard() && isSitewidePlay()) syncTopbar();
+    // Off-dash sitewide: chip always present
+    if (!isDashboard() && isSitewidePlay()) {
+      ensureMusicHost(false);
+      syncSitewideChip();
+    }
 
     if (!state.loaded) {
       resumePending = earlySess || loadPlaySession();
@@ -1707,12 +2073,12 @@
     } else if (isSitewidePlay() || isDashboard()) {
       var sess = earlySess || loadPlaySession();
       if (audio && !audio.paused) {
-        syncTopbar();
-        updateTopbarUi();
+        syncSitewideChip();
+        updateChipUi();
       } else if (sessionWantsResume(sess) || resumeIntent) {
         maybeResumeOrAutoplay();
       } else if (!isDashboard() && isSitewidePlay()) {
-        syncTopbar();
+        syncSitewideChip();
       }
     }
   }
@@ -1726,10 +2092,10 @@
       } catch (e) {}
     }
     hideCardUi();
-    hideTopbar();
+    hideResumeChip();
     root = null;
     els = {};
-    topbarEls = {};
+    chipEls = {};
     state.loaded = false;
     lastSrcId = "";
     resumeAttempted = false;
@@ -1760,7 +2126,7 @@
       window.addEventListener(
         "resize",
         function () {
-          if (!isDashboard() && isSitewidePlay()) syncTopbar();
+          if (chip && chip.parentNode) applyChipPos();
         },
         { passive: true }
       );

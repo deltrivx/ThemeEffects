@@ -5,7 +5,7 @@
   "versions": [
     {
       "id": "v2.6.0-Beta12",
-      "label": "Beta12：顶栏音乐控制替代chip、续播不闪烁、鼠标文件框对齐壁纸",
+      "label": "Beta12：保留chip + 音乐宿主跨页续播 + 鼠标文件框对齐壁纸",
       "channel": "beta",
       "released_at": "2026-07-30",
       "apps_enhancement": true,

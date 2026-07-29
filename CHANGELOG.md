@@ -3,13 +3,13 @@
 ## v2.6.0-Beta12 - 2026-07-30
 
 ### 概述
-**Beta12**：取消浮动 chip；全站控制迁入顶部菜单栏；续播 play/pause 不再闪烁；自定义鼠标文件框宽度对齐壁纸。
+**Beta12（重发）**：**保留 chip**；用同域音乐宿主小窗解决切页必须点击才能续播；自定义鼠标文件框对齐壁纸宽度；续播 UI 不再 play/pause 狂闪。
 
 ### 变更
-- **去掉 chip**：删除可拖动 mini chip 及相关定位/拖动代码
-- **顶栏控制**：非仪表盘 + 全站播放时，在 `#menu` 导航行右侧显示 上一曲 / 播放暂停 / 下一曲 + 单行歌词；仪表盘不显示
-- **续播闪烁**：`pendingResume` + `isUiPlaying`，自动重试期间保持暂停图标稳定，避免 play/pause 狂闪
-- **鼠标**：自定义样式文件行复用壁纸 `ucwc-upload-dual` 宽度（`min(420px,100%)`）
+- **回滚顶栏方案**：恢复可拖动 mini chip（上一曲/播放/下一曲 + 单行歌词）
+- **浏览器自动播放限制**：全站播放时，在 chip/卡片**用户点击播放**会打开同域 `ucwc-music-host.html` 小窗承载 Audio；宿主跨 Unraid 整页导航保活，chip 仅作遥控（BroadcastChannel / postMessage）
+- **续播闪烁**：`pendingResume` + `isUiPlaying`，重试期间图标稳定
+- **鼠标**：自定义样式文件行 `ucwc-upload-dual` + `min(420px,100%)` 对齐壁纸上传框
 - 版本号：**v2.6.0-Beta12**（beta）；正式 latest 仍为 **v2.5.1**
 
 ## v2.6.0-Beta11 - 2026-07-29

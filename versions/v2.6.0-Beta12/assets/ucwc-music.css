@@ -1,4 +1,4 @@
-/* ThemeEffects music — dashboard tile + sitewide topbar controls */
+/* ThemeEffects music — dashboard tile + sitewide resume chip */
 
 #ucwc-music-dash-host {
   display: block;
@@ -573,168 +573,134 @@ body.ucwc-reduce-motion #ucwc-music-card .ucwc-music-lyrics-scroll {
   scroll-behavior: auto;
 }
 
-
-/* Help #menu host place topbar on the right */
-#menu:has(#ucwc-music-topbar) {
+/* Off-dashboard mini player chip (sitewide play) — draggable */
+#ucwc-music-resume-chip,
+.ucwc-music-resume-chip {
+  all: unset;
+  position: fixed !important;
+  z-index: 99990 !important;
+  left: auto;
+  top: auto;
+  right: 18px;
+  bottom: 18px;
   display: flex !important;
-  flex-wrap: wrap !important;
-  align-items: center !important;
-}
-#menu:has(#ucwc-music-topbar) > .nav-item:not(.ucwc-music-topbar) {
-  float: none !important;
-}
-#menu #ucwc-music-topbar {
-  margin-left: auto !important;
-  float: none !important;
-}
-
-/* Off-dashboard topbar mini controls (sitewide play) — lives in #menu row */
-#ucwc-music-topbar,
-.ucwc-music-topbar {
-  display: inline-flex !important;
-  align-items: center !important;
-  flex: 0 0 auto !important;
-  float: right !important;
-  height: auto !important;
-  min-height: 0 !important;
-  margin: 0 0 0 auto !important;
-  padding: 0 4px 0 10px !important;
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  vertical-align: middle !important;
-  max-width: min(420px, 46vw) !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 6px !important;
+  width: min(340px, calc(100vw - 24px)) !important;
+  max-width: min(340px, calc(100vw - 24px)) !important;
+  padding: 10px 12px !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(0, 243, 255, 0.32) !important;
+  background: rgba(12, 16, 24, 0.92) !important;
+  color: #eef6ff !important;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.48) !important;
+  cursor: grab !important;
+  font-size: 12px !important;
+  line-height: 1.3 !important;
   box-sizing: border-box !important;
-  position: relative !important;
-  z-index: 5 !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  user-select: none !important;
+  touch-action: none !important;
+  -ms-touch-action: none !important;
 }
-#ucwc-music-topbar:before,
-#ucwc-music-topbar:after,
-.ucwc-music-topbar:before,
-.ucwc-music-topbar:after {
-  content: none !important;
-  display: none !important;
+#ucwc-music-resume-chip.ucwc-music-chip-dragging,
+.ucwc-music-resume-chip.ucwc-music-chip-dragging {
+  cursor: grabbing !important;
+  opacity: 0.96;
+  transition: none !important;
+  z-index: 100000 !important;
 }
-#menu #ucwc-music-topbar,
-#menu .ucwc-music-topbar {
-  float: right !important;
-  margin-left: auto !important;
+#ucwc-music-resume-chip:hover,
+.ucwc-music-resume-chip:hover {
+  border-color: rgba(0, 243, 255, 0.5) !important;
+  background: rgba(14, 20, 32, 0.96) !important;
 }
-.ucwc-music-tb-inner {
+.ucwc-music-chip-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-width: 0;
+}
+.ucwc-music-chip-ico {
+  flex: 0 0 auto;
+  opacity: 0.9;
+  font-size: 14px;
+}
+.ucwc-music-chip-meta {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ucwc-music-chip-title {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+  font-size: 12px;
+  color: #fff;
+}
+.ucwc-music-chip-lrc {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 11px;
+  opacity: 0.72;
+  color: #9fefff;
+  min-height: 14px;
+}
+.ucwc-music-chip-btns {
   display: inline-flex !important;
   align-items: center !important;
   gap: 4px !important;
-  min-width: 0 !important;
-  max-width: 100% !important;
-  padding: 2px 6px !important;
-  border-radius: 10px !important;
-  background: rgba(255, 255, 255, 0.04) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-sizing: border-box !important;
+  flex: 0 0 auto;
 }
-#ucwc-music-topbar.ucwc-music-tb-playing .ucwc-music-tb-inner,
-.ucwc-music-topbar.ucwc-music-tb-playing .ucwc-music-tb-inner {
-  border-color: rgba(0, 243, 255, 0.28) !important;
-  background: rgba(0, 243, 255, 0.06) !important;
-}
-#ucwc-music-topbar.ucwc-music-tb-pending .ucwc-music-tb-inner,
-.ucwc-music-topbar.ucwc-music-tb-pending .ucwc-music-tb-inner {
-  border-color: rgba(251, 114, 153, 0.35) !important;
-}
-.ucwc-music-tb-btn {
+.ucwc-music-chip-btn {
   all: unset;
   box-sizing: border-box !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  width: 26px !important;
-  height: 26px !important;
-  min-width: 26px !important;
-  border-radius: 8px !important;
-  border: 1px solid transparent !important;
-  color: var(--text, #eef6ff) !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  border-radius: 50% !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #eef6ff !important;
   cursor: pointer !important;
-  flex: 0 0 26px !important;
-  opacity: 0.9;
+  flex: 0 0 28px !important;
 }
-.ucwc-music-tb-btn:hover {
-  background: rgba(255, 255, 255, 0.08) !important;
-  border-color: rgba(255, 255, 255, 0.12) !important;
-  color: var(--text-hover, #fff) !important;
-  opacity: 1;
-}
-.ucwc-music-tb-btn.primary {
-  background: rgba(0, 243, 255, 0.10) !important;
-  border-color: rgba(0, 243, 255, 0.22) !important;
-}
-.ucwc-music-tb-btn.primary.is-playing {
+.ucwc-music-chip-btn:hover {
   background: rgba(0, 243, 255, 0.16) !important;
-  border-color: rgba(0, 243, 255, 0.38) !important;
-  color: #9fefff !important;
+  border-color: rgba(0, 243, 255, 0.4) !important;
 }
-.ucwc-music-tb-btn.primary.is-pending {
-  /* stable "playing-ish" look while autoplay is blocked — no blink animation */
-  background: rgba(0, 243, 255, 0.12) !important;
-  border-color: rgba(0, 243, 255, 0.30) !important;
+.ucwc-music-chip-btn.primary {
+  background: rgba(0, 243, 255, 0.18) !important;
+  border-color: rgba(0, 243, 255, 0.42) !important;
 }
-.ucwc-music-tb-btn svg {
+.ucwc-music-chip-btn svg {
   width: 12px;
   height: 12px;
   display: block;
   pointer-events: none;
 }
-.ucwc-music-tb-lrc {
-  display: inline-block !important;
-  min-width: 0 !important;
-  max-width: min(220px, 28vw) !important;
-  margin-left: 4px !important;
-  padding: 0 4px !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  font-size: 12px !important;
-  line-height: 1.2 !important;
-  font-weight: 500 !important;
-  color: var(--text, #cfe8f5) !important;
-  opacity: 0.85;
-  vertical-align: middle !important;
-  pointer-events: none;
-}
-#ucwc-music-topbar.ucwc-music-tb-playing .ucwc-music-tb-lrc {
-  color: #9fefff !important;
-  opacity: 0.95;
-}
-
-/* Fallback when #menu is missing */
-#ucwc-music-topbar.ucwc-music-topbar-fallback,
-.ucwc-music-topbar.ucwc-music-topbar-fallback {
-  position: fixed !important;
-  top: 8px !important;
-  right: 12px !important;
-  float: none !important;
-  z-index: 99990 !important;
-  max-width: min(420px, calc(100vw - 24px)) !important;
-  background: rgba(12, 16, 24, 0.88) !important;
-  border-radius: 12px !important;
-  padding: 4px !important;
-  border: 1px solid rgba(0, 243, 255, 0.22) !important;
-}
-
-@media (max-width: 900px) {
-  .ucwc-music-tb-lrc {
-    max-width: min(140px, 22vw) !important;
-    font-size: 11px !important;
-  }
-}
-@media (max-width: 720px) {
-  #ucwc-music-topbar,
-  .ucwc-music-topbar {
-    max-width: min(280px, 58vw) !important;
-    padding-left: 4px !important;
-  }
-  .ucwc-music-tb-lrc {
-    max-width: min(96px, 20vw) !important;
-  }
+.ucwc-music-chip-handle {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 28px;
+  opacity: 0.35;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  letter-spacing: -2px;
+  font-size: 11px;
 }
 
 @media (max-width: 720px) {
@@ -769,7 +735,6 @@ body.ucwc-reduce-motion #ucwc-music-card .ucwc-music-lyrics-scroll {
 
 html.ucwc-reduce-motion #ucwc-music-card,
 body.ucwc-reduce-motion #ucwc-music-card,
-html.ucwc-reduce-motion #ucwc-music-topbar,
-body.ucwc-reduce-motion #ucwc-music-topbar {
+html.ucwc-reduce-motion #ucwc-music-resume-chip {
   transition: none;
 }
