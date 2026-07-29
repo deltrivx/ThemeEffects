@@ -4,6 +4,19 @@
   "latest_version": "v2.5.1",
   "versions": [
     {
+      "id": "v2.6.0-Beta5",
+      "label": "Beta5：音乐卡片仅仪表盘 + 全站无 UI 续播 + 14px 玻璃圆角",
+      "channel": "beta",
+      "released_at": "2026-07-29",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true,
+      "mouse_fx": true,
+      "music": true,
+      "ota": true
+    },
+    {
       "id": "v2.6.0-Beta4",
       "label": "Beta4：霓虹立体指针 + 音乐卡片样式/歌词区 + 仅仪表盘/全站播放",
       "channel": "beta",

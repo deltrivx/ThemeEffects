@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "theme.effects">
 <!ENTITY author    "deltrivx">
-<!ENTITY version   "2026.07.29p">
+<!ENTITY version   "2026.07.29q">
 <!ENTITY launch    "Settings/ThemeEffects">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY flash     "/boot/config/plugins/&name;">
@@ -17,6 +17,8 @@
 <CHANGES>
 <![CDATA[
 ## Theme Effects
+###2026.07.29q
+- v2.6.0-Beta5: music card dash-only UI; sitewide play without card; 14px glass tile
 ###2026.07.29p
 - v2.6.0-Beta4: neon3d/holo/cyber/crystal cursors; music tile polish + lyrics slot; dash/site play
 ###2026.07.29o
