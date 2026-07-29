@@ -107,9 +107,14 @@ download() {
 }
 
 fetch_index() {
-  # 直连 curl，避免 download 进度行污染 JSON（兼容旧 download 误打 stdout）
-  curl -4 -fsSL --connect-timeout 15 --max-time 60 --retry 3 \
-    "$REPO_RAW/versions/index.json"
+  # 直连 curl + 时间戳，避开 raw CDN 短时缓存旧文件；stdout 必须是纯 JSON
+  # 若偶发混入进度行，从第一个 { 起截取
+  _idx=$(curl -4 -fsSL --connect-timeout 15 --max-time 60 --retry 3 \
+    "$REPO_RAW/versions/index.json?_ts=$(date +%s)" 2>/dev/null) || return 1
+  case "$_idx" in
+    "{"*) printf '%s\n' "$_idx" ;;
+    *) printf '%s\n' "$_idx" | sed -n '/^{/,$p' ;;
+  esac
 }
 
 read_display_value() {

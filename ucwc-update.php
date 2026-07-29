@@ -297,7 +297,7 @@ function ucwc_prepare_install($repo_raw, $upd_log, $mode, $version = "") {
     }
 
     $script = "/tmp/ucwc-install-web.sh";
-    [$body, $err] = ucwc_http_get("$repo_raw/scripts/install.sh", 60);
+    [$body, $err] = ucwc_http_get($repo_raw . "/scripts/install.sh?_ts=" . time(), 60);
     if ($body === false) return [false, "下载 install.sh 失败：$err", $version, $has_fx, ""];
     if (@file_put_contents($script, $body) === false) return [false, "写入临时脚本失败。", $version, $has_fx, ""];
     @chmod($script, 0755);
@@ -529,7 +529,7 @@ if ($mode === "install_version" || $mode === "install_latest") {
   meta_write($metaPath, $meta);
   append_log($logPath, "[" . date("H:i:s") . "] 目标版本：$version");
   append_log($logPath, "[" . date("H:i:s") . "] 下载 install.sh…");
-  [$shBody, $shErr] = http_get($repoRaw . "/scripts/install.sh", 60, $proxy);
+  [$shBody, $shErr] = http_get($repoRaw . "/scripts/install.sh?_ts=" . time(), 60, $proxy);
   if ($shBody === false) fail_job($metaPath, $logPath, $meta, "下载 install.sh 失败：$shErr");
   $script = "/tmp/ucwc-install-web.sh";
   if (@file_put_contents($script, $shBody) === false) fail_job($metaPath, $logPath, $meta, "写入临时脚本失败。");
@@ -540,7 +540,7 @@ if ($mode === "install_version" || $mode === "install_latest") {
   $meta["message"] = "正在下载 install.sh（卸载）…";
   meta_write($metaPath, $meta);
   append_log($logPath, "[" . date("H:i:s") . "] 下载 install.sh（卸载）…");
-  [$shBody, $shErr] = http_get($repoRaw . "/scripts/install.sh", 60, $proxy);
+  [$shBody, $shErr] = http_get($repoRaw . "/scripts/install.sh?_ts=" . time(), 60, $proxy);
   if ($shBody === false) fail_job($metaPath, $logPath, $meta, "下载 install.sh 失败：$shErr");
   $script = "/tmp/ucwc-install-web.sh";
   if (@file_put_contents($script, $shBody) === false) fail_job($metaPath, $logPath, $meta, "写入临时脚本失败。");
