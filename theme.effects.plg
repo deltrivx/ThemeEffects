@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "theme.effects">
 <!ENTITY author    "deltrivx">
-<!ENTITY version   "2026.07.29o">
+<!ENTITY version   "2026.07.29p">
 <!ENTITY launch    "Settings/ThemeEffects">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY flash     "/boot/config/plugins/&name;">
@@ -17,6 +17,8 @@
 <CHANGES>
 <![CDATA[
 ## Theme Effects
+###2026.07.29p
+- v2.6.0-Beta4: neon3d/holo/cyber/crystal cursors; music tile polish + lyrics slot; dash/site play
 ###2026.07.29o
 - v2.6.0-Beta3: path field width measured from neighboring select (pixel align)
 ###2026.07.29n

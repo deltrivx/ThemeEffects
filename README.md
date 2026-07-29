@@ -3,14 +3,14 @@
 独立 Unraid WebGUI 主题插件（**不依赖** Custom WebUI CSS）。仓库：[deltrivx/ThemeEffects](https://github.com/deltrivx/ThemeEffects)
 
 当前正式版：**v2.5.1**（OTA/全量更新）；`latest_version` 指向 **v2.5.1**  
-最新 Beta：**v2.6.0-Beta3**（仪表盘音乐卡片 + 系统指针样式 + 路径/fileTree 对齐主题化）
+最新 Beta：**v2.6.0-Beta4**（霓虹立体指针 + 音乐卡片/歌词区 + 仅仪表盘/全站播放）
 
 ## 功能
 
 - 全局主题 CSS（黑主题适配）
 - 背景壁纸（本地 / 自定义上传 / 在线图库）
 - 粒子特效
-- 鼠标特效（柔光/光环/光迹/星火，默认关闭）+ 系统指针样式（圆点/十字/霓虹箭头等）
+- 鼠标特效（柔光/光环/光迹/星火，默认关闭）+ 系统指针（霓虹立体 / 全息玻璃 / 赛博利刃 / 水晶切面）
 - 吉祥物（内置胡桃 / 自定义 GIF）
 - **音乐组件 V1（Beta）**：仪表盘播放卡片 + 本地目录音源（默认关闭）
 - 应用页增强（侧栏、搜索建议、路由隔离）
@@ -50,7 +50,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/deltrivx/ThemeEffects/main/s
 - 指定版本：`bash scripts/install.sh install v2.4.3`
 - 正式版 OTA：`bash scripts/install.sh install v2.5.1 ota`（默认，可省略 `ota`）
 - 正式版全量：`bash scripts/install.sh install v2.5.1 full`
-- 音乐 / 指针 Beta：`bash scripts/install.sh install v2.6.0-Beta3 ota`
+- 音乐 / 指针 Beta：`bash scripts/install.sh install v2.6.0-Beta4 ota`
 - 环境变量：`UCWC_INSTALL_MODE=ota|full`
 
 ### 插件方式
