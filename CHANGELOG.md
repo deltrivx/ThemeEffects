@@ -1,5 +1,20 @@
 # 更新日志
 
+## v2.6.0-Beta7 - 2026-07-29
+
+### 概述
+**Beta7**：本地 **LRC 歌词 V1**——同名旁路 / `lyrics/` 子目录；右栏滚动高亮；与进度条 seek 同步。
+
+### 变更
+- **API** `ucwc-music-api.php`
+  - `list` 增加 `has_lrc`
+  - 新 `action=lyrics`：解析 sidecar `.lrc`（UTF-8/GBK、`[offset:]`、多时间戳行），路径校验与 stream 同级
+- **前端**
+  - 切歌加载歌词；`timeupdate` 二分定位当前行并居中滚动
+  - 曲目列表有词角标「词」；空态提示放置 `.lrc`
+- 设置页帮助补充 LRC 用法
+- 版本号：**v2.6.0-Beta7**（beta）；正式 latest 仍为 **v2.5.1**
+
 ## v2.6.0-Beta6 - 2026-07-29
 
 ### 概述
