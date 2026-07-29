@@ -4,6 +4,19 @@
   "latest_version": "v2.5.1",
   "versions": [
     {
+      "id": "v2.6.0-Beta2",
+      "label": "Beta2：下拉箭头 + Unraid 原生目录/路径选择器",
+      "channel": "beta",
+      "released_at": "2026-07-29",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true,
+      "mouse_fx": true,
+      "music": true,
+      "ota": true
+    },
+    {
       "id": "v2.6.0-Beta",
       "label": "Beta：音乐组件 V1（仪表盘卡片 + 本地音源）",
       "channel": "beta",

@@ -1,5 +1,18 @@
 # 更新日志
 
+## v2.6.0-Beta2 - 2026-07-29
+
+### 概述
+**Beta2：设置控件对齐原生 Unraid**。下拉菜单右侧统一显示箭头；目录/路径字段使用 Unraid `fileTree` 选择器（文本框 + 文件夹按钮），不再像「纯文本框」。
+
+### 变更
+- **下拉菜单**：全局 `select` 与主题特效页 `select` 增加右侧 chevron（`appearance: none` + SVG 箭头），便于与普通输入区分
+- **路径/目录选择**
+  - 壁纸本地路径、吉祥物 GIF 路径、**音乐本地目录**：`ucwc-path-field`（输入框 + 浏览按钮）
+  - 音乐目录启用 `data-pickfolders`，点击文件夹即可写入路径（jquery.fileTree）
+  - `wireFileTreePickers` 绑定所有 `.ucwc-local-path`，浏览按钮触发打开路径树
+- 版本号：**v2.6.0-Beta2**（beta）；正式 latest 仍为 **v2.5.1**
+
 ## v2.6.0-Beta - 2026-07-29
 
 ### 概述
