@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "version": "v2.6.0",
+  "algorithm": "sha256",
+  "generated_at": "2026-07-30",
+  "files": {
+    "ThemeEffects.page": {
+      "sha256": "3abe1df302c231753eca4d17dead3fa20d231b7aa950be361457f287fd46eb50",
+      "size": 92325
+    },
+    "ThemeEffects_Loader.page": {
+      "sha256": "bcf16fe5dd531e2dedc3eb43a1f8bc188e978fdf3d55053c862b65078f91f92d",
+      "size": 53031
+    },
+    "apps-enhancement.js": {
+      "sha256": "c4bc3ad26ec30e35469cc0eff78d8083c5a9d433b64855c8ca433f6073272947",
+      "size": 25683
+    },
+    "style.css": {
+      "sha256": "fac663abc29ced173e25aa8fe4768fa8d4bb992ae86627b460ff0c7e435a6cce",
+      "size": 169535
+    },
+    "style-black.css": {
+      "sha256": "6d6ae1b17589253b3ecc73c205266ec0c7c3fbeb0237a42e0ad9c22c6d2d9eae",
+      "size": 101
+    },
+    "style.md5": {
+      "sha256": "18b255390976cda4b0c807eee6cef0b5151844330eb49303014c31bd28b66755",
+      "size": 34
+    },
+    "theme-effects.cfg": {
+      "sha256": "8939f25ec3bfcd2fe1142244fce49652e6dde39a7f29d840feae57ea7a638556",
+      "size": 740
+    },
+    "theme.effects.cfg": {
+      "sha256": "ab9884af81e60db78dc5d59cec5c81073ac957260b713858147ceedc796a8e1c",
+      "size": 19
+    },
+    "ucwc-auth-request.conf": {
+      "sha256": "91a2849cafee6b56a7492afa8ea1d93a02998981288f9a0b191b968c4d891893",
+      "size": 534
+    },
+    "ucwc-theme-fx-save.php": {
+      "sha256": "137403890f294df86a2fba009d097fe7338aafd11a6fbcc05581084ce8267f4d",
+      "size": 50831
+    },
+    "ucwc-update.php": {
+      "sha256": "f58b445063ed47c0639bcefbe18b16fa3659fed30a8d6a07b1d70e9fbc015dd2",
+      "size": 43419
+    },
+    "CHANGELOG.md": {
+      "sha256": "c0569fbbe6d08d2c4c7bd8f67d5e7a1ef926241668d8e2f5242bc7fa2fd5e8b3",
+      "size": 72941
+    },
+    "assets/background-1.jpg": {
+      "sha256": "0a5ebe851db15cfbb130313f92ea120e4c9dfa7a1ba715f16597b8bb6730528f",
+      "size": 960008
+    },
+    "assets/background-2.jpg": {
+      "sha256": "bb60386f9ce4799bd299196753f7d934515c7fe489a96ef825b2b19e5767d384",
+      "size": 41066
+    },
+    "assets/background.jpg": {
+      "sha256": "0a5ebe851db15cfbb130313f92ea120e4c9dfa7a1ba715f16597b8bb6730528f",
+      "size": 960008
+    },
+    "assets/hutao.gif": {
+      "sha256": "229e9c30e83abf766003722089e7bb9c61861a3ab5bb3f9ae4c8910fe4037bdd",
+      "size": 3431327
+    },
+    "assets/ucwc-mouse-fx.js": {
+      "sha256": "a642bf04c36b26d285c18ae29aaf9e212b8d61a7f133eaacbe00c5813077a0f7",
+      "size": 24165
+    },
+    "assets/ucwc-particles.js": {
+      "sha256": "26659625d4e8a16c2e2a379f17d49d344023dace1bac3059266348eecd4f9311",
+      "size": 10122
+    },
+    "assets/ucwc-theme-fx.css": {
+      "sha256": "29670f22336787d0da582da552b8e6a1007da3cde24902cb8a225f703c0419a9",
+      "size": 26206
+    },
+    "assets/ucwc-theme-fx.js": {
+      "sha256": "f583cd6aad69226e3f9699f16c2cc177fb9c2d564f7e77fe0cb559bb605249bd",
+      "size": 117305
+    }
+  }
+}

@@ -258,7 +258,6 @@ local_path_for() {
     theme-effects.cfg) printf '%s\n' "$THEME_FX_CFG" ;;
     ucwc-update.php) printf '%s\n' "$PERSIST_DIR/ucwc-update.php" ;;
     ucwc-theme-fx-save.php) printf '%s\n' "$PERSIST_DIR/ucwc-theme-fx-save.php" ;;
-    ucwc-music-api.php) printf '%s\n' "$PERSIST_DIR/ucwc-music-api.php" ;;
     ucwc-auth-request.conf) printf '%s\n' "$PERSIST_DIR/ucwc-auth-request.conf" ;;
     apps-enhancement.js)
       # 注入进 Loader，无稳定独立副本；OTA 无法可靠比对 → 空
@@ -454,6 +453,8 @@ remove_theme_effects() {
     "$RUNTIME_DIR/assets/ucwc-music.js" \
     "$PERSIST_DIR/assets/ucwc-music.css" \
     "$RUNTIME_DIR/assets/ucwc-music.css" \
+    "$PERSIST_DIR/assets/ucwc-music-host.html" \
+    "$RUNTIME_DIR/assets/ucwc-music-host.html" \
     "$PERSIST_DIR/assets/background-1.jpg" \
     "$RUNTIME_DIR/assets/background-1.jpg" \
     "$PERSIST_DIR/assets/background-2.jpg" \
@@ -581,8 +582,8 @@ install_version() {
     fetch_pkg "$tmp/assets/background-2.jpg" "$base/assets/background-2.jpg" "assets/background-2.jpg" "background-2.jpg" || exit 1
     fetch_pkg "$tmp/assets/ucwc-particles.js" "$base/assets/ucwc-particles.js" "assets/ucwc-particles.js" "ucwc-particles.js" || exit 1
     fetch_pkg "$tmp/assets/ucwc-mouse-fx.js" "$base/assets/ucwc-mouse-fx.js" "assets/ucwc-mouse-fx.js" "ucwc-mouse-fx.js" || true
-    # 主题特效页 UI + AJAX 保存 + 版本管理 API + 音乐组件（优先版本包，回退仓库根）
-    for f in ucwc-update.php ucwc-theme-fx-save.php ucwc-music-api.php ucwc-auth-request.conf assets/ucwc-theme-fx.js assets/ucwc-theme-fx.css assets/ucwc-music.js assets/ucwc-music.css assets/ucwc-music-host.html; do
+    # 主题特效页 UI + AJAX 保存 + 版本管理 API（优先版本包，回退仓库根）
+    for f in ucwc-update.php ucwc-theme-fx-save.php ucwc-auth-request.conf assets/ucwc-theme-fx.js assets/ucwc-theme-fx.css; do
       bn=$(basename "$f")
       dir=$(dirname "$f")
       mkdir -p "$tmp/$dir"
@@ -653,9 +654,6 @@ install_version() {
     if [ -f "$tmp/ucwc-theme-fx-save.php" ]; then
       install_pair "$tmp/ucwc-theme-fx-save.php" "$PERSIST_DIR/ucwc-theme-fx-save.php" "$RUNTIME_DIR/ucwc-theme-fx-save.php"
     fi
-    if [ -f "$tmp/ucwc-music-api.php" ]; then
-      install_pair "$tmp/ucwc-music-api.php" "$PERSIST_DIR/ucwc-music-api.php" "$RUNTIME_DIR/ucwc-music-api.php"
-    fi
     # 仅首次写入默认 cfg，避免覆盖用户已调设置
     if [ ! -f "$THEME_FX_CFG" ]; then
       install -m 0644 "$tmp/theme-effects.cfg" "$THEME_FX_CFG"
@@ -693,15 +691,6 @@ install_version() {
     fi
     if [ -f "$tmp/assets/ucwc-theme-fx.css" ]; then
       install_pair "$tmp/assets/ucwc-theme-fx.css" "$PERSIST_DIR/assets/ucwc-theme-fx.css" "$RUNTIME_DIR/assets/ucwc-theme-fx.css"
-    fi
-    if [ -f "$tmp/assets/ucwc-music.js" ]; then
-      install_pair "$tmp/assets/ucwc-music.js" "$PERSIST_DIR/assets/ucwc-music.js" "$RUNTIME_DIR/assets/ucwc-music.js"
-    fi
-    if [ -f "$tmp/assets/ucwc-music.css" ]; then
-      install_pair "$tmp/assets/ucwc-music.css" "$PERSIST_DIR/assets/ucwc-music.css" "$RUNTIME_DIR/assets/ucwc-music.css"
-    fi
-    if [ -f "$tmp/assets/ucwc-music-host.html" ]; then
-      install_pair "$tmp/assets/ucwc-music-host.html" "$PERSIST_DIR/assets/ucwc-music-host.html" "$RUNTIME_DIR/assets/ucwc-music-host.html"
     fi
     if [ -f "$tmp/ucwc-auth-request.conf" ]; then
       install -m 0644 "$tmp/ucwc-auth-request.conf" "$PERSIST_DIR/ucwc-auth-request.conf"
