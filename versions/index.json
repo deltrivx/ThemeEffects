@@ -1,8 +1,21 @@
 {
   "schema": 1,
-  "default": "v2.6.3",
-  "latest_version": "v2.6.3",
+  "default": "v2.6.4",
+  "latest_version": "v2.6.4",
   "versions": [
+    {
+      "id": "v2.6.4",
+      "label": "v2.6.4：开机 flash 优先恢复 runtime，再 OTA（重启离线不丢插件）",
+      "channel": "stable",
+      "released_at": "2026-07-31",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true,
+      "mouse_fx": true,
+      "music": false,
+      "ota": true
+    },
     {
       "id": "v2.6.3",
       "label": "v2.6.3：切页/刷新瞬间鼠标不再回系统默认（critical cursor boot）",

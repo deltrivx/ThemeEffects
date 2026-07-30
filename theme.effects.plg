@@ -2,14 +2,14 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "theme.effects">
 <!ENTITY author    "deltrivx">
-<!ENTITY version   "2026.07.31a">
+<!ENTITY version   "2026.07.31b">
 	<!ENTITY launch    "Settings/ThemeEffects">
 	<!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 	<!ENTITY flash     "/boot/config/plugins/&name;">
 	<!ENTITY github    "deltrivx/ThemeEffects">
 	<!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/theme.effects.plg">
 	<!ENTITY installSH "https://raw.githubusercontent.com/&github;/main/scripts/install.sh">
-	<!ENTITY ver       "v2.6.3">
+	<!ENTITY ver       "v2.6.4">
 	]>
 	<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" icon="magic" support="https://github.com/&github;">
 	
@@ -17,6 +17,8 @@
 	<CHANGES>
 	<![CDATA[
 	## Theme Effects
+	###2026.07.31b
+	- v2.6.4: boot restore-from-flash before OTA (official package; survive reboot offline/timeout)
 	###2026.07.31a
 	- boot: restore runtime from flash before OTA (survive reboot when GitHub times out)
 	###2026.07.30y

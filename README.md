@@ -2,8 +2,9 @@
 
 独立 Unraid WebGUI 主题插件（**不依赖** Custom WebUI CSS）。仓库：[deltrivx/ThemeEffects](https://github.com/deltrivx/ThemeEffects)
 
-当前正式版：**v2.6.0**（OTA/全量更新）；`latest_version` 指向 **v2.6.0**  
+当前正式版：**v2.6.4**（OTA/全量更新）；`latest_version` 指向 **v2.6.4**  
 - 音乐组件已完全剥离；请使用独立插件 [ThemeMusic](https://github.com/deltrivx/ThemeMusic)
+- 开机 plg 支持 flash 优先恢复（重启离线/GitHub 超时不丢 runtime）
 
 ## 功能
 
