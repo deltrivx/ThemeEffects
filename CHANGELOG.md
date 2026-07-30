@@ -1,3 +1,17 @@
+## v2.6.0-Beta30 - 2026-07-30
+
+### 概述
+**Beta30**：按官方 CA Narrow 垂直节奏重做应用卡片（撤销 Beta28/29 破坏性改写）；修复标题叠图标、右上角 LIMETECH/SPOTLIGHT 裁切；加强移动端自动播放/续播手势解锁。
+
+### 变更
+- **Apps 卡片（对齐 stock）**：`.ca_bottomLine` 恢复 `position:relative; top:18rem`（spotlight `15rem`），不再 absolute 贴底
+- 恢复 `.ca_backgroundClickable` **18.5rem**、`.ca_iconArea` **margin-top:-2rem**、标题 **padding-top:1.25rem**、图标 **8rem**
+- 介绍仅去掉误套用的 18.5rem 高度，保留 stock `.cardDescription` / `.cardDesc` 位置与 4 行截断
+- 卡片 `overflow:visible`，圆角规则不再对 `.ca_holder` 强制 `overflow:hidden`（修复右上角徽章被裁）
+- 停止把 fav/pin 从 bottomLine 提升到卡片根（避免与 LIMETECH 角标抢位）
+- **音乐移动端**：更早绑定 pointer/touch 解锁；Audio 挂入 DOM + playsInline；续播/自动播放失败后持续 gesture 重试
+- 版本号：**v2.6.0-Beta30**（beta）；正式 latest 仍为 **v2.5.1**
+
 ## v2.6.0-Beta29 - 2026-07-30
 
 ### 概述
