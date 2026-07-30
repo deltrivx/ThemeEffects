@@ -4,6 +4,19 @@
   "latest_version": "v2.5.1",
   "versions": [
     {
+      "id": "v2.6.0-Beta24",
+      "label": "Beta24：修复卡片/chip 按钮点击被防导航逻辑拦截",
+      "channel": "beta",
+      "released_at": "2026-07-30",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true,
+      "mouse_fx": true,
+      "music": true,
+      "ota": true
+    },
+    {
       "id": "v2.6.0-Beta23",
       "label": "Beta23：chip 页内嵌入浮层，点击仅控制不跳转/不开新标签",
       "channel": "beta",
