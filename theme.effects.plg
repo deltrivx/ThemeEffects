@@ -2,25 +2,27 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "theme.effects">
 <!ENTITY author    "deltrivx">
-<!ENTITY version   "2026.07.30x">
-<!ENTITY launch    "Settings/ThemeEffects">
-<!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
-<!ENTITY flash     "/boot/config/plugins/&name;">
-<!ENTITY github    "deltrivx/ThemeEffects">
-<!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/theme.effects.plg">
-<!ENTITY installSH "https://raw.githubusercontent.com/&github;/main/scripts/install.sh">
-<!ENTITY ver       "v2.6.1">
-]>
-<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" icon="magic" support="https://github.com/&github;">
-
-<!-- CHANGES in CDATA: bare & in notes must not break simplexml_load_file -->
-<CHANGES>
-<![CDATA[
-## Theme Effects
-###2026.07.30x
-- v2.6.1: purge legacy built-in music residue on install/upgrade (theme.music untouched)
-###2026.07.30w
-- v2.6.0 stable: remove all music components; fix custom cursor flash on menu page switch
+<!ENTITY version   "2026.07.30y">
+	<!ENTITY launch    "Settings/ThemeEffects">
+	<!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
+	<!ENTITY flash     "/boot/config/plugins/&name;">
+	<!ENTITY github    "deltrivx/ThemeEffects">
+	<!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/theme.effects.plg">
+	<!ENTITY installSH "https://raw.githubusercontent.com/&github;/main/scripts/install.sh">
+	<!ENTITY ver       "v2.6.2">
+	]>
+	<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" icon="magic" support="https://github.com/&github;">
+	
+	<!-- CHANGES in CDATA: bare & in notes must not break simplexml_load_file -->
+	<CHANGES>
+	<![CDATA[
+	## Theme Effects
+	###2026.07.30y
+	- v2.6.2: themed cursor on all interactions (hover/click/menus no longer fall back to system)
+	###2026.07.30x
+	- v2.6.1: purge legacy built-in music residue on install/upgrade (theme.music untouched)
+	###2026.07.30w
+	- v2.6.0 stable: remove all music components; fix custom cursor flash on menu page switch
 ###2026.07.30v
 - v2.6.0-Beta32: CA title clears icon; desc above buttons; mobile FLAC error hard-reset + cross-page resume
 ###2026.07.30u
