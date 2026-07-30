@@ -4,6 +4,19 @@
   "latest_version": "v2.5.1",
   "versions": [
     {
+      "id": "v2.6.0-Beta28",
+      "label": "Beta28：应用卡片介绍与按钮重叠修复；无封面回默认♪不显示错误占位",
+      "channel": "beta",
+      "released_at": "2026-07-30",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true,
+      "mouse_fx": true,
+      "music": true,
+      "ota": true
+    },
+    {
       "id": "v2.6.0-Beta27",
       "label": "Beta27：真机封面未显示——上级目录 cover、FLAC 内嵌流式解析、清洗艺人/专辑再搜网",
       "channel": "beta",
