@@ -1,3 +1,15 @@
+## v2.6.0-Beta23 - 2026-07-30
+
+### 概述
+**Beta23**：取消 popup/新标签宿主。chip 以 **页内 fixed 浮层** 嵌入 Unraid 网页；卡片与 chip 点击仅控制播放，不做页面跳转。
+
+### 变更
+- 移除 `window.open` / `ucwc-music-host.html` 宿主遥控方案
+- chip 为站内嵌入小窗（`position:fixed`），全站常显；与卡片双向同步
+- 卡片/chip/列表按钮 `preventDefault`，只做播放控制
+- 跨页靠 session 续播（同文档 SPA 保活；整页硬刷新需浏览器允许自动播放）
+- 版本号：**v2.6.0-Beta23**（beta）；正式 latest 仍为 **v2.5.1**
+
 # 更新日志
 
 ## v2.6.0-Beta22 - 2026-07-30
