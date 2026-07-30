@@ -1,3 +1,16 @@
+## v2.6.0-Beta29 - 2026-07-30
+
+### 概述
+**Beta29**：对照官方 Community Applications Narrow 皮肤，真正修复应用卡片介绍与按钮重叠、作者下方大片空白（Beta28 选择器未命中新版 DOM）。
+
+### 变更
+- **根因**：新版 CA 介绍类名为 `.cardDescription` / `.cardDesc`（非旧 `.ca_descriptionArea`）；介绍节点还带 `.ca_backgroundClickable` 的 **height:18.5rem**；主题把 `.ca_bottomLine` 绝对贴底后，该固定高度变成作者→介绍空洞，介绍被顶到按钮行
+- 覆盖 `.cardDescription` / `.cardDesc` / `.cardDescriptionRepo`，重置 height/top 为流式布局并 4 行截断
+- 收紧 header 带 `.ca_backgroundClickable` / `.dockerCardBackground` 高度，以及 title/author 的 stock 大 padding/margin
+- 覆盖 `.ca_bottomLineSpotLight { top:15rem !important }`，按钮行仍贴卡片底
+- 保留 Beta28 音乐无封面默认 ♪
+- 版本号：**v2.6.0-Beta29**（beta）；正式 latest 仍为 **v2.5.1**
+
 ## v2.6.0-Beta28 - 2026-07-30
 
 ### 概述

@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "theme.effects">
 <!ENTITY author    "deltrivx">
-<!ENTITY version   "2026.07.30r">
+<!ENTITY version   "2026.07.30s">
 <!ENTITY launch    "Settings/ThemeEffects">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY flash     "/boot/config/plugins/&name;">
@@ -17,6 +17,8 @@
 <CHANGES>
 <![CDATA[
 ## Theme Effects
+###2026.07.30s
+- v2.6.0-Beta29: fix Apps card overlap for modern CA (.cardDescription + collapse 18.5rem bands)
 ###2026.07.30r
 - v2.6.0-Beta28: apps card desc/button overlap fix; music no-cover keeps default note art
 ###2026.07.30q
