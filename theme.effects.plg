@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "theme.effects">
 <!ENTITY author    "deltrivx">
-<!ENTITY version   "2026.07.30o">
+<!ENTITY version   "2026.07.30p">
 <!ENTITY launch    "Settings/ThemeEffects">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY flash     "/boot/config/plugins/&name;">
@@ -17,6 +17,8 @@
 <CHANGES>
 <![CDATA[
 ## Theme Effects
+###2026.07.30p
+- v2.6.0-Beta26: fix album cover flash-then-gone (keep painted cover, deferred blob revoke)
 ###2026.07.30o
 - v2.6.0-Beta25: OTA index TLS retry + multi-mirror fallback
 ###2026.07.30n

@@ -4,6 +4,19 @@
   "latest_version": "v2.5.1",
   "versions": [
     {
+      "id": "v2.6.0-Beta26",
+      "label": "Beta26：专辑封面闪一下消失修复（保留已绘封面/延迟 revoke）",
+      "channel": "beta",
+      "released_at": "2026-07-30",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true,
+      "mouse_fx": true,
+      "music": true,
+      "ota": true
+    },
+    {
       "id": "v2.6.0-Beta25",
       "label": "Beta25：OTA 索引 TLS 重试与多镜像回退",
       "channel": "beta",
