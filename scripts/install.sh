@@ -2,6 +2,13 @@
 set -eu
 
 REPO_RAW="https://raw.githubusercontent.com/deltrivx/ThemeEffects/main"
+# Fallback bases when raw.githubusercontent TLS EOF / blocked (same repo @main)
+REPO_MIRRORS="
+https://cdn.jsdelivr.net/gh/deltrivx/ThemeEffects@main
+https://fastly.jsdelivr.net/gh/deltrivx/ThemeEffects@main
+https://raw.gitmirror.com/deltrivx/ThemeEffects/main
+https://ghfast.top/https://raw.githubusercontent.com/deltrivx/ThemeEffects/main
+"
 PERSIST_DIR="/boot/config/plugins/theme.effects"
 RUNTIME_DIR="/usr/local/emhttp/plugins/theme.effects"
 DYNAMIX_CFG="/boot/config/plugins/dynamix/dynamix.cfg"
@@ -101,32 +108,124 @@ progress() {
   ucwc_log "[进度 $1%] $2：$3"
 }
 
+ucwc_curl() {
+  # IPv4 + HTTP/1.1 + TLS1.2; retry helps unexpected EOF on raw.githubusercontent
+  curl -4 -fsSL --http1.1 --tlsv1.2 --connect-timeout 15 --retry 3 --retry-delay 1 "$@"
+}
+
+ucwc_url_candidates() {
+  # $1 = full URL → print candidates (one per line)
+  _u=$1
+  _rel=""
+  case "$_u" in
+    https://raw.githubusercontent.com/deltrivx/ThemeEffects/main/*)
+      _rel=${_u#https://raw.githubusercontent.com/deltrivx/ThemeEffects/main}
+      ;;
+    https://cdn.jsdelivr.net/gh/deltrivx/ThemeEffects@main/*)
+      _rel=${_u#https://cdn.jsdelivr.net/gh/deltrivx/ThemeEffects@main}
+      ;;
+    https://fastly.jsdelivr.net/gh/deltrivx/ThemeEffects@main/*)
+      _rel=${_u#https://fastly.jsdelivr.net/gh/deltrivx/ThemeEffects@main}
+      ;;
+    https://raw.gitmirror.com/deltrivx/ThemeEffects/main/*)
+      _rel=${_u#https://raw.gitmirror.com/deltrivx/ThemeEffects/main}
+      ;;
+    https://ghfast.top/https://raw.githubusercontent.com/deltrivx/ThemeEffects/main/*)
+      _rel=${_u#https://ghfast.top/https://raw.githubusercontent.com/deltrivx/ThemeEffects/main}
+      ;;
+  esac
+  if [ -z "$_rel" ]; then
+    printf '%s\n' "$_u"
+    return 0
+  fi
+  printf '%s%s\n' "https://raw.githubusercontent.com/deltrivx/ThemeEffects/main" "$_rel"
+  for _m in $REPO_MIRRORS; do
+    [ -n "$_m" ] || continue
+    printf '%s%s\n' "${_m%/}" "$_rel"
+  done
+}
+
 download() {
-  # Large assets (hutao.gif ~3MB, wallpapers) need headroom on slow links
-  # Progress goes via ucwc_log — never to bare stdout unless plugin mode
-  _ucwc_dl_url=""
-  for _ucwc_a in "$@"; do
-    case "$_ucwc_a" in
-      http://*|https://*) _ucwc_dl_url="$_ucwc_a" ;;
+  # Supports: download -o DEST URL   (and optional extra curl flags before -o)
+  _dest=""
+  _url=""
+  _prev=""
+  _extra=""
+  for _a in "$@"; do
+    if [ "$_prev" = "-o" ]; then
+      _dest="$_a"
+      _prev=""
+      continue
+    fi
+    case "$_a" in
+      -o) _prev="-o" ;;
+      http://*|https://*) _url="$_a" ;;
+      *) _extra="$_extra $_a" ;;
     esac
   done
-  if [ -n "$_ucwc_dl_url" ]; then
-    _ucwc_bn=$(basename "$_ucwc_dl_url" | sed 's/[?].*$//')
-    ucwc_log "下载文件：$_ucwc_bn"
+  if [ -z "$_url" ]; then
+    echo "download: missing URL" >&2
+    return 1
   fi
-  curl -4 -fsSL --connect-timeout 15 --max-time 300 --retry 4 "$@"
+  _bn=$(basename "$_url" | sed 's/[?].*$//')
+  ucwc_log "下载文件：$_bn"
+  _ok=1
+  # shellcheck disable=SC2086
+  for _try in $(ucwc_url_candidates "$_url" | tr '\n' ' '); do
+    [ -n "$_try" ] || continue
+    if [ -n "$_dest" ]; then
+      if ucwc_curl --max-time 300 -o "$_dest" $_extra "$_try"; then
+        _ok=0
+        break
+      fi
+    else
+      if ucwc_curl --max-time 300 $_extra "$_try"; then
+        _ok=0
+        break
+      fi
+    fi
+    ucwc_log "镜像重试：$_bn"
+  done
+  return $_ok
 }
 
 fetch_index() {
-  # 直连 curl + 时间戳，避开 raw CDN 短时缓存旧文件；stdout 必须是纯 JSON
-  # 若偶发混入进度行，从第一个 { 起截取
-  _idx=$(curl -4 -fsSL --connect-timeout 15 --max-time 60 --retry 3 \
-    "$REPO_RAW/versions/index.json?_ts=$(date +%s)" 2>/dev/null) || return 1
-  case "$_idx" in
-    "{"*) printf '%s\n' "$_idx" ;;
-    *) printf '%s\n' "$_idx" | sed -n '/^{/,$p' ;;
-  esac
+  # Try primary + mirrors; stdout pure JSON. Pin REPO_RAW to first working base.
+  _ts=$(date +%s)
+  _idx=""
+  _bases="$REPO_RAW"
+  for _m in $REPO_MIRRORS; do
+    [ -n "$_m" ] || continue
+    _bases="$_bases $_m"
+  done
+  for _b in $_bases; do
+    _b=${_b%/}
+    _idx=$(ucwc_curl --max-time 60 "$_b/versions/index.json?_ts=$_ts" 2>/dev/null) || _idx=""
+    case "$_idx" in
+      "{"*)
+        REPO_RAW="$_b"
+        export REPO_RAW
+        printf '%s\n' "$_idx"
+        return 0
+        ;;
+      *)
+        # strip noise before first brace if any
+        _cut=$(printf '%s\n' "$_idx" | sed -n '/^{/,$p' 2>/dev/null || true)
+        case "$_cut" in
+          "{"*)
+            REPO_RAW="$_b"
+            export REPO_RAW
+            printf '%s\n' "$_cut"
+            return 0
+            ;;
+        esac
+        ;;
+    esac
+    ucwc_log "版本索引镜像重试：$_b"
+  done
+  return 1
 }
+
 
 
 file_sha256() {
@@ -201,7 +300,7 @@ fetch_pkg() {
     else
       # 无 sha：用清单 size 或 HEAD Content-Length 粗比对
       if [ -z "$_expect_sz" ] || [ "$_expect_sz" = "0" ] || [ "$_expect_sz" = "null" ]; then
-        _expect_sz=$(curl -4 -fsSI --connect-timeout 8 --max-time 20 "$_url" 2>/dev/null \
+        _expect_sz=$(ucwc_curl --max-time 20 -I "$_url" 2>/dev/null \
           | tr -d '\r' | awk 'BEGIN{IGNORECASE=1} /^Content-Length:/ {print $2; exit}')
       fi
       if [ -n "$_expect_sz" ] && [ "$_expect_sz" != "0" ]; then
@@ -446,8 +545,7 @@ install_version() {
 
   # 清单：用于 OTA 哈希比对；缺失时 OTA 退化为「有本地同名则按 size 试跳，否则下载」
   progress 22 "拉取清单" "files.manifest（OTA 差异比对）"
-  if curl -4 -fsSL --connect-timeout 12 --max-time 60 --retry 2 \
-      "$base/files.manifest?_ts=$(date +%s)" -o "$tmp/files.manifest" 2>/dev/null; then
+  if download -o "$tmp/files.manifest" "$base/files.manifest?_ts=$(date +%s)"; then
     MANIFEST_JSON=$(cat "$tmp/files.manifest" 2>/dev/null || true)
     case "$MANIFEST_JSON" in
       "{"*) ucwc_log "已加载文件清单（OTA 可用 sha256 比对）" ;;

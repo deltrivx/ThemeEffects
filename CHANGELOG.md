@@ -1,3 +1,14 @@
+## v2.6.0-Beta25 - 2026-07-30
+
+### 概述
+**Beta25**：加固 OTA 拉版本索引，缓解 `TLS connect error: unexpected eof while reading`。
+
+### 变更
+- `ucwc-update.php` / 后台任务：HTTP/1.1 + TLS1.2、同主机重试、多镜像回退（jsDelivr / gitmirror / ghfast）
+- `install.sh`：`fetch_index`/`download` 同样走镜像链，成功后钉住可用 `REPO_RAW`
+- 日志记录镜像成功/失败，便于排查
+- 版本号：**v2.6.0-Beta25**（beta）；正式 latest 仍为 **v2.5.1**
+
 ## v2.6.0-Beta24 - 2026-07-30
 
 ### 概述
