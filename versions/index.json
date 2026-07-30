@@ -1,8 +1,21 @@
 {
   "schema": 1,
-  "default": "v2.6.2",
-  "latest_version": "v2.6.2",
+  "default": "v2.6.3",
+  "latest_version": "v2.6.3",
   "versions": [
+    {
+      "id": "v2.6.3",
+      "label": "v2.6.3：切页/刷新瞬间鼠标不再回系统默认（critical cursor boot）",
+      "channel": "stable",
+      "released_at": "2026-07-30",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true,
+      "mouse_fx": true,
+      "music": false,
+      "ota": true
+    },
     {
       "id": "v2.6.2",
       "label": "v2.6.2：三方鼠标全动作样式覆盖（悬停/点击/菜单不再回系统默认）",
