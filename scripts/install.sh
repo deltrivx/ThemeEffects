@@ -431,7 +431,93 @@ remove_hutao_assets() {
   rm -f "$PERSIST_DIR/assets/hutao.gif" "$RUNTIME_DIR/assets/hutao.gif"
 }
 
+# Purge built-in music leftovers from ThemeEffects (music lives in theme.music only).
+# Safe on install/upgrade: does NOT touch /boot/config/plugins/theme.music.
+purge_legacy_music_residue() {
+  _purged=0
+  for _root in "$PERSIST_DIR" "$RUNTIME_DIR" "$LEGACY_DIR" "$LEGACY_RUNTIME"; do
+    [ -n "$_root" ] || continue
+    [ -e "$_root" ] || continue
+    for _f in \
+      "$_root/ucwc-music-api.php" \
+      "$_root/assets/ucwc-music.js" \
+      "$_root/assets/ucwc-music.css" \
+      "$_root/assets/ucwc-music-host.html" \
+      "$_root/ucwc-music.js" \
+      "$_root/ucwc-music.css" \
+      "$_root/ucwc-music-host.html"
+    do
+      if [ -e "$_f" ] || [ -L "$_f" ]; then
+        rm -f "$_f" 2>/dev/null || true
+        _purged=1
+      fi
+    done
+    # Any stray music-named assets under theme.effects (not theme.music)
+    if [ -d "$_root/assets" ]; then
+      find "$_root/assets" -maxdepth 1 \( \
+        -name 'ucwc-music*' -o -name '*music-host*' -o -name 'theme-music*' \
+      \) -type f -exec rm -f {} + 2>/dev/null || true
+    fi
+    # Legacy music cover/lyrics caches that lived under theme.effects
+    if [ -d "$_root/cover-cache" ]; then
+      rm -rf "$_root/cover-cache" 2>/dev/null || true
+      _purged=1
+    fi
+    if [ -d "$_root/lyrics-cache" ]; then
+      rm -rf "$_root/lyrics-cache" 2>/dev/null || true
+      _purged=1
+    fi
+    if [ -d "$_root/assets/cover-cache" ]; then
+      rm -rf "$_root/assets/cover-cache" 2>/dev/null || true
+      _purged=1
+    fi
+    if [ -d "$_root/assets/lyrics-cache" ]; then
+      rm -rf "$_root/assets/lyrics-cache" 2>/dev/null || true
+      _purged=1
+    fi
+  done
+
+  # Drop MUSIC_* keys from theme-effects.cfg (keep all other settings)
+  if [ -f "$THEME_FX_CFG" ] && grep -qE '^[[:space:]]*MUSIC_' "$THEME_FX_CFG" 2>/dev/null; then
+    _cfg_tmp=$(mktemp /tmp/theme-effects-cfg.XXXXXX 2>/dev/null || echo /tmp/theme-effects-cfg.purge)
+    if grep -vE '^[[:space:]]*MUSIC_' "$THEME_FX_CFG" > "$_cfg_tmp" 2>/dev/null; then
+      install -m 0644 "$_cfg_tmp" "$THEME_FX_CFG" 2>/dev/null || mv -f "$_cfg_tmp" "$THEME_FX_CFG"
+      _purged=1
+    fi
+    rm -f "$_cfg_tmp" 2>/dev/null || true
+  fi
+
+  # Scrub accidental music inject markers left in Loader / CA page
+  for _page in "$LOADER_PAGE" "$LOADER_RUNTIME" "$CA_PAGE" \
+               "$LEGACY_DIR/ThemeEffects_Loader.page" "$LEGACY_RUNTIME/ThemeEffects_Loader.page" \
+               "$LEGACY_DIR/CustomCSS_Loader.page" "$LEGACY_RUNTIME/CustomCSS_Loader.page"
+  do
+    [ -f "$_page" ] || continue
+    if grep -qE 'ucwc-music|__UCWC_MUSIC__|ThemeMusic:music|theme\.music/assets/ucwc-music' "$_page" 2>/dev/null; then
+      _pg_tmp=$(mktemp /tmp/te-loader-scrub.XXXXXX 2>/dev/null || echo /tmp/te-loader-scrub)
+      # Drop script tags that load TE-bundled music assets; keep apps-enhancement etc.
+      if sed -E \
+        -e '/ucwc-music(\.js|\.css|\/)/d' \
+        -e '/__UCWC_MUSIC__/d' \
+        -e '/ThemeMusic:music/d' \
+        "$_page" > "$_pg_tmp" 2>/dev/null; then
+        # Only replace if sed produced non-empty output
+        if [ -s "$_pg_tmp" ]; then
+          install -m 0644 "$_pg_tmp" "$_page" 2>/dev/null || cp -f "$_pg_tmp" "$_page"
+          _purged=1
+        fi
+      fi
+      rm -f "$_pg_tmp" 2>/dev/null || true
+    fi
+  done
+
+  if [ "$_purged" = "1" ]; then
+    ucwc_log "已清除主题特效内置音乐残留（文件/缓存/MUSIC_* 配置键）；独立插件 theme.music 不受影响"
+  fi
+}
+
 remove_theme_effects() {
+  purge_legacy_music_residue
   rm -f \
     "$THEME_FX_PAGE" "$THEME_FX_RUNTIME" \
     "$THEME_FX_CFG" \
@@ -463,6 +549,9 @@ remove_theme_effects() {
     "$RUNTIME_DIR/assets/background-custom.jpg" \
     "$PERSIST_DIR/assets/background-dynamic.jpg" \
     "$RUNTIME_DIR/assets/background-dynamic.jpg"
+  rm -rf \
+    "$PERSIST_DIR/cover-cache" "$RUNTIME_DIR/cover-cache" \
+    "$PERSIST_DIR/lyrics-cache" "$RUNTIME_DIR/lyrics-cache" 2>/dev/null || true
 }
 
 write_options() {
@@ -543,6 +632,9 @@ install_version() {
   fi
   mkdir -p "$tmp/assets" "$PERSIST_DIR/assets" "$RUNTIME_DIR/assets"
   migrate_from_legacy_custom_css
+  # Always scrub pre-split music leftovers under theme.effects (and legacy custom.css).
+  progress 20 "清理残留" "清除主题特效内置音乐组件/缓存（不影响 theme.music）"
+  purge_legacy_music_residue
 
   # 清单：用于 OTA 哈希比对；缺失时 OTA 退化为「有本地同名则按 size 试跳，否则下载」
   progress 22 "拉取清单" "files.manifest（OTA 差异比对）"
@@ -701,6 +793,8 @@ install_version() {
   if [ "$apps_enhancement" = "true" ]; then
     inject_loader_enhancement
   fi
+  # Re-purge after file writes in case an old package reintroduced music assets
+  purge_legacy_music_residue
   apply_display_settings
   write_options
   {
