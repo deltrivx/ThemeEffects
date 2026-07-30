@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "theme.effects">
 <!ENTITY author    "deltrivx">
-<!ENTITY version   "2026.07.30k">
+<!ENTITY version   "2026.07.30l">
 <!ENTITY launch    "Settings/ThemeEffects">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY flash     "/boot/config/plugins/&name;">
@@ -17,6 +17,8 @@
 <CHANGES>
 <![CDATA[
 ## Theme Effects
+###2026.07.30l
+- v2.6.0-Beta22: chip-styled mini host window, card/chip sync, no cross-page flash
 ###2026.07.30k
 - v2.6.0-Beta21: play button follows real pause state after navigation
 ###2026.07.30j
