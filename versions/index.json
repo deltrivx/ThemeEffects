@@ -4,6 +4,19 @@
   "latest_version": "v2.5.1",
   "versions": [
     {
+      "id": "v2.6.0-Beta31",
+      "label": "Beta31：1.8.x式卡片（介绍收入卡内）；移动端手势内同步播放/续播",
+      "channel": "beta",
+      "released_at": "2026-07-30",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true,
+      "mouse_fx": true,
+      "music": true,
+      "ota": true
+    },
+    {
       "id": "v2.6.0-Beta30",
       "label": "Beta30：恢复官方CA卡片排版（标题/角标）；移动端音乐手势续播",
       "channel": "beta",
