@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "theme.effects">
 <!ENTITY author    "deltrivx">
-<!ENTITY version   "2026.07.30z">
+<!ENTITY version   "2026.07.31a">
 	<!ENTITY launch    "Settings/ThemeEffects">
 	<!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 	<!ENTITY flash     "/boot/config/plugins/&name;">
@@ -17,6 +17,8 @@
 	<CHANGES>
 	<![CDATA[
 	## Theme Effects
+	###2026.07.31a
+	- boot: restore runtime from flash before OTA (survive reboot when GitHub times out)
 	###2026.07.30y
 	- v2.6.2: themed cursor on all interactions (hover/click/menus no longer fall back to system)
 	###2026.07.30x
@@ -138,61 +140,111 @@ Repo: https://github.com/deltrivx/ThemeEffects
 </INLINE>
 </FILE>
 
-<!-- Install / upgrade latest package via install.sh
-     Plugin manager popen() only reads stdout. install.sh progress is on stderr
-     (so Web jobs / command substitution stay clean). Merge + line-buffer here. -->
+<!-- Boot/install: restore runtime from flash first (offline-safe), then OTA if network works -->
 <FILE Run="/bin/bash">
 <INLINE>
-set -e
+set +e
 export PATH="/usr/local/sbin:/usr/sbin:/sbin:/usr/local/bin:/usr/bin:/bin"
 export UCWC_PLUGIN_INSTALL=1
 export UCWC_INSTALL_MODE="${UCWC_INSTALL_MODE:-ota}"
+FLASH="&flash;"
+PLUG="&plugdir;"
+mkdir -p "$FLASH/assets" "$PLUG/assets"
 
 echo "===================================================="
 echo " Theme Effects plugin install"
 echo " package: &ver;  mode: $UCWC_INSTALL_MODE"
 echo "===================================================="
 
-if ! command -v curl >/dev/null 2>&amp;1; then
-  echo "ERROR: curl required" &gt;&amp;2
-  exit 1
+restore_from_flash() {
+  [ -f "$FLASH/ThemeEffects.page" ] || return 1
+  [ -f "$FLASH/ThemeEffects_Loader.page" ] || return 1
+  echo "Theme Effects: restoring runtime from flash…"
+  for f in ThemeEffects.page ThemeEffects_Loader.page apps-enhancement.js style.css style-black.css style.md5 \
+           ucwc-theme-fx-save.php ucwc-update.php ucwc-auth-request.conf ucwc-upload.ini; do
+    [ -f "$FLASH/$f" ] &amp;&amp; install -m 0644 "$FLASH/$f" "$PLUG/$f"
+  done
+  for f in apps-enhancement.js ucwc-mouse-fx.js ucwc-particles.js ucwc-theme-fx.css ucwc-theme-fx.js; do
+    [ -f "$FLASH/assets/$f" ] &amp;&amp; install -m 0644 "$FLASH/assets/$f" "$PLUG/assets/$f"
+  done
+  if [ -d "$FLASH/assets/fonts" ]; then
+    mkdir -p "$PLUG/assets/fonts"
+    cp -a "$FLASH/assets/fonts/." "$PLUG/assets/fonts/" 2>/dev/null || true
+  fi
+  for f in background.jpg background-1.jpg background-2.jpg background-custom.jpg background-dynamic.jpg hutao.gif mascot-custom.gif; do
+    if [ -f "$FLASH/assets/$f" ] &amp;&amp; [ ! -e "$PLUG/assets/$f" ]; then
+      ln -sf "$FLASH/assets/$f" "$PLUG/assets/$f" 2>/dev/null || cp -a "$FLASH/assets/$f" "$PLUG/assets/$f"
+    fi
+  done
+  return 0
+}
+
+if restore_from_flash; then
+  echo "Theme Effects: flash restore OK"
+else
+  echo "Theme Effects: no complete flash package yet; will need network install"
 fi
-if ! command -v jq >/dev/null 2>&amp;1; then
-  echo "ERROR: jq required" &gt;&amp;2
+
+if ! command -v curl >/dev/null 2&gt;&amp;1; then
+  if [ -f "$PLUG/ThemeEffects.page" ]; then
+    echo "Theme Effects: curl missing but flash runtime present — boot OK"
+    exit 0
+  fi
+  echo "ERROR: curl required" &gt;&amp;2
   exit 1
 fi
 
 echo "[1/4] downloading install.sh…"
 TMP=$(mktemp /tmp/theme.effects.install.XXXXXX)
-if ! curl -4 -fsSL --connect-timeout 15 --max-time 120 --retry 3 \
+ok=0
+if curl -4 -fsSL --connect-timeout 12 --max-time 45 --retry 2 \
     -o "$TMP" "&installSH;?_ts=$(date +%s)"; then
-  echo "ERROR: failed to download install.sh from GitHub" &gt;&amp;2
-  rm -f "$TMP"
-  exit 1
-fi
-chmod +x "$TMP"
-echo "[1/4] install.sh ready ($(wc -c &lt; "$TMP" | tr -d ' ') bytes)"
-
-echo "[2/4] running install &ver; (progress below; large assets may take a minute)…"
-# popen only sees stdout — merge stderr; prefer line-buffered I/O
-if command -v stdbuf >/dev/null 2>&amp;1; then
-  stdbuf -oL -eL sh "$TMP" install "&ver;" 2&gt;&amp;1
+  ok=1
 else
-  sh "$TMP" install "&ver;" 2&gt;&amp;1
+  for m in \
+    "https://cdn.jsdelivr.net/gh/&github;@main/scripts/install.sh" \
+    "https://fastly.jsdelivr.net/gh/&github;@main/scripts/install.sh" \
+    "https://raw.gitmirror.com/&github;/main/scripts/install.sh" \
+    "https://ghfast.top/https://raw.githubusercontent.com/&github;/main/scripts/install.sh"
+  do
+    if curl -4 -fsSL --connect-timeout 12 --max-time 45 --retry 1 -o "$TMP" "$m"; then ok=1; break; fi
+  done
 fi
-rm -f "$TMP"
+
+if [ "$ok" = "1" ] &amp;&amp; [ -s "$TMP" ]; then
+  chmod +x "$TMP"
+  echo "[1/4] install.sh ready ($(wc -c &lt; "$TMP" | tr -d ' ') bytes)"
+  echo "[2/4] running install &ver;…"
+  if command -v stdbuf >/dev/null 2&gt;&amp;1; then
+    stdbuf -oL -eL sh "$TMP" install "&ver;" 2&gt;&amp;1
+  else
+    sh "$TMP" install "&ver;" 2&gt;&amp;1
+  fi
+  rc=$?
+  rm -f "$TMP"
+  if [ "$rc" -eq 0 ]; then
+    echo "Theme Effects: OTA install OK (&ver;)"
+  else
+    echo "Theme Effects: OTA returned $rc — falling back to flash restore"
+    restore_from_flash
+  fi
+else
+  echo "Theme Effects: cannot download install.sh (network)"
+  rm -f "$TMP"
+  restore_from_flash
+fi
 
 echo "[3/4] verifying runtime files…"
-if [ ! -f "&plugdir;/ThemeEffects.page" ] &amp;&amp; [ ! -f "&flash;/ThemeEffects.page" ]; then
-  echo "WARNING: ThemeEffects.page not found after install (check network / logs)"
+if [ -f "$PLUG/ThemeEffects.page" ]; then
+  echo "Theme Effects: runtime present — boot OK"
+  echo "----------------------------------------------------"
+  echo " theme.effects &ver; ready."
+  echo " Open Settings → User Preferences → 主题特效"
+  echo "----------------------------------------------------"
+  exit 0
 fi
-
-echo "[4/4] done."
-echo "----------------------------------------------------"
-echo " theme.effects &ver; installed."
-echo " Open Settings → User Preferences → 主题特效"
-echo "----------------------------------------------------"
-exit 0
+echo "Theme Effects: ERROR — no runtime files (flash empty and network failed)" &gt;&amp;2
+exit 1
 </INLINE>
 </FILE>
 
