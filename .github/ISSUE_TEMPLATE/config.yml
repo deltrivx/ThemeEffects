@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 安全问题私密报告
+    url: https://github.com/deltrivx/ThemeEffects/security/advisories/new
+    about: 不要在公开 Issue 中披露漏洞或凭据。

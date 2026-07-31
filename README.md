@@ -1,125 +1,116 @@
-# Theme Effects（主题特效）
+# Theme Effects · 主题特效
 
-独立 Unraid WebGUI 主题插件（**不依赖** Custom WebUI CSS）。仓库：[deltrivx/ThemeEffects](https://github.com/deltrivx/ThemeEffects)
+[![最新版本](https://img.shields.io/github/v/release/deltrivx/ThemeEffects?display_name=tag&sort=semver&label=最新版本)](https://github.com/deltrivx/ThemeEffects/releases/latest)
+[![Unraid](https://img.shields.io/badge/Unraid-6.12%2B-F15A2C?logo=unraid&logoColor=white)](https://unraid.net/)
+[![代码许可](https://img.shields.io/badge/代码许可-MIT-2ea44f)](LICENSE)
+[![文档与原创视觉](https://img.shields.io/badge/文档与原创视觉-CC%20BY--NC--SA%204.0-8a2be2)](LICENSE-ASSETS.md)
 
-当前正式版：**v2.6.4**（OTA/全量更新）；`latest_version` 指向 **v2.6.4**  
-- 音乐组件已完全剥离；请使用独立插件 [ThemeMusic](https://github.com/deltrivx/ThemeMusic)
-- 开机 plg 支持 flash 优先恢复（重启离线/GitHub 超时不丢 runtime）
+面向 Unraid WebGUI 的独立视觉增强插件。Theme Effects 将壁纸、粒子、鼠标动效、指针、吉祥物、字体配色和应用页增强整合到原生设置页，并提供可回滚、可离线恢复的正式发布链路。
 
-## 功能
+> 当前正式版：**v2.7.0** · 插件 ID：`theme.effects` · 最低 Unraid：**6.12.0**
 
-- 全局主题 CSS（黑主题适配）
-- 背景壁纸（本地 / 自定义上传 / 在线图库）
-- 粒子特效
-- 鼠标特效（柔光/光环/光迹/星火，默认关闭）+ 全站指针样式（霓虹立体 / 全息玻璃 / 赛博利刃 / 水晶切面 / **自定义上传**）
-- 吉祥物（内置胡桃 / 自定义 GIF）
-- 应用页增强（侧栏、搜索建议、路由隔离）
-- 设置页「主题特效」分段「应用」
-- 模糊等级（弱/中/强）与模糊背景性能优化
-- 自定义资源双路上传（电脑 / Unraid 本地路径 + 路径树）
-- 性能档位（应用时改写粒子/模糊等）/ 首次使用自动优化
-- 标题栏运行时总开关（SERVICE）
-- 字体 / 颜色可配置（含本地字体）
-- 检查更新 / 更新日志
+## 核心能力
 
-## 更新模式（OTA / 全量）
+| 能力 | 说明 |
+|---|---|
+| 全局主题 | 原生 WebGUI 深色样式、壁纸、模糊层级与响应式布局 |
+| 粒子特效 | 多种背景粒子，可按性能档位自动收敛密度与刷新负载 |
+| 鼠标体验 | 柔光、光环、光迹、星火及多套全站指针，也支持上传自定义指针 |
+| 吉祥物 | 内置或自定义 GIF，支持位置、尺寸、透明度和模糊程度 |
+| 字体与颜色 | 正文/标题字体、字号、颜色预设和本地字体文件 |
+| 应用页增强 | Community Applications 侧栏、搜索建议及移动端布局适配 |
+| 双路资源上传 | 从浏览器上传，或从 Unraid 本地路径选择壁纸、字体、GIF 和指针 |
+| 可靠发布 | Release 归档双重 SHA256 校验、差异写入、历史回滚与 flash 离线恢复 |
 
-| 模式 | 行为 | 适用 |
-|------|------|------|
-| **OTA**（默认） | 下载版本包 `files.manifest`，按 sha256 与本地 flash 比对，**只下载变更/缺失**文件 | 日常升级、重装未改大资源 |
-| **全量** | 重新下载包内全部文件 | 本地文件损坏、强制修复 |
+音乐播放已由独立项目 [Theme Music](https://github.com/deltrivx/ThemeMusic) 维护，Theme Effects 不包含音乐运行代码。
 
-Web「检查更新 / 检查 Beta」面板与「更新日志」安装均提供 **OTA** 与 **全量** 两个按钮。
+## 安装
 
-## 系统要求
+### 方式一：Unraid 插件管理器
 
-- Unraid **6.12+**（主测 **7.3.2**）
-- 可访问 GitHub Raw
-- root 终端（一键脚本）或插件管理器（`.plg`）
-
-**不再需要**安装 Custom WebUI CSS。若曾用旧版寄生安装，升级脚本会自动迁移配置/资源并清理寄生文件。
-
-## 一键安装 / 升级 / 卸载
-
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/deltrivx/ThemeEffects/main/scripts/install.sh)
-```
-
-- 交互终端：菜单（最新版 / 历史版本 / 卸载 / 退出）
-- 非交互（管道）：直接安装最新版（默认 **OTA**）
-- 指定版本：`bash scripts/install.sh install v2.4.3`
-- 正式版 OTA：`bash scripts/install.sh install v2.5.1 ota`（默认，可省略 `ota`）
-- 正式版全量：`bash scripts/install.sh install v2.5.1 full`
-- 环境变量：`UCWC_INSTALL_MODE=ota|full`
-
-### 插件方式
-
-```bash
-plugin install https://raw.githubusercontent.com/deltrivx/ThemeEffects/main/theme.effects.plg
-```
-
-或：插件 → 安装插件 → 粘贴上述 URL。
-
-## 目录布局
+进入 **插件 → 安装插件**，粘贴：
 
 ```text
-/boot/config/plugins/theme.effects/          # 持久
-/usr/local/emhttp/plugins/theme.effects/     # 运行时
-├── ThemeEffects.page            # 设置 → 用户偏好 → 主题特效
-├── ThemeEffects_Loader.page     # Buttons 全局注入
-├── style.css / style-black.css
-├── theme.effects.cfg            # SERVICE=enabled|disabled
-├── theme-effects.cfg            # 特效开关
-├── ucwc-theme-fx-save.php
-├── ucwc-update.php
-└── assets/                      # 粒子 / 鼠标 / 设置页 UI 等
+https://raw.githubusercontent.com/deltrivx/ThemeEffects/main/theme.effects.plg
 ```
 
-## 自动显示设置
+### 方式二：终端 OTA 安装
 
-安装时写入 Dynamix 黑主题与白色页眉（仅首次备份原值；卸载时恢复）。
-
-## 从 Custom WebUI CSS 寄生版迁移
-
-v2 安装时若检测到 `/boot/config/plugins/custom.css/` 中的旧主题：
-
-1. 复制 `theme-effects.cfg` 与用户壁纸/自定义 GIF
-2. 删除寄生的 ThemeEffects / Loader / AJAX 文件
-3. 若 `style.css` 为旧主题包则备份并禁用 custom.css SERVICE
-4. 新特效由 `theme.effects` 独立提供
-
-上游 **Custom WebUI CSS** 插件本体不会被卸载；若仍需手写 CSS 编辑器可重新启用该插件。
-
-## 版本
-
-- 清单：`versions/index.json`
-- 历史包：`versions/v*`
-- 日志：[CHANGELOG.md](CHANGELOG.md)
-
-## 常见问题
-
-### 样式未生效
+OTA 会复用哈希未变化的本地文件，只写入变化项：
 
 ```bash
-cat /boot/config/plugins/theme.effects/theme.effects.cfg   # SERVICE="enabled"
-ls /usr/local/emhttp/plugins/theme.effects/ThemeEffects_Loader.page
+curl -fsSL https://github.com/deltrivx/ThemeEffects/releases/download/v2.7.0/install.sh -o /tmp/theme-effects-install.sh
+sh /tmp/theme-effects-install.sh install v2.7.0 ota
 ```
 
-强制刷新：Ctrl+F5。
+### 方式三：终端全量修复
 
-### 背景/吉祥物
+全量模式重新写入版本包中的全部运行文件，适合修复损坏或被手动修改的安装：
 
 ```bash
-ls -lh /boot/config/plugins/theme.effects/assets/
-ls -lh /usr/local/emhttp/plugins/theme.effects/assets/
+curl -fsSL https://github.com/deltrivx/ThemeEffects/releases/download/v2.7.0/install.sh -o /tmp/theme-effects-install.sh
+sh /tmp/theme-effects-install.sh install v2.7.0 full
 ```
 
-### 卸载
+安装完成后前往：**设置 → 用户偏好 → 主题特效**。
 
-一键脚本菜单选卸载，或：
+## 配置与运行
 
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/deltrivx/ThemeEffects/main/scripts/install.sh) uninstall
-# 或
-plugin remove theme.effects
-```
+- 标题栏总开关控制是否向 WebGUI 注入视觉效果。
+- 设置页分段应用壁纸、粒子、鼠标、吉祥物、字体和性能参数。
+- `PERF_PROFILE=auto|high|balanced|low` 可按设备能力自动降低模糊、粒子与动画负载。
+- 用户上传的壁纸、字体、GIF、指针及配置在升级时保留。
+- 应用后若浏览器仍显示旧样式，请执行强制刷新（`Ctrl+F5`）。
+
+## 持久化路径
+
+| 内容 | 路径 |
+|---|---|
+| 插件与版本状态 | `/boot/config/plugins/theme.effects/` |
+| 运行时 | `/usr/local/emhttp/plugins/theme.effects/` |
+| 服务开关 | `/boot/config/plugins/theme.effects/theme.effects.cfg` |
+| 特效设置 | `/boot/config/plugins/theme.effects/theme-effects.cfg` |
+| 用户资源 | `/boot/config/plugins/theme.effects/assets/` |
+| 设置入口 | `/Settings/ThemeEffects` |
+
+升级安装会自动清理 Theme Effects 自身旧版本留下的失效 Loader、音乐组件、缓存和重复注入，不会迁移、停用或改写其他插件的服务配置、用户 CSS 和上传资源。
+
+## 发布与校验
+
+每个正式 Release 提供：
+
+- `ThemeEffects-<版本>.zip`
+- `ThemeEffects-<版本>.tar.gz`
+- `theme.effects-<版本>.plg`
+- `files.manifest`
+- `install.sh`
+- `SHA256SUMS`
+
+安装器优先一次下载 Release 归档，先验证归档总 SHA256，再按 `files.manifest` 对运行文件逐一复核。归档不可用时才回退到限时的逐文件镜像下载。
+
+## 兼容性与边界
+
+- 支持 Unraid 6.12 及以上版本，主要在 Unraid 7.3.2 验证。
+- 需要 Unraid 自带的 `curl`、`jq`、PHP 和常用归档工具。
+- Community Applications 更新可能影响应用页增强的 DOM 结构；基础主题与特效不依赖该增强。
+- 项目不修改 Docker 容器、虚拟机、阵列数据或用户媒体文件。
+
+## 项目文档
+
+- [ABOUT.md](ABOUT.md)：项目定位、架构与设计原则
+- [CHANGELOG.md](CHANGELOG.md)：2.0 以来的重要中文更新记录
+- [CONTRIBUTING.md](CONTRIBUTING.md)：贡献与验证流程
+- [SECURITY.md](SECURITY.md)：安全支持与私密报告方式
+- [SUPPORT.md](SUPPORT.md)：故障排查与提交信息
+- [docs/display-settings.md](docs/display-settings.md)：显示设置说明
+- [docs/troubleshooting.md](docs/troubleshooting.md)：常见问题
+
+## 许可证
+
+- 程序源代码采用 [MIT License](LICENSE)。
+- 原创文档、截图和明确标注的原创视觉资产采用 [CC BY-NC-SA 4.0](LICENSE-ASSETS.md)。
+- 第三方角色、商标、名称及来源不明的媒体文件不包含在上述视觉资产授权中，详见 [NOTICE](NOTICE)。
+
+## 致谢
+
+感谢 Unraid、Community Applications 社区及所有参与实机测试和反馈的用户。Theme Effects 是独立社区项目，与文中提及的产品或服务不存在官方隶属或背书关系。

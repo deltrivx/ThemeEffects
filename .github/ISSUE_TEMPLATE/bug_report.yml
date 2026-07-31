@@ -1,0 +1,39 @@
+name: 问题报告
+description: 报告可重复的 Theme Effects 故障
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: 请先移除 Cookie、Token、私人路径、公网地址和用户上传资源。
+  - type: input
+    id: versions
+    attributes:
+      label: 版本
+      description: Theme Effects、Unraid、浏览器和 Community Applications 版本
+    validations:
+      required: true
+  - type: dropdown
+    id: device
+    attributes:
+      label: 设备
+      options: [桌面端, 移动端]
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 重现步骤
+      description: 请给出最小、连续、可重复的步骤。
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: 预期与实际结果
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 已脱敏日志或截图

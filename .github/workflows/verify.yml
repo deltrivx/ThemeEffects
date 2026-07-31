@@ -1,0 +1,19 @@
+name: 发布完整性检查
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+      - name: 校验代码、版本清单、PLG 与文档
+        run: ./scripts/verify-release.sh

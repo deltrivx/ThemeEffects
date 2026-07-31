@@ -11,8 +11,8 @@
 (function () {
   "use strict";
 
-  if (window.__unraidCustomWebuiCssAppsEnhancement) return;
-  window.__unraidCustomWebuiCssAppsEnhancement = true;
+  if (window.__themeEffectsAppsEnhancement) return;
+  window.__themeEffectsAppsEnhancement = true;
 
   var PATCHED = false;
   var suggestRafId = 0;
