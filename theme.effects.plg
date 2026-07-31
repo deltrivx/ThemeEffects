@@ -2,13 +2,13 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "theme.effects">
 <!ENTITY author    "deltrivx">
-<!ENTITY version   "v2.7.0">
+<!ENTITY version   "v2.7.1">
 	<!ENTITY launch    "Settings/ThemeEffects">
 	<!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 	<!ENTITY flash     "/boot/config/plugins/&name;">
 	<!ENTITY github    "deltrivx/ThemeEffects">
 	<!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/theme.effects.plg">
-	<!ENTITY ver       "v2.7.0">
+	<!ENTITY ver       "v2.7.1">
 	<!ENTITY installSH "https://github.com/&github;/releases/download/&ver;/install.sh">
 	]>
 	<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" icon="magic" support="https://github.com/&github;">
@@ -17,6 +17,10 @@
 	<CHANGES>
 	<![CDATA[
 	## Theme Effects
+	### v2.7.1
+	- 代码许可改为 PolyForm Noncommercial 1.0.0，明确禁止未经授权的商业使用
+	- 更新日志版本列表自动换行并禁止横向滚动，窄屏改为单列布局
+	- 首次安装默认关闭，须在设置页手动开启；升级继续保留用户原有开关
 	### v2.7.0
 	- 清除 2.0 以前的版本历史与旧插件专属失效文件，保留用户 CSS 和资源
 	- PLG、终端 OTA、终端全量统一为 Release 归档双重 SHA256 安装链路

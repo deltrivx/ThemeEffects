@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Theme Effects 更新日志布局回归</title>
+  <script>if (new URLSearchParams(location.search).get("narrow") === "1") document.documentElement.className = "narrow";</script>
+  <link rel="stylesheet" href="../assets/ucwc-theme-fx.css">
+  <style>
+    body { margin: 0; background: #111; }
+    #ucwc-panel { display: block; position: static; transform: none; margin: 20px auto; }
+    html.narrow #ucwc-panel { width: 350px; }
+  </style>
+</head>
+<body>
+  <div id="ucwc-panel">
+    <h3>更新日志</h3>
+    <div class="ucwc-ver-grid">
+      <div class="ucwc-ver-list">
+        <button class="ucwc-ver-item active"><strong>v2.7.1-super-long-version-name</strong> · 2026-07-31<br>这是一个用于验证左侧简短更新日志能够在表格区域内自动换行而不会产生横向滚动的超长说明ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<br><span class="ucwc-chip">theme_effects</span></button>
+      </div>
+      <div><div class="ucwc-log">右侧完整更新日志。ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789</div></div>
+    </div>
+  </div>
+</body>
+</html>

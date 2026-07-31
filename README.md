@@ -2,12 +2,12 @@
 
 [![最新版本](https://img.shields.io/github/v/release/deltrivx/ThemeEffects?display_name=tag&sort=semver&label=最新版本)](https://github.com/deltrivx/ThemeEffects/releases/latest)
 [![Unraid](https://img.shields.io/badge/Unraid-6.12%2B-F15A2C?logo=unraid&logoColor=white)](https://unraid.net/)
-[![代码许可](https://img.shields.io/badge/代码许可-MIT-2ea44f)](LICENSE)
+[![代码许可](https://img.shields.io/badge/代码许可-PolyForm%20Noncommercial%201.0.0-8a2be2)](LICENSE)
 [![文档与原创视觉](https://img.shields.io/badge/文档与原创视觉-CC%20BY--NC--SA%204.0-8a2be2)](LICENSE-ASSETS.md)
 
 面向 Unraid WebGUI 的独立视觉增强插件。Theme Effects 将壁纸、粒子、鼠标动效、指针、吉祥物、字体配色和应用页增强整合到原生设置页，并提供可回滚、可离线恢复的正式发布链路。
 
-> 当前正式版：**v2.7.0** · 插件 ID：`theme.effects` · 最低 Unraid：**6.12.0**
+> 当前正式版：**v2.7.1** · 插件 ID：`theme.effects` · 最低 Unraid：**6.12.0**
 
 ## 核心能力
 
@@ -39,8 +39,8 @@ https://raw.githubusercontent.com/deltrivx/ThemeEffects/main/theme.effects.plg
 OTA 会复用哈希未变化的本地文件，只写入变化项：
 
 ```bash
-curl -fsSL https://github.com/deltrivx/ThemeEffects/releases/download/v2.7.0/install.sh -o /tmp/theme-effects-install.sh
-sh /tmp/theme-effects-install.sh install v2.7.0 ota
+curl -fsSL https://github.com/deltrivx/ThemeEffects/releases/download/v2.7.1/install.sh -o /tmp/theme-effects-install.sh
+sh /tmp/theme-effects-install.sh install v2.7.1 ota
 ```
 
 ### 方式三：终端全量修复
@@ -48,11 +48,11 @@ sh /tmp/theme-effects-install.sh install v2.7.0 ota
 全量模式重新写入版本包中的全部运行文件，适合修复损坏或被手动修改的安装：
 
 ```bash
-curl -fsSL https://github.com/deltrivx/ThemeEffects/releases/download/v2.7.0/install.sh -o /tmp/theme-effects-install.sh
-sh /tmp/theme-effects-install.sh install v2.7.0 full
+curl -fsSL https://github.com/deltrivx/ThemeEffects/releases/download/v2.7.1/install.sh -o /tmp/theme-effects-install.sh
+sh /tmp/theme-effects-install.sh install v2.7.1 full
 ```
 
-安装完成后前往：**设置 → 用户偏好 → 主题特效**。
+安装完成后插件默认关闭。前往 **设置 → 用户偏好 → 主题特效**，手动开启总开关后才会向 WebGUI 注入效果。
 
 ## 配置与运行
 
@@ -107,7 +107,7 @@ sh /tmp/theme-effects-install.sh install v2.7.0 full
 
 ## 许可证
 
-- 程序源代码采用 [MIT License](LICENSE)。
+- 程序源代码采用 [PolyForm Noncommercial License 1.0.0](LICENSE)：允许个人与非商业组织在非商业目的下使用、修改和分发；任何商业使用均须事先取得作者书面授权。
 - 原创文档、截图和明确标注的原创视觉资产采用 [CC BY-NC-SA 4.0](LICENSE-ASSETS.md)。
 - 第三方角色、商标、名称及来源不明的媒体文件不包含在上述视觉资产授权中，详见 [NOTICE](NOTICE)。
 

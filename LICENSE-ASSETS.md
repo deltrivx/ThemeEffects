@@ -7,7 +7,7 @@ https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
 
 ## 不在本许可范围内的材料
 
-- 程序代码和技术接口文件采用根目录 [LICENSE](LICENSE) 中的 MIT License；
+- 程序代码和技术接口文件采用根目录 [LICENSE](LICENSE) 中的 PolyForm Noncommercial License 1.0.0；
 - 第三方角色形象、商标、名称及其衍生素材；
 - 来源或权利状态未明确标注的壁纸、GIF、字体和其他媒体文件；
 - 用户自行上传或配置的任何资源。

@@ -782,7 +782,14 @@ install_version() {
   install -m 0644 "$tmp/style.css" "$PERSIST_DIR/style.css"
   install -m 0644 "$tmp/style-black.css" "$PERSIST_DIR/style-black.css"
   install -m 0644 "$tmp/assets/background.jpg" "$PERSIST_DIR/assets/background.jpg"
-  printf 'SERVICE="enabled"\n' > "$PERSIST_DIR/theme.effects.cfg"
+  # First install is opt-in. Preserve an existing user's master switch during upgrades.
+  if [ ! -f "$PERSIST_DIR/theme.effects.cfg" ]; then
+    if [ -f "$tmp/theme.effects.cfg" ]; then
+      install -m 0644 "$tmp/theme.effects.cfg" "$PERSIST_DIR/theme.effects.cfg"
+    else
+      printf 'SERVICE="disabled"\n' > "$PERSIST_DIR/theme.effects.cfg"
+    fi
+  fi
   # Also place auth/upload helpers on flash for Loader reinject
   if [ -f "$tmp/ucwc-auth-request.conf" ]; then
     install -m 0644 "$tmp/ucwc-auth-request.conf" "$PERSIST_DIR/ucwc-auth-request.conf"
