@@ -592,7 +592,14 @@ sync_plugin_metadata() {
   fi
   install -m 0644 "$_dst" "$PLUGIN_BOOT"
   if [ -d "$(dirname "$PLUGIN_LOG")" ]; then
-    install -m 0644 "$_dst" "$PLUGIN_LOG"
+    # Unraid uses /var/log/plugins/*.plg as registration symlinks. During a
+    # PLG-driven install, leave creation to /usr/local/sbin/plugin after this
+    # script returns. A terminal install must register itself explicitly.
+    if [ "${UCWC_PLUGIN_INSTALL:-}" = "1" ]; then
+      [ -L "$PLUGIN_LOG" ] || rm -f "$PLUGIN_LOG"
+    else
+      ln -sfn "$PLUGIN_BOOT" "$PLUGIN_LOG"
+    fi
   fi
   ucwc_log "已同步 Unraid 插件列表元数据：$VERSION"
 }
