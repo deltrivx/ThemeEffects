@@ -23,6 +23,8 @@ index = json.loads((root / 'versions/index.json').read_text())
 ids = [item['id'] for item in index['versions']]
 assert ids and len(ids) == len(set(ids)), '版本索引为空或存在重复 id'
 assert index['default'] == index['latest_version'] == ids[0], '默认、最新和首项不一致'
+latest_channels = [item['id'] for item in index['versions'] if item.get('channel') == 'latest']
+assert latest_channels == [index['latest_version']], f'latest 频道标记错误：{latest_channels}'
 assert all(not value.startswith('v1.') for value in ids), '索引仍包含 2.0 以前版本'
 plg = (root / 'theme.effects.plg').read_text()
 match = re.search(r'<!ENTITY\s+version\s+"([^"]+)">', plg)
@@ -31,6 +33,11 @@ assert ids[0] in (root / 'README.md').read_text(), 'README 未声明当前版本
 assert re.search(r'^##\s+' + re.escape(ids[0]) + r'\b', (root / 'CHANGELOG.md').read_text(), re.M), 'CHANGELOG 缺少当前版本'
 print(f'当前版本：{ids[0]}；保留 2.x 版本：{len(ids)}')
 PY
+
+grep -q 'data.latest.id === latestId' assets/ucwc-theme-fx.js || {
+  echo "前端未优先使用 latest_version" >&2
+  exit 1
+}
 
 echo "[3/8] 所有版本文件清单"
 python3 - <<'PY'
