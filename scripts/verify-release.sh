@@ -85,16 +85,25 @@ if find versions -name style.md5 -o -name CustomCSS_Loader.page | grep -q .; the
   echo "仍存在已失效的专属文件" >&2
   exit 1
 fi
-if rg -i 'custom[ _-]*webui|CustomCSS|custom\.css' \
-  --glob '!scripts/install.sh' --glob '!scripts/verify-release.sh' \
-  --glob '!versions/**' --glob '!CHANGELOG.md' . >/dev/null; then
+if command -v rg >/dev/null 2>&1; then
+  boundary_hits=$(rg -i 'custom[ _-]*webui|CustomCSS|custom\.css' \
+    --glob '!scripts/install.sh' --glob '!scripts/verify-release.sh' \
+    --glob '!versions/**' --glob '!CHANGELOG.md' . || true)
+else
+  boundary_hits=$(grep -RIEi 'custom[ _-]*webui|CustomCSS|custom\.css' . \
+    --exclude=install.sh --exclude=verify-release.sh --exclude=CHANGELOG.md \
+    --exclude-dir=versions --exclude-dir=.git || true)
+fi
+if [ -n "$boundary_hits" ]; then
   echo "当前说明或运行代码仍包含旧项目耦合" >&2
   exit 1
 fi
 
 echo "[6/8] PHP 语法"
 if command -v php >/dev/null 2>&1; then
-  for file in ThemeEffects.page ThemeEffects_Loader.page ucwc-theme-fx-save.php ucwc-update.php; do php -l "$file" >/dev/null; done
+  for file in ThemeEffects.page ThemeEffects_Loader.page ucwc-theme-fx-save.php ucwc-update.php; do
+    php -d short_open_tag=1 -l "$file" >/dev/null
+  done
 else
   echo "本机无 PHP，留给 Unraid 实机校验"
 fi
