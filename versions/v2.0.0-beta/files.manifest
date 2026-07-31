@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "version": "v2.0.0-beta",
+  "files": [
+    {
+      "path": "ThemeEffects.page",
+      "sha256": "2e7dfcab473a1080a7363a7befd1e1b66e0d166b4e5a8adebe2788788bde42e4",
+      "size": 40329
+    },
+    {
+      "path": "ThemeEffects_Loader.page",
+      "sha256": "7589f7e9aad35ab9b75eb982b1cf97d17661287cbe6d39066f92cb2a6d5447b6",
+      "size": 24623
+    },
+    {
+      "path": "apps-enhancement.js",
+      "sha256": "60f79111db6463db14387428d4b08e9b2aa23e14af954050fc66617f005cd5ad",
+      "size": 25393
+    },
+    {
+      "path": "assets/background-1.jpg",
+      "sha256": "0a5ebe851db15cfbb130313f92ea120e4c9dfa7a1ba715f16597b8bb6730528f",
+      "size": 960008
+    },
+    {
+      "path": "assets/background-2.jpg",
+      "sha256": "bb60386f9ce4799bd299196753f7d934515c7fe489a96ef825b2b19e5767d384",
+      "size": 41066
+    },
+    {
+      "path": "assets/background.jpg",
+      "sha256": "0a5ebe851db15cfbb130313f92ea120e4c9dfa7a1ba715f16597b8bb6730528f",
+      "size": 960008
+    },
+    {
+      "path": "assets/hutao.gif",
+      "sha256": "229e9c30e83abf766003722089e7bb9c61861a3ab5bb3f9ae4c8910fe4037bdd",
+      "size": 3431327
+    },
+    {
+      "path": "assets/ucwc-particles.js",
+      "sha256": "c81b382f163f00a977937940fc39a9bacca7e43d937848f27eee7b8905abed3c",
+      "size": 9522
+    },
+    {
+      "path": "assets/ucwc-theme-fx.css",
+      "sha256": "a17e23d528b92a284a6b721322f6ee4f90fa52e64f02df0954f6edf504438838",
+      "size": 6901
+    },
+    {
+      "path": "assets/ucwc-theme-fx.js",
+      "sha256": "bd83573ff6c62f326f319fe680ac92b8ec84a76ba5b94a7639b3e75089cadfa9",
+      "size": 55010
+    },
+    {
+      "path": "style-black.css",
+      "sha256": "291b82f41f59a994bf196a9be54c02a3d2e4acc2e429619fbc097a727a5c1ef4",
+      "size": 97
+    },
+    {
+      "path": "style.css",
+      "sha256": "5868e552d3dbd72d0c43ba03b563050748e033ddb6b1ba701727f96ac450b0ca",
+      "size": 136638
+    },
+    {
+      "path": "theme-effects.cfg",
+      "sha256": "554448ae481bc03ce485261b83a4d203b98f55378075f409550132b9569965d1",
+      "size": 220
+    },
+    {
+      "path": "theme.effects.cfg",
+      "sha256": "a8d50b0be1851e5c622a783c8fc31b0695bac37dbef70283093f5b074dad6e69",
+      "size": 18
+    },
+    {
+      "path": "ucwc-auth-request.conf",
+      "sha256": "93d301dc794d8db3ed7f3c5793a431ab8a6d9f3c0a805650f3b96af50c9ac409",
+      "size": 521
+    },
+    {
+      "path": "ucwc-theme-fx-save.php",
+      "sha256": "dcdb6bd7dbec3a109c88e24c1e0ab93bbea9643449374c7f937e0c1d4da303b7",
+      "size": 17615
+    },
+    {
+      "path": "ucwc-update.php",
+      "sha256": "951c3ef9b0ccdc26451efb408a0d5e9fa1e41319cda7dd5fd2aa9d40dc235956",
+      "size": 36402
+    }
+  ]
+}

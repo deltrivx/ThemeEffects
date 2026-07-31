@@ -2,14 +2,14 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "theme.effects">
 <!ENTITY author    "deltrivx">
-<!ENTITY version   "2026.07.31b">
+<!ENTITY version   "v2.7.0">
 	<!ENTITY launch    "Settings/ThemeEffects">
 	<!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 	<!ENTITY flash     "/boot/config/plugins/&name;">
 	<!ENTITY github    "deltrivx/ThemeEffects">
 	<!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/theme.effects.plg">
-	<!ENTITY installSH "https://raw.githubusercontent.com/&github;/main/scripts/install.sh">
-	<!ENTITY ver       "v2.6.4">
+	<!ENTITY ver       "v2.7.0">
+	<!ENTITY installSH "https://github.com/&github;/releases/download/&ver;/install.sh">
 	]>
 	<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" icon="magic" support="https://github.com/&github;">
 	
@@ -17,6 +17,11 @@
 	<CHANGES>
 	<![CDATA[
 	## Theme Effects
+	### v2.7.0
+	- 清除 2.0 以前的版本历史与旧插件专属失效文件，保留用户 CSS 和资源
+	- PLG、终端 OTA、终端全量统一为 Release 归档双重 SHA256 安装链路
+	- 三种安装方式自动清除 Theme Effects 自身过期 Loader、音乐组件和缓存
+	- Release 标准化为六项产物，仓库中文文档、协议与自动验证全面完善
 	###2026.07.31b
 	- v2.6.4: boot restore-from-flash before OTA (official package; survive reboot offline/timeout)
 	###2026.07.31a
@@ -130,14 +135,20 @@ exit 0
 <FILE Name="&plugdir;/README.md">
 <INLINE>
 <![CDATA[
-**Theme Effects**
+# 主题特效（Theme Effects）
 
-Standalone Unraid WebGUI theme (wallpaper, particles, mascot, Apps enhancements).
-Does **not** require Custom WebUI CSS.
+适用于 Unraid 6.12+ 的独立 WebGUI 视觉增强插件。
 
-Settings: **Settings → User Preferences → 主题特效**
+- 全局主题、壁纸、模糊与响应式布局
+- 粒子、鼠标动效和多套全站指针
+- 内置或自定义 GIF 吉祥物
+- 字体、颜色、本地字体与应用页增强
+- 双重 SHA256、差异 OTA、全量修复与 flash 离线恢复
 
-Repo: https://github.com/deltrivx/ThemeEffects
+安装后前往：**设置 → 用户偏好 → 主题特效**
+
+项目主页、中文更新日志和支持信息：
+https://github.com/deltrivx/ThemeEffects
 ]]>
 </INLINE>
 </FILE>
@@ -162,7 +173,7 @@ restore_from_flash() {
   [ -f "$FLASH/ThemeEffects.page" ] || return 1
   [ -f "$FLASH/ThemeEffects_Loader.page" ] || return 1
   echo "Theme Effects: restoring runtime from flash…"
-  for f in ThemeEffects.page ThemeEffects_Loader.page apps-enhancement.js style.css style-black.css style.md5 \
+  for f in ThemeEffects.page ThemeEffects_Loader.page apps-enhancement.js style.css style-black.css README.md \
            ucwc-theme-fx-save.php ucwc-update.php ucwc-auth-request.conf ucwc-upload.ini; do
     [ -f "$FLASH/$f" ] &amp;&amp; install -m 0644 "$FLASH/$f" "$PLUG/$f"
   done
@@ -199,17 +210,19 @@ fi
 echo "[1/4] downloading install.sh…"
 TMP=$(mktemp /tmp/theme.effects.install.XXXXXX)
 ok=0
-if curl -4 -fsSL --connect-timeout 12 --max-time 45 --retry 2 \
+if curl -4 -fsSL --connect-timeout 8 --max-time 30 --retry 0 \
     -o "$TMP" "&installSH;?_ts=$(date +%s)"; then
   ok=1
 else
   for m in \
+    "https://ghfast.top/https://github.com/&github;/releases/download/&ver;/install.sh" \
+    "https://raw.githubusercontent.com/&github;/main/scripts/install.sh" \
     "https://cdn.jsdelivr.net/gh/&github;@main/scripts/install.sh" \
     "https://fastly.jsdelivr.net/gh/&github;@main/scripts/install.sh" \
     "https://raw.gitmirror.com/&github;/main/scripts/install.sh" \
     "https://ghfast.top/https://raw.githubusercontent.com/&github;/main/scripts/install.sh"
   do
-    if curl -4 -fsSL --connect-timeout 12 --max-time 45 --retry 1 -o "$TMP" "$m"; then ok=1; break; fi
+    if curl -4 -fsSL --connect-timeout 8 --max-time 30 --retry 0 -o "$TMP" "$m"; then ok=1; break; fi
   done
 fi
 
@@ -258,7 +271,7 @@ export PATH="/usr/local/sbin:/usr/sbin:/sbin:/usr/local/bin:/usr/bin:/bin"
 export UCWC_PLUGIN_INSTALL=1
 echo "Theme Effects: uninstalling…"
 TMP=$(mktemp /tmp/theme.effects.uninstall.XXXXXX)
-if curl -4 -fsSL --connect-timeout 10 --max-time 60 -o "$TMP" "&installSH;?_ts=$(date +%s)" 2>/dev/null; then
+if curl -4 -fsSL --connect-timeout 8 --max-time 30 -o "$TMP" "&installSH;?_ts=$(date +%s)" 2>/dev/null; then
   chmod +x "$TMP"
   if command -v stdbuf >/dev/null 2>&amp;1; then
     stdbuf -oL -eL sh "$TMP" uninstall 2&gt;&amp;1 || true

@@ -1,8 +1,21 @@
 {
   "schema": 1,
-  "default": "v2.6.4",
-  "latest_version": "v2.6.4",
+  "default": "v2.7.0",
+  "latest_version": "v2.7.0",
   "versions": [
+    {
+      "id": "v2.7.0",
+      "label": "正式版 v2.7.0：独立仓库收尾、三种安装统一、历史精简与残留自动清理",
+      "channel": "stable",
+      "released_at": "2026-07-31",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true,
+      "mouse_fx": true,
+      "music": false,
+      "ota": true
+    },
     {
       "id": "v2.6.4",
       "label": "v2.6.4：开机 flash 优先恢复 runtime，再 OTA（重启离线不丢插件）",
@@ -652,274 +665,13 @@
     },
     {
       "id": "v2.0.0-beta",
-      "label": "独立插件 theme.effects，解除 Custom WebUI CSS 依赖",
+      "label": "独立插件 theme.effects：建立自有目录、Loader 与配置",
       "channel": "history",
       "released_at": "2026-07-28",
       "apps_enhancement": true,
       "particles": true,
       "hutao": true,
       "theme_effects": true
-    },
-    {
-      "id": "v1.8.3-15",
-      "label": "上传大小旁注、安装去完整安装文案",
-      "channel": "history",
-      "released_at": "2026-07-28",
-      "apps_enhancement": true,
-      "particles": true,
-      "hutao": true,
-      "theme_effects": true
-    },
-    {
-      "id": "v1.8.3-14",
-      "label": "标题黑条、版本挂主标题右侧、去安装于/完成提示",
-      "channel": "history",
-      "released_at": "2026-07-28",
-      "apps_enhancement": true,
-      "particles": true,
-      "hutao": true,
-      "theme_effects": true
-    },
-    {
-      "id": "v1.8.3-13",
-      "label": "标题统一、上传大小提示、更新日志保留与完整安装",
-      "channel": "history",
-      "released_at": "2026-07-28",
-      "apps_enhancement": true,
-      "particles": true,
-      "hutao": true,
-      "theme_effects": true
-    },
-    {
-      "id": "v1.8.3-12",
-      "label": "标题居中、吉祥物冻结帧、分段隔离复测",
-      "channel": "history",
-      "released_at": "2026-07-28",
-      "apps_enhancement": true,
-      "particles": true,
-      "hutao": true,
-      "theme_effects": true
-    },
-    {
-      "id": "v1.8.3-11",
-      "label": "吉祥物闪烁修复、版本栏pill、分段应用",
-      "channel": "history",
-      "released_at": "2026-07-28",
-      "apps_enhancement": true,
-      "particles": true,
-      "hutao": true,
-      "theme_effects": true
-    },
-    {
-      "id": "v1.8.3-10",
-      "label": "修复自定义吉祥物/壁纸应用中卡住（nginx auth-request）",
-      "channel": "history",
-      "released_at": "2026-07-28",
-      "apps_enhancement": true,
-      "particles": true,
-      "hutao": true,
-      "theme_effects": true
-    },
-    {
-      "id": "v1.8.3-9",
-      "label": "修复虚拟机/mnt自定义图标被误替换",
-      "channel": "history",
-      "released_at": "2026-07-28",
-      "apps_enhancement": true,
-      "particles": true,
-      "hutao": true,
-      "theme_effects": true
-    },
-    {
-      "id": "v1.8.3-8",
-      "label": "关闭仪表盘Docker状态脉冲（无图标不闪）",
-      "channel": "history",
-      "released_at": "2026-07-28",
-      "apps_enhancement": true,
-      "particles": true,
-      "hutao": true,
-      "theme_effects": true
-    },
-    {
-      "id": "v1.8.3-7",
-      "label": "修复仪表盘Docker无图标闪烁（其他设备）",
-      "channel": "history",
-      "released_at": "2026-07-28",
-      "apps_enhancement": true,
-      "particles": true,
-      "hutao": true,
-      "theme_effects": true
-    },
-    {
-      "id": "v1.8.3-6",
-      "label": "浏览器安装GET+csrf入队回退、进度条下日志",
-      "channel": "history",
-      "released_at": "2026-07-28",
-      "apps_enhancement": true,
-      "particles": true,
-      "hutao": true,
-      "theme_effects": true
-    },
-    {
-      "id": "v1.8.3-5",
-      "label": "安装日志在进度条下、失败自动重试、无弹窗",
-      "channel": "history",
-      "released_at": "2026-07-28",
-      "apps_enhancement": true,
-      "particles": true,
-      "hutao": true,
-      "theme_effects": true
-    },
-    {
-      "id": "v1.8.3-4",
-      "label": "修复安装卡在3%：后台排队+不阻塞Web进程",
-      "channel": "history",
-      "released_at": "2026-07-28",
-      "apps_enhancement": true,
-      "particles": true,
-      "hutao": true,
-      "theme_effects": true
-    },
-    {
-      "id": "v1.8.3-3",
-      "label": "安装进度动态显示、吉祥物自定义与模糊、粒子数量修复",
-      "channel": "history",
-      "released_at": "2026-07-28",
-      "apps_enhancement": true,
-      "particles": true,
-      "hutao": true,
-      "theme_effects": true
-    },
-    {
-      "id": "v1.8.3-2",
-      "label": "主题特效应用可靠性、仪表盘开关粉线修复、1.8.3布局恢复",
-      "channel": "history",
-      "released_at": "2026-07-28",
-      "apps_enhancement": true,
-      "particles": true,
-      "hutao": true,
-      "theme_effects": true
-    },
-    {
-      "id": "v1.8.3",
-      "label": "WebUI版本管理、背景模糊、设置收藏心型定位与发光",
-      "channel": "history",
-      "released_at": "2026-07-28",
-      "apps_enhancement": true,
-      "particles": true,
-      "hutao": true,
-      "theme_effects": true
-    },
-    {
-      "id": "v1.8.2",
-      "label": "壁纸DOM全屏、状态栏配色、一键无参完整安装",
-      "channel": "history",
-      "released_at": "2026-07-27",
-      "apps_enhancement": true,
-      "particles": true,
-      "hutao": true,
-      "theme_effects": true
-    },
-    {
-      "id": "v1.8.1",
-      "label": "脚本菜单修复、胡桃位置大小、移动端全屏壁纸",
-      "channel": "history",
-      "released_at": "2026-07-27",
-      "apps_enhancement": true,
-      "particles": true,
-      "hutao": true,
-      "theme_effects": true
-    },
-    {
-      "id": "v1.8.0",
-      "label": "Windows底层流畅优化、主题特效与默认直装",
-      "channel": "history",
-      "released_at": "2026-07-27",
-      "apps_enhancement": true,
-      "particles": true,
-      "hutao": true,
-      "theme_effects": true
-    },
-    {
-      "id": "v1.7.1",
-      "label": "仪表盘深度与性能、CA 对齐、PC 侧栏可滚动",
-      "channel": "history",
-      "released_at": "2026-07-23",
-      "apps_enhancement": true,
-      "particles": true,
-      "hutao": true
-    },
-    {
-      "id": "v1.7.0",
-      "label": "双端同步优化、结构减负与可选粒子/胡桃",
-      "channel": "history",
-      "released_at": "2026-07-20",
-      "apps_enhancement": true,
-      "particles": true,
-      "hutao": true
-    },
-    {
-      "id": "v1.6.1",
-      "label": "主题清理、默认粒子特效与应用页增强优化",
-      "channel": "history",
-      "released_at": "2026-07-16",
-      "apps_enhancement": true,
-      "particles": true
-    },
-    {
-      "id": "v1.6.0",
-      "label": "新版应用商店双端布局与搜索建议适配",
-      "channel": "history",
-      "released_at": "2026-07-15",
-      "apps_enhancement": true
-    },
-    {
-      "id": "v1.5.2",
-      "label": "移动端主界面与滚动条优化",
-      "channel": "history",
-      "released_at": "2026-07-13"
-    },
-    {
-      "id": "v1.5.1",
-      "label": "安装脚本显示设置补全",
-      "channel": "history",
-      "released_at": "2026-07-13"
-    },
-    {
-      "id": "v1.5.0",
-      "label": "应用页面移动端工具栏完善",
-      "channel": "history",
-      "released_at": "2026-07-13"
-    },
-    {
-      "id": "v1.4.0",
-      "label": "应用页面手机端布局适配",
-      "channel": "history",
-      "released_at": "2026-07-12"
-    },
-    {
-      "id": "v1.3.0",
-      "label": "应用页适配与安装脚本完善",
-      "channel": "history",
-      "released_at": "2026-07-12"
-    },
-    {
-      "id": "v1.2.0",
-      "label": "单命令安装、升级和回滚",
-      "channel": "history",
-      "released_at": "2026-07-12"
-    },
-    {
-      "id": "v1.1.0",
-      "label": "Unraid 7.3.2 应用页面兼容",
-      "channel": "history",
-      "released_at": "2026-07-12"
-    },
-    {
-      "id": "v1.0.0",
-      "label": "旧版应用页面完整定制",
-      "channel": "history",
-      "released_at": "2026-07-11"
     }
   ]
 }

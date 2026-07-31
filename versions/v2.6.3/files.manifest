@@ -1,20 +1,96 @@
-e815803a3adc10db5582cea24861156893be283ce3787c041e5e437ed367c64c  CHANGELOG.md  74559
-3abe1df302c231753eca4d17dead3fa20d231b7aa950be361457f287fd46eb50  ThemeEffects.page  92325
-76a3e9e9bece6f346f9dc3154e09020482a22f009f18fdf64f00b9de64b38be7  ThemeEffects_Loader.page  61198
-c4bc3ad26ec30e35469cc0eff78d8083c5a9d433b64855c8ca433f6073272947  apps-enhancement.js  25683
-0a5ebe851db15cfbb130313f92ea120e4c9dfa7a1ba715f16597b8bb6730528f  assets/background-1.jpg  960008
-bb60386f9ce4799bd299196753f7d934515c7fe489a96ef825b2b19e5767d384  assets/background-2.jpg  41066
-0a5ebe851db15cfbb130313f92ea120e4c9dfa7a1ba715f16597b8bb6730528f  assets/background.jpg  960008
-229e9c30e83abf766003722089e7bb9c61861a3ab5bb3f9ae4c8910fe4037bdd  assets/hutao.gif  3431327
-141507aba68805647341ff6020bd9ed2cf7f4225061c3ae2e34c5c81852bca7e  assets/ucwc-mouse-fx.js  27826
-26659625d4e8a16c2e2a379f17d49d344023dace1bac3059266348eecd4f9311  assets/ucwc-particles.js  10122
-29670f22336787d0da582da552b8e6a1007da3cde24902cb8a225f703c0419a9  assets/ucwc-theme-fx.css  26206
-f583cd6aad69226e3f9699f16c2cc177fb9c2d564f7e77fe0cb559bb605249bd  assets/ucwc-theme-fx.js  117305
-6d6ae1b17589253b3ecc73c205266ec0c7c3fbeb0237a42e0ad9c22c6d2d9eae  style-black.css  101
-e2385791a4d1730f01aca010c2ba8c905a73a32c0119242cf33a3bebc5ad9d72  style.css  173605
-4c01a41129e9ba025c335dd7f58f5fb2fccab3228c7b46e86eddc22f4c7d7d43  style.md5  33
-8939f25ec3bfcd2fe1142244fce49652e6dde39a7f29d840feae57ea7a638556  theme-effects.cfg  740
-ab9884af81e60db78dc5d59cec5c81073ac957260b713858147ceedc796a8e1c  theme.effects.cfg  19
-91a2849cafee6b56a7492afa8ea1d93a02998981288f9a0b191b968c4d891893  ucwc-auth-request.conf  534
-137403890f294df86a2fba009d097fe7338aafd11a6fbcc05581084ce8267f4d  ucwc-theme-fx-save.php  50831
-f58b445063ed47c0639bcefbe18b16fa3659fed30a8d6a07b1d70e9fbc015dd2  ucwc-update.php  43419
+{
+  "schema": 1,
+  "version": "v2.6.3",
+  "files": [
+    {
+      "path": "ThemeEffects.page",
+      "sha256": "6dbca490dc15d5c0be8e045948100336d5cbe41158cff92baf807a2a9b0ec906",
+      "size": 92323
+    },
+    {
+      "path": "ThemeEffects_Loader.page",
+      "sha256": "76a3e9e9bece6f346f9dc3154e09020482a22f009f18fdf64f00b9de64b38be7",
+      "size": 61198
+    },
+    {
+      "path": "apps-enhancement.js",
+      "sha256": "02ef8f5342e0fe18f03140654673bcf19d0a0281ab6531461246ed4b1edc7a9b",
+      "size": 24933
+    },
+    {
+      "path": "assets/background-1.jpg",
+      "sha256": "0a5ebe851db15cfbb130313f92ea120e4c9dfa7a1ba715f16597b8bb6730528f",
+      "size": 960008
+    },
+    {
+      "path": "assets/background-2.jpg",
+      "sha256": "bb60386f9ce4799bd299196753f7d934515c7fe489a96ef825b2b19e5767d384",
+      "size": 41066
+    },
+    {
+      "path": "assets/background.jpg",
+      "sha256": "0a5ebe851db15cfbb130313f92ea120e4c9dfa7a1ba715f16597b8bb6730528f",
+      "size": 960008
+    },
+    {
+      "path": "assets/hutao.gif",
+      "sha256": "229e9c30e83abf766003722089e7bb9c61861a3ab5bb3f9ae4c8910fe4037bdd",
+      "size": 3431327
+    },
+    {
+      "path": "assets/ucwc-mouse-fx.js",
+      "sha256": "141507aba68805647341ff6020bd9ed2cf7f4225061c3ae2e34c5c81852bca7e",
+      "size": 27826
+    },
+    {
+      "path": "assets/ucwc-particles.js",
+      "sha256": "b017ecefa1a343f1c228c8a6d1074018791e44b3ce5f1d81d3de4fd9b03a0890",
+      "size": 9803
+    },
+    {
+      "path": "assets/ucwc-theme-fx.css",
+      "sha256": "29670f22336787d0da582da552b8e6a1007da3cde24902cb8a225f703c0419a9",
+      "size": 26206
+    },
+    {
+      "path": "assets/ucwc-theme-fx.js",
+      "sha256": "f583cd6aad69226e3f9699f16c2cc177fb9c2d564f7e77fe0cb559bb605249bd",
+      "size": 117305
+    },
+    {
+      "path": "style-black.css",
+      "sha256": "291b82f41f59a994bf196a9be54c02a3d2e4acc2e429619fbc097a727a5c1ef4",
+      "size": 97
+    },
+    {
+      "path": "style.css",
+      "sha256": "e2385791a4d1730f01aca010c2ba8c905a73a32c0119242cf33a3bebc5ad9d72",
+      "size": 173605
+    },
+    {
+      "path": "theme-effects.cfg",
+      "sha256": "8939f25ec3bfcd2fe1142244fce49652e6dde39a7f29d840feae57ea7a638556",
+      "size": 740
+    },
+    {
+      "path": "theme.effects.cfg",
+      "sha256": "a8d50b0be1851e5c622a783c8fc31b0695bac37dbef70283093f5b074dad6e69",
+      "size": 18
+    },
+    {
+      "path": "ucwc-auth-request.conf",
+      "sha256": "93d301dc794d8db3ed7f3c5793a431ab8a6d9f3c0a805650f3b96af50c9ac409",
+      "size": 521
+    },
+    {
+      "path": "ucwc-theme-fx-save.php",
+      "sha256": "137403890f294df86a2fba009d097fe7338aafd11a6fbcc05581084ce8267f4d",
+      "size": 50831
+    },
+    {
+      "path": "ucwc-update.php",
+      "sha256": "f58b445063ed47c0639bcefbe18b16fa3659fed30a8d6a07b1d70e9fbc015dd2",
+      "size": 43419
+    }
+  ]
+}

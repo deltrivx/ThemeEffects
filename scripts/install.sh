@@ -11,6 +11,8 @@ https://ghfast.top/https://raw.githubusercontent.com/deltrivx/ThemeEffects/main
 "
 PERSIST_DIR="/boot/config/plugins/theme.effects"
 RUNTIME_DIR="/usr/local/emhttp/plugins/theme.effects"
+PLUGIN_BOOT="/boot/config/plugins/theme.effects.plg"
+PLUGIN_LOG="/var/log/plugins/theme.effects.plg"
 DYNAMIX_CFG="/boot/config/plugins/dynamix/dynamix.cfg"
 STATE_FILE="$PERSIST_DIR/ThemeEffects.state"
 OPTIONS_FILE="$PERSIST_DIR/ThemeEffects.options"
@@ -31,57 +33,51 @@ PARTICLES_END='/* ThemeEffects:particles:end */'
 HUTAO_START='/* ===== ThemeEffects:hutao-mascot:start ===== */'
 HUTAO_END='/* ===== ThemeEffects:hutao-mascot:end ===== */'
 
-LEGACY_DIR="/boot/config/plugins/custom.css"
-LEGACY_RUNTIME="/usr/local/emhttp/plugins/custom.css"
+OBSOLETE_PERSIST_DIR="/boot/config/plugins/custom.css"
+OBSOLETE_RUNTIME_DIR="/usr/local/emhttp/plugins/custom.css"
 
-# One-time move of theme data from parasitic custom.css install → theme.effects
-migrate_from_legacy_custom_css() {
-  [ -d "$LEGACY_DIR" ] || return 0
-  mkdir -p "$PERSIST_DIR/assets" "$RUNTIME_DIR/assets"
-
-  if [ -f "$LEGACY_DIR/theme-effects.cfg" ] && [ ! -f "$THEME_FX_CFG" ]; then
-    install -m 0644 "$LEGACY_DIR/theme-effects.cfg" "$THEME_FX_CFG"
-    echo "已迁移主题特效配置：custom.css → theme.effects"
+# Remove only files that belonged exclusively to the retired plugin, and only
+# when Unraid no longer has that plugin installed. Never touch style.css,
+# assets, uploads, Theme Effects files, or any active plugin installation.
+cleanup_obsolete_residue() {
+  if [ -f /boot/config/plugins/custom.css.plg ] || [ -f /var/log/plugins/custom.css.plg ]; then
+    return 0
   fi
+  _removed=0
+  for _root in "$OBSOLETE_PERSIST_DIR" "$OBSOLETE_RUNTIME_DIR"; do
+    [ -d "$_root" ] || continue
+    for _rel in \
+      CustomCSS.page CustomCSS_Loader.page custom.css.cfg \
+      unraid-custom-webui-css.state unraid-custom-webui-css.options \
+      style.md5 README.md
+    do
+      if [ -e "$_root/$_rel" ] || [ -L "$_root/$_rel" ]; then
+        rm -f "$_root/$_rel" 2>/dev/null || true
+        _removed=1
+      fi
+    done
+    rmdir "$_root/assets" "$_root" 2>/dev/null || true
+  done
+  if [ "$_removed" = "1" ]; then
+    ucwc_log "已清除未安装状态下仅属于旧插件的失效残留；用户 CSS、资源与 Theme Effects 文件未改动"
+  fi
+}
 
-  for f in background-custom.jpg background-dynamic.jpg mascot-custom.gif \
-           background-1.jpg background-2.jpg background.jpg hutao.gif; do
-    if [ -f "$LEGACY_DIR/assets/$f" ] && [ ! -f "$PERSIST_DIR/assets/$f" ]; then
-      install -m 0644 "$LEGACY_DIR/assets/$f" "$PERSIST_DIR/assets/$f"
-      install -m 0644 "$PERSIST_DIR/assets/$f" "$RUNTIME_DIR/assets/$f" 2>/dev/null || true
+cleanup_theme_effects_residue() {
+  _removed=0
+  for _path in \
+    "$PERSIST_DIR/style.md5" "$RUNTIME_DIR/style.md5" \
+    "$PERSIST_DIR/apps-enhancement.js" "$RUNTIME_DIR/apps-enhancement.js" \
+    "$PERSIST_DIR/assets/apps-mobile-sidebar-fix.js" \
+    "$RUNTIME_DIR/assets/apps-mobile-sidebar-fix.js"
+  do
+    if [ -e "$_path" ] || [ -L "$_path" ]; then
+      rm -f "$_path" 2>/dev/null || true
+      _removed=1
     fi
   done
-
-  if [ -f "$LEGACY_DIR/unraid-custom-webui-css.state" ] && [ ! -f "$STATE_FILE" ]; then
-    cp -a "$LEGACY_DIR/unraid-custom-webui-css.state" "$STATE_FILE" 2>/dev/null || true
-  fi
-  if [ -f "$LEGACY_DIR/ThemeEffects.state" ] && [ ! -f "$STATE_FILE" ]; then
-    cp -a "$LEGACY_DIR/ThemeEffects.state" "$STATE_FILE" 2>/dev/null || true
-  fi
-
-  # Remove parasitic theme files so Buttons does not double-inject
-  rm -f \
-    "$LEGACY_DIR/ThemeEffects.page" "$LEGACY_RUNTIME/ThemeEffects.page" \
-    "$LEGACY_DIR/CustomCSS_Loader.page" "$LEGACY_RUNTIME/CustomCSS_Loader.page" \
-    "$LEGACY_DIR/ThemeEffects_Loader.page" "$LEGACY_RUNTIME/ThemeEffects_Loader.page" \
-    "$LEGACY_DIR/ucwc-update.php" "$LEGACY_RUNTIME/ucwc-update.php" \
-    "$LEGACY_DIR/ucwc-theme-fx-save.php" "$LEGACY_RUNTIME/ucwc-theme-fx-save.php" \
-    "$LEGACY_DIR/theme-effects.cfg" \
-    "$LEGACY_DIR/ucwc-auth-request.conf" \
-    "$LEGACY_DIR/ucwc-upload.ini" \
-    "$LEGACY_DIR/assets/ucwc-particles.js" "$LEGACY_RUNTIME/assets/ucwc-particles.js" \
-    "$LEGACY_DIR/assets/ucwc-mouse-fx.js" "$LEGACY_RUNTIME/assets/ucwc-mouse-fx.js" \
-    "$LEGACY_DIR/assets/ucwc-theme-fx.js" "$LEGACY_RUNTIME/assets/ucwc-theme-fx.js" \
-    "$LEGACY_DIR/assets/ucwc-theme-fx.css" "$LEGACY_RUNTIME/assets/ucwc-theme-fx.css" \
-    "$LEGACY_DIR/assets/apps-enhancement.js" "$LEGACY_RUNTIME/assets/apps-enhancement.js"
-
-  if [ -f "$LEGACY_DIR/style.css" ] && grep -qE "ThemeEffects:theme-effects|ucwc-mascot|#ucwc-particles" "$LEGACY_DIR/style.css" 2>/dev/null; then
-    mv -f "$LEGACY_DIR/style.css" "$LEGACY_DIR/style.css.bak-theme-effects" 2>/dev/null || true
-    mv -f "$LEGACY_RUNTIME/style.css" "$LEGACY_RUNTIME/style.css.bak-theme-effects" 2>/dev/null || true
-    if [ -f "$LEGACY_DIR/custom.css.cfg" ]; then
-      printf 'SERVICE="disabled"\n' > "$LEGACY_DIR/custom.css.cfg"
-    fi
-    echo "已停用 custom.css 中的寄生主题样式（备份为 style.css.bak-theme-effects）。"
+  if [ "$_removed" = "1" ]; then
+    ucwc_log "已清除 Theme Effects 旧版本的失效校验和重复脚本"
   fi
 }
 
@@ -109,14 +105,22 @@ progress() {
 }
 
 ucwc_curl() {
-  # IPv4 + HTTP/1.1 + TLS1.2; retry helps unexpected EOF on raw.githubusercontent
-  curl -4 -fsSL --http1.1 --tlsv1.2 --connect-timeout 15 --retry 3 --retry-delay 1 "$@"
+  # Candidate mirrors provide retries. Bound each endpoint so a connected but
+  # stalled Raw request cannot block a small installer file for minutes.
+  curl -4 -fsSL --http1.1 --tlsv1.2 --connect-timeout 8 --retry 0 "$@"
 }
 
 ucwc_url_candidates() {
   # $1 = full URL → print candidates (one per line)
   _u=$1
   _rel=""
+  case "$_u" in
+    https://github.com/deltrivx/ThemeEffects/releases/download/*)
+      printf '%s\n' "$_u"
+      printf '%s%s\n' "https://ghfast.top/" "$_u"
+      return 0
+      ;;
+  esac
   case "$_u" in
     https://raw.githubusercontent.com/deltrivx/ThemeEffects/main/*)
       _rel=${_u#https://raw.githubusercontent.com/deltrivx/ThemeEffects/main}
@@ -174,12 +178,12 @@ download() {
   for _try in $(ucwc_url_candidates "$_url" | tr '\n' ' '); do
     [ -n "$_try" ] || continue
     if [ -n "$_dest" ]; then
-      if ucwc_curl --max-time 300 -o "$_dest" $_extra "$_try"; then
+      if ucwc_curl --max-time 30 -o "$_dest" $_extra "$_try"; then
         _ok=0
         break
       fi
     else
-      if ucwc_curl --max-time 300 $_extra "$_try"; then
+      if ucwc_curl --max-time 30 $_extra "$_try"; then
         _ok=0
         break
       fi
@@ -200,7 +204,7 @@ fetch_index() {
   done
   for _b in $_bases; do
     _b=${_b%/}
-    _idx=$(ucwc_curl --max-time 60 "$_b/versions/index.json?_ts=$_ts" 2>/dev/null) || _idx=""
+    _idx=$(ucwc_curl --max-time 30 "$_b/versions/index.json?_ts=$_ts" 2>/dev/null) || _idx=""
     case "$_idx" in
       "{"*)
         REPO_RAW="$_b"
@@ -255,14 +259,12 @@ local_path_for() {
     assets/*) printf '%s\n' "$PERSIST_DIR/$1" ;;
     ThemeEffects.page) printf '%s\n' "$THEME_FX_PAGE" ;;
     ThemeEffects_Loader.page) printf '%s\n' "$LOADER_PAGE" ;;
+    PLUGIN-README.md) printf '%s\n' "$PERSIST_DIR/README.md" ;;
     theme-effects.cfg) printf '%s\n' "$THEME_FX_CFG" ;;
     ucwc-update.php) printf '%s\n' "$PERSIST_DIR/ucwc-update.php" ;;
     ucwc-theme-fx-save.php) printf '%s\n' "$PERSIST_DIR/ucwc-theme-fx-save.php" ;;
     ucwc-auth-request.conf) printf '%s\n' "$PERSIST_DIR/ucwc-auth-request.conf" ;;
-    apps-enhancement.js)
-      # 注入进 Loader，无稳定独立副本；OTA 无法可靠比对 → 空
-      printf '\n'
-      ;;
+    apps-enhancement.js) printf '%s\n' "$PERSIST_DIR/assets/apps-enhancement.js" ;;
     *) printf '%s\n' "$PERSIST_DIR/$1" ;;
   esac
 }
@@ -283,6 +285,7 @@ fetch_pkg() {
   _url=$2
   _rel=$3
   _label=${4:-$_rel}
+  _source=${5:-}
   mkdir -p "$(dirname "$_dest")"
 
   _expect_sha=$(manifest_get "$_rel" sha256)
@@ -318,6 +321,17 @@ fetch_pkg() {
   fi
 
   OTA_FETCHED=$(( ${OTA_FETCHED:-0} + 1 ))
+  if [ -n "$_source" ] && [ -f "$_source" ]; then
+    if [ -n "$_expect_sha" ]; then
+      _source_sha=$(file_sha256 "$_source")
+      if [ -z "$_source_sha" ] || [ "$_source_sha" != "$_expect_sha" ]; then
+        ucwc_log "归档文件校验失败：$_label"
+        return 1
+      fi
+    fi
+    cp -a "$_source" "$_dest"
+    return 0
+  fi
   download -o "$_dest" "$_url"
 }
 
@@ -431,11 +445,11 @@ remove_hutao_assets() {
   rm -f "$PERSIST_DIR/assets/hutao.gif" "$RUNTIME_DIR/assets/hutao.gif"
 }
 
-# Purge built-in music leftovers from ThemeEffects (music lives in theme.music only).
-# Safe on install/upgrade: does NOT touch /boot/config/plugins/theme.music.
-purge_legacy_music_residue() {
+# Purge obsolete built-in music leftovers from Theme Effects. The independent
+# Theme Music plugin is outside both roots and is never touched.
+purge_obsolete_music_residue() {
   _purged=0
-  for _root in "$PERSIST_DIR" "$RUNTIME_DIR" "$LEGACY_DIR" "$LEGACY_RUNTIME"; do
+  for _root in "$PERSIST_DIR" "$RUNTIME_DIR"; do
     [ -n "$_root" ] || continue
     [ -e "$_root" ] || continue
     for _f in \
@@ -488,9 +502,7 @@ purge_legacy_music_residue() {
   fi
 
   # Scrub accidental music inject markers left in Loader / CA page
-  for _page in "$LOADER_PAGE" "$LOADER_RUNTIME" "$CA_PAGE" \
-               "$LEGACY_DIR/ThemeEffects_Loader.page" "$LEGACY_RUNTIME/ThemeEffects_Loader.page" \
-               "$LEGACY_DIR/CustomCSS_Loader.page" "$LEGACY_RUNTIME/CustomCSS_Loader.page"
+  for _page in "$LOADER_PAGE" "$LOADER_RUNTIME" "$CA_PAGE"
   do
     [ -f "$_page" ] || continue
     if grep -qE 'ucwc-music|__UCWC_MUSIC__|ThemeMusic:music|theme\.music/assets/ucwc-music' "$_page" 2>/dev/null; then
@@ -517,7 +529,7 @@ purge_legacy_music_residue() {
 }
 
 remove_theme_effects() {
-  purge_legacy_music_residue
+  purge_obsolete_music_residue
   rm -f \
     "$THEME_FX_PAGE" "$THEME_FX_RUNTIME" \
     "$THEME_FX_CFG" \
@@ -564,6 +576,25 @@ write_options() {
     printf 'updated_at=%s\n' "$(date +%Y%m%d-%H%M%S)"
     printf 'source=deltrivx/ThemeEffects\n'
   } > "$OPTIONS_FILE"
+}
+
+sync_plugin_metadata() {
+  _dst="$1"
+  _url="https://github.com/deltrivx/ThemeEffects/releases/download/$VERSION/theme.effects-$VERSION.plg"
+  if ! download -o "$_dst" "$_url"; then
+    ucwc_log "提示：PLG 元数据下载失败，运行文件已安装；下次更新时会重试"
+    return 0
+  fi
+  _plg_ver=$(sed -n 's/.*<!ENTITY[[:space:]]\+version[[:space:]]\+"\([^"]*\)".*/\1/p' "$_dst" | head -1)
+  if [ "$_plg_ver" != "$VERSION" ] || ! grep -q '<PLUGIN name="&name;"' "$_dst"; then
+    ucwc_log "提示：PLG 元数据校验失败（期望 $VERSION，得到 ${_plg_ver:-空}）"
+    return 0
+  fi
+  install -m 0644 "$_dst" "$PLUGIN_BOOT"
+  if [ -d "$(dirname "$PLUGIN_LOG")" ]; then
+    install -m 0644 "$_dst" "$PLUGIN_LOG"
+  fi
+  ucwc_log "已同步 Unraid 插件列表元数据：$VERSION"
 }
 
 install_pair() {
@@ -617,6 +648,7 @@ install_version() {
   fi
 
   base="$REPO_RAW/versions/$VERSION"
+  release_base="https://github.com/deltrivx/ThemeEffects/releases/download/$VERSION"
   tmp=$(mktemp -d /tmp/ThemeEffects.XXXXXX)
   trap 'rm -rf "$tmp"' EXIT INT TERM
   OTA_SKIPPED=0
@@ -631,14 +663,15 @@ install_version() {
     progress 18 "准备安装" "OTA 模式：比对本地后仅下载变更文件"
   fi
   mkdir -p "$tmp/assets" "$PERSIST_DIR/assets" "$RUNTIME_DIR/assets"
-  migrate_from_legacy_custom_css
-  # Always scrub pre-split music leftovers under theme.effects (and legacy custom.css).
-  progress 20 "清理残留" "清除主题特效内置音乐组件/缓存（不影响 theme.music）"
-  purge_legacy_music_residue
+  progress 20 "清理残留" "清除旧路径文件与已拆分的音乐组件（不影响其他插件）"
+  cleanup_obsolete_residue
+  cleanup_theme_effects_residue
+  purge_obsolete_music_residue
 
   # 清单：用于 OTA 哈希比对；缺失时 OTA 退化为「有本地同名则按 size 试跳，否则下载」
   progress 22 "拉取清单" "files.manifest（OTA 差异比对）"
-  if download -o "$tmp/files.manifest" "$base/files.manifest?_ts=$(date +%s)"; then
+  if download -o "$tmp/files.manifest" "$release_base/files.manifest" \
+    || download -o "$tmp/files.manifest" "$base/files.manifest?_ts=$(date +%s)"; then
     MANIFEST_JSON=$(cat "$tmp/files.manifest" 2>/dev/null || true)
     case "$MANIFEST_JSON" in
       "{"*) ucwc_log "已加载文件清单（OTA 可用 sha256 比对）" ;;
@@ -648,38 +681,69 @@ install_version() {
     ucwc_log "无 files.manifest（旧包），OTA 将尽量复用同尺寸本地文件"
   fi
 
+  # Prefer one checksummed Release archive. After the archive-level checksum,
+  # fetch_pkg still validates every file against files.manifest before install.
+  ARCHIVE_DIR=""
+  archive="$tmp/ThemeEffects-$VERSION.tar.gz"
+  sums="$tmp/SHA256SUMS"
+  if download -o "$sums" "$release_base/SHA256SUMS" \
+    && download -o "$archive" "$release_base/ThemeEffects-$VERSION.tar.gz"; then
+    archive_expect=$(awk -v n="ThemeEffects-$VERSION.tar.gz" '$2 == n {print $1; exit}' "$sums" 2>/dev/null || true)
+    archive_actual=$(file_sha256 "$archive")
+    archive_root="ThemeEffects-$VERSION"
+    if [ -n "$archive_expect" ] && [ "$archive_actual" = "$archive_expect" ] \
+      && tar -tzf "$archive" | awk -v p="$archive_root" '
+        $0 == p || index($0, p "/") == 1 {
+          if ($0 ~ /(^|\/)\.\.(\/|$)/) bad=1
+          next
+        }
+        { bad=1 }
+        END { exit bad }
+      ' \
+      && ! tar -tvzf "$archive" | awk '$1 ~ /^[lh]/ { found=1 } END { exit !found }'; then
+      mkdir -p "$tmp/release"
+      if tar -xzf "$archive" -C "$tmp/release" \
+        && [ -d "$tmp/release/$archive_root" ]; then
+        ARCHIVE_DIR="$tmp/release/$archive_root"
+        ucwc_log "已验证并展开 Release 归档（单次下载，逐文件 SHA256）"
+      fi
+    fi
+  fi
+  if [ -z "$ARCHIVE_DIR" ]; then
+    ucwc_log "Release 归档不可用，将回退到逐文件镜像下载"
+  fi
+
   progress 28 "下载文件" "主题样式与壁纸"
-  fetch_pkg "$tmp/style.css" "$base/style.css" "style.css" "style.css" || exit 1
-  fetch_pkg "$tmp/style-black.css" "$base/style-black.css" "style-black.css" "style-black.css" || exit 1
-  fetch_pkg "$tmp/assets/background.jpg" "$base/assets/background.jpg" "assets/background.jpg" "background.jpg" || exit 1
+  fetch_pkg "$tmp/style.css" "$base/style.css" "style.css" "style.css" "${ARCHIVE_DIR:+$ARCHIVE_DIR/style.css}" || exit 1
+  fetch_pkg "$tmp/style-black.css" "$base/style-black.css" "style-black.css" "style-black.css" "${ARCHIVE_DIR:+$ARCHIVE_DIR/style-black.css}" || exit 1
+  fetch_pkg "$tmp/assets/background.jpg" "$base/assets/background.jpg" "assets/background.jpg" "background.jpg" "${ARCHIVE_DIR:+$ARCHIVE_DIR/assets/background.jpg}" || exit 1
 
   if [ "$apps_enhancement" = "true" ]; then
     progress 36 "下载文件" "应用页增强脚本"
-    # 无稳定本地副本，OTA/全量均下载
-    download -o "$tmp/apps-enhancement.js" "$base/apps-enhancement.js"
-    OTA_FETCHED=$((OTA_FETCHED + 1))
+    fetch_pkg "$tmp/apps-enhancement.js" "$base/apps-enhancement.js" "apps-enhancement.js" "apps-enhancement.js" "${ARCHIVE_DIR:+$ARCHIVE_DIR/apps-enhancement.js}" || exit 1
   fi
 
   if [ "$INSTALL_HUTAO" = "yes" ]; then
     progress 42 "下载文件" "吉祥物 GIF（体积较大；OTA 未变则跳过）"
-    fetch_pkg "$tmp/assets/hutao.gif" "$base/assets/hutao.gif" "assets/hutao.gif" "hutao.gif" || exit 1
+    fetch_pkg "$tmp/assets/hutao.gif" "$base/assets/hutao.gif" "assets/hutao.gif" "hutao.gif" "${ARCHIVE_DIR:+$ARCHIVE_DIR/assets/hutao.gif}" || exit 1
   fi
 
   if [ "$THEME_EFFECTS" = "true" ]; then
     progress 52 "下载文件" "主题特效页面与资源"
-    fetch_pkg "$tmp/ThemeEffects.page" "$base/ThemeEffects.page" "ThemeEffects.page" "ThemeEffects.page" || exit 1
-    fetch_pkg "$tmp/ThemeEffects_Loader.page" "$base/ThemeEffects_Loader.page" "ThemeEffects_Loader.page" "ThemeEffects_Loader.page" || exit 1
-    fetch_pkg "$tmp/theme-effects.cfg" "$base/theme-effects.cfg" "theme-effects.cfg" "theme-effects.cfg" || exit 1
-    fetch_pkg "$tmp/assets/background-1.jpg" "$base/assets/background-1.jpg" "assets/background-1.jpg" "background-1.jpg" || exit 1
-    fetch_pkg "$tmp/assets/background-2.jpg" "$base/assets/background-2.jpg" "assets/background-2.jpg" "background-2.jpg" || exit 1
-    fetch_pkg "$tmp/assets/ucwc-particles.js" "$base/assets/ucwc-particles.js" "assets/ucwc-particles.js" "ucwc-particles.js" || exit 1
-    fetch_pkg "$tmp/assets/ucwc-mouse-fx.js" "$base/assets/ucwc-mouse-fx.js" "assets/ucwc-mouse-fx.js" "ucwc-mouse-fx.js" || true
+    fetch_pkg "$tmp/ThemeEffects.page" "$base/ThemeEffects.page" "ThemeEffects.page" "ThemeEffects.page" "${ARCHIVE_DIR:+$ARCHIVE_DIR/ThemeEffects.page}" || exit 1
+    fetch_pkg "$tmp/ThemeEffects_Loader.page" "$base/ThemeEffects_Loader.page" "ThemeEffects_Loader.page" "ThemeEffects_Loader.page" "${ARCHIVE_DIR:+$ARCHIVE_DIR/ThemeEffects_Loader.page}" || exit 1
+    fetch_pkg "$tmp/PLUGIN-README.md" "$base/PLUGIN-README.md" "PLUGIN-README.md" "PLUGIN-README.md" "${ARCHIVE_DIR:+$ARCHIVE_DIR/PLUGIN-README.md}" || exit 1
+    fetch_pkg "$tmp/theme-effects.cfg" "$base/theme-effects.cfg" "theme-effects.cfg" "theme-effects.cfg" "${ARCHIVE_DIR:+$ARCHIVE_DIR/theme-effects.cfg}" || exit 1
+    fetch_pkg "$tmp/assets/background-1.jpg" "$base/assets/background-1.jpg" "assets/background-1.jpg" "background-1.jpg" "${ARCHIVE_DIR:+$ARCHIVE_DIR/assets/background-1.jpg}" || exit 1
+    fetch_pkg "$tmp/assets/background-2.jpg" "$base/assets/background-2.jpg" "assets/background-2.jpg" "background-2.jpg" "${ARCHIVE_DIR:+$ARCHIVE_DIR/assets/background-2.jpg}" || exit 1
+    fetch_pkg "$tmp/assets/ucwc-particles.js" "$base/assets/ucwc-particles.js" "assets/ucwc-particles.js" "ucwc-particles.js" "${ARCHIVE_DIR:+$ARCHIVE_DIR/assets/ucwc-particles.js}" || exit 1
+    fetch_pkg "$tmp/assets/ucwc-mouse-fx.js" "$base/assets/ucwc-mouse-fx.js" "assets/ucwc-mouse-fx.js" "ucwc-mouse-fx.js" "${ARCHIVE_DIR:+$ARCHIVE_DIR/assets/ucwc-mouse-fx.js}" || true
     # 主题特效页 UI + AJAX 保存 + 版本管理 API（优先版本包，回退仓库根）
     for f in ucwc-update.php ucwc-theme-fx-save.php ucwc-auth-request.conf assets/ucwc-theme-fx.js assets/ucwc-theme-fx.css; do
       bn=$(basename "$f")
       dir=$(dirname "$f")
       mkdir -p "$tmp/$dir"
-      if fetch_pkg "$tmp/$f" "$base/$f" "$f" "$bn"; then
+      if fetch_pkg "$tmp/$f" "$base/$f" "$f" "$bn" "${ARCHIVE_DIR:+$ARCHIVE_DIR/$f}"; then
         :
       elif download -o "$tmp/$f" "$REPO_RAW/$f"; then
         OTA_FETCHED=$((OTA_FETCHED + 1))
@@ -740,6 +804,7 @@ install_version() {
   if [ "$THEME_EFFECTS" = "true" ]; then
     install_pair "$tmp/ThemeEffects.page" "$THEME_FX_PAGE" "$THEME_FX_RUNTIME"
     install_pair "$tmp/ThemeEffects_Loader.page" "$LOADER_PAGE" "$LOADER_RUNTIME"
+    install_pair "$tmp/PLUGIN-README.md" "$PERSIST_DIR/README.md" "$RUNTIME_DIR/README.md"
     if [ -f "$tmp/ucwc-update.php" ]; then
       install_pair "$tmp/ucwc-update.php" "$PERSIST_DIR/ucwc-update.php" "$RUNTIME_DIR/ucwc-update.php"
     fi
@@ -794,7 +859,9 @@ install_version() {
     inject_loader_enhancement
   fi
   # Re-purge after file writes in case an old package reintroduced music assets
-  purge_legacy_music_residue
+  cleanup_obsolete_residue
+  cleanup_theme_effects_residue
+  purge_obsolete_music_residue
   apply_display_settings
   write_options
   {
@@ -809,6 +876,8 @@ install_version() {
     printf 'source=deltrivx/ThemeEffects\n'
   } > "$STATE_FILE.tmp"
   mv "$STATE_FILE.tmp" "$STATE_FILE"
+
+  sync_plugin_metadata "$tmp/theme.effects-$VERSION.plg"
 
   progress 92 "收尾" "写入状态并应用显示设置"
   echo "已安装：主题 $VERSION（模式：$INSTALL_MODE）"
@@ -851,6 +920,8 @@ select_and_install_version() {
 }
 
 uninstall_theme() {
+  cleanup_obsolete_residue
+  cleanup_theme_effects_residue
   rm -f "$PERSIST_DIR/style.css" "$PERSIST_DIR/style-black.css" \
     "$PERSIST_DIR/assets/background.jpg"
   rm -f "$RUNTIME_DIR/style.css" "$RUNTIME_DIR/style-black.css" \
@@ -862,6 +933,7 @@ uninstall_theme() {
     "$LOADER_PAGE" "$LOADER_RUNTIME" \
     "$PERSIST_DIR/theme.effects.cfg" \
     "$RUNTIME_DIR/theme.effects.cfg" \
+    "$PERSIST_DIR/README.md" "$RUNTIME_DIR/README.md" \
     "$OPTIONS_FILE"
   printf 'SERVICE="disabled"\n' > "$PERSIST_DIR/theme.effects.cfg" 2>/dev/null || true
   restore_display_settings

@@ -6,7 +6,7 @@ Tag="magic"
 <?php
 /* ThemeEffects: 主题特效
  * 粒子 + 胡桃 + 背景 + 版本管理（检测更新 / 更新日志；安装完整覆盖）。
- * CSRF：完全交给 Unraid BodyInlineJS 注入（与 CustomCSS.page 一致），本页不写 csrf 字段。
+ * CSRF：完全交给 Unraid BodyInlineJS 注入（由 Unraid 统一处理），本页不写 csrf 字段。
  */
 $fx_path = "/boot/config/plugins/theme.effects/theme-effects.cfg";
 $assets_f = "/boot/config/plugins/theme.effects/assets";
