@@ -1,8 +1,21 @@
 {
   "schema": 1,
-  "default": "v2.7.1",
-  "latest_version": "v2.7.1",
+  "default": "v2.7.2",
+  "latest_version": "v2.7.2",
   "versions": [
+    {
+      "id": "v2.7.2",
+      "label": "正式版 v2.7.2：修复 latest 频道残留导致无法检测新版本",
+      "channel": "latest",
+      "released_at": "2026-08-01",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true,
+      "mouse_fx": true,
+      "music": false,
+      "ota": true
+    },
     {
       "id": "v2.7.1",
       "label": "正式版 v2.7.1：非商业许可；更新日志自动换行；首次安装手动开启",
@@ -513,7 +526,7 @@
     {
       "id": "v2.5.1",
       "label": "正式版：OTA 增量更新 / 全量更新（正式与 Beta）",
-      "channel": "latest",
+      "channel": "history",
       "released_at": "2026-07-29",
       "apps_enhancement": true,
       "particles": true,
