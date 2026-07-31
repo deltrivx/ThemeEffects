@@ -178,12 +178,12 @@ download() {
   for _try in $(ucwc_url_candidates "$_url" | tr '\n' ' '); do
     [ -n "$_try" ] || continue
     if [ -n "$_dest" ]; then
-      if ucwc_curl --max-time 30 -o "$_dest" $_extra "$_try"; then
+      if ucwc_curl --max-time 300 --speed-time 30 --speed-limit 1024 -o "$_dest" $_extra "$_try"; then
         _ok=0
         break
       fi
     else
-      if ucwc_curl --max-time 30 $_extra "$_try"; then
+      if ucwc_curl --max-time 300 --speed-time 30 --speed-limit 1024 $_extra "$_try"; then
         _ok=0
         break
       fi
