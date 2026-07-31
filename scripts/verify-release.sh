@@ -80,6 +80,13 @@ echo "[5/8] 文档、许可与切割边界"
 for file in README.md ABOUT.md CHANGELOG.md PLUGIN-README.md CONTRIBUTING.md SECURITY.md SUPPORT.md LICENSE LICENSE-ASSETS.md NOTICE; do
   test -s "$file" || { echo "缺少文档：$file" >&2; exit 1; }
 done
+grep -q '^# PolyForm Noncommercial License 1.0.0$' LICENSE
+grep -q 'PolyForm Noncommercial License 1.0.0' README.md
+grep -q '^SERVICE="disabled"$' theme.effects.cfg
+if grep -q '代码许可-MIT' README.md; then
+  echo "README 仍声明 MIT" >&2
+  exit 1
+fi
 test ! -e style.md5
 if find versions -name style.md5 -o -name CustomCSS_Loader.page | grep -q .; then
   echo "仍存在已失效的专属文件" >&2

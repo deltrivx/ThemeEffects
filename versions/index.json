@@ -1,8 +1,21 @@
 {
   "schema": 1,
-  "default": "v2.7.0",
-  "latest_version": "v2.7.0",
+  "default": "v2.7.1",
+  "latest_version": "v2.7.1",
   "versions": [
+    {
+      "id": "v2.7.1",
+      "label": "正式版 v2.7.1：非商业许可；更新日志自动换行；首次安装手动开启",
+      "channel": "stable",
+      "released_at": "2026-07-31",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true,
+      "mouse_fx": true,
+      "music": false,
+      "ota": true
+    },
     {
       "id": "v2.7.0",
       "label": "正式版 v2.7.0：独立仓库收尾、三种安装统一、历史精简与残留自动清理",
