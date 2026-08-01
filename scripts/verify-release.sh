@@ -113,6 +113,20 @@ if [ -n "$boundary_hits" ]; then
   exit 1
 fi
 
+python3 - <<'PY'
+import pathlib
+
+css = pathlib.Path('style.css').read_text()
+start = css.index('/* ThemeEffects:dash-docker-vm-layout:start')
+end = css.index('/* ThemeEffects:dash-docker-vm-layout:end', start)
+dashboard_layout = css[start:end]
+assert 'display: block !important;' not in dashboard_layout, \
+    'Docker/VM 卡片强制 display:block !important，会覆盖 Unraid 的仅显示已启动筛选'
+assert 'display: block;' in dashboard_layout, \
+    'Docker/VM 卡片缺少可见状态的 block 布局'
+print('Docker/VM 仅显示已启动筛选规则通过')
+PY
+
 echo "[6/8] PHP 语法"
 if command -v php >/dev/null 2>&1; then
   for file in ThemeEffects.page ThemeEffects_Loader.page ucwc-theme-fx-save.php ucwc-update.php; do
