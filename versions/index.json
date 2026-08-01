@@ -1,12 +1,25 @@
 {
   "schema": 1,
-  "default": "v2.7.3",
-  "latest_version": "v2.7.3",
+  "default": "v2.7.4",
+  "latest_version": "v2.7.4",
   "versions": [
+    {
+      "id": "v2.7.4",
+      "label": "正式版 v2.7.4：修复页面左上角多余 \\n 与输入框光标规则",
+      "channel": "latest",
+      "released_at": "2026-08-01",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true,
+      "mouse_fx": true,
+      "music": false,
+      "ota": true
+    },
     {
       "id": "v2.7.3",
       "label": "正式版 v2.7.3：修复仪表盘 Docker 与虚拟机仅显示已启动筛选",
-      "channel": "latest",
+      "channel": "stable",
       "released_at": "2026-08-01",
       "apps_enhancement": true,
       "particles": true,
