@@ -2,13 +2,13 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "theme.effects">
 <!ENTITY author    "deltrivx">
-<!ENTITY version   "v2.7.2">
+<!ENTITY version   "v2.7.3">
 	<!ENTITY launch    "Settings/ThemeEffects">
 	<!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 	<!ENTITY flash     "/boot/config/plugins/&name;">
 	<!ENTITY github    "deltrivx/ThemeEffects">
 	<!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/theme.effects.plg">
-	<!ENTITY ver       "v2.7.2">
+	<!ENTITY ver       "v2.7.3">
 	<!ENTITY installSH "https://github.com/&github;/releases/download/&ver;/install.sh">
 	]>
 	<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" icon="magic" support="https://github.com/&github;">
@@ -17,6 +17,10 @@
 	<CHANGES>
 	<![CDATA[
 	## Theme Effects
+	### v2.7.3
+	- 修复仪表盘 Docker 与虚拟机切换到“仅显示已启动”后，已停止项目仍然出现的问题
+	- 保留卡片浮动布局，同时允许 Unraid 原生 display:none 正常隐藏停止项目
+	- 发布校验新增筛选样式回归检查，防止强制 display:block !important 再次覆盖原生状态
 	### v2.7.2
 	- 修复历史 v2.5.1 遗留 latest 频道导致 v2.7.0 无法检测新版本
 	- 检查更新改为优先使用顶层 latest_version，不再被历史频道标记劫持
