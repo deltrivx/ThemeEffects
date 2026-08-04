@@ -7231,6 +7231,7 @@ table.dashboard .tile-header-left.tile-header-left:not(:has(> .ucwc-music-header
 
 @media (max-width: 720px) {
     table.dashboard .tile-header-left.tile-header-left:has(> .icon-tower),
+    table.dashboard .tile-header-left.tile-header-left:has(> .icon-cpu),
     table.dashboard .tile-header-left.tile-header-left:has(> .icon-docker),
     table.dashboard .tile-header-left.tile-header-left:has(> .icon-virtualization),
     table.dashboard .tile-header-left.tile-header-left:has(> .icon-ethernet),
@@ -7243,6 +7244,7 @@ table.dashboard .tile-header-left.tile-header-left:not(:has(> .ucwc-music-header
     }
 
     table.dashboard .tile-header-left.tile-header-left:has(> .icon-tower) > .section.section,
+    table.dashboard .tile-header-left.tile-header-left:has(> .icon-cpu) > .section.section,
     table.dashboard .tile-header-left.tile-header-left:has(> .icon-docker) > .section.section,
     table.dashboard .tile-header-left.tile-header-left:has(> .icon-virtualization) > .section.section,
     table.dashboard .tile-header-left.tile-header-left:has(> .icon-ethernet) > .section.section,
@@ -7253,6 +7255,67 @@ table.dashboard .tile-header-left.tile-header-left:not(:has(> .ucwc-music-header
         height: auto !important;
         grid-template-rows: minmax(22px, auto) minmax(16px, auto) !important;
         align-items: center !important;
+    }
+
+    table.dashboard .tile-header-left.tile-header-left:has(> .icon-cpu) {
+        min-height: 55px !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    table.dashboard .tile-header-left.tile-header-left:has(> .icon-cpu) > .section.section {
+        display: block !important;
+        grid-template-columns: none !important;
+        grid-template-rows: none !important;
+        align-items: center !important;
+        min-width: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        font-size: 8px !important;
+        line-height: 1.2 !important;
+        white-space: normal !important;
+        word-break: break-all !important;
+        overflow-wrap: anywhere !important;
+        text-wrap: wrap !important;
+        text-overflow: clip !important;
+        overflow: visible !important;
+        height: auto !important;
+        max-height: none !important;
+        overflow-wrap: anywhere !important;
+        word-break: normal !important;
+    }
+
+    table.dashboard .tile-header-left.tile-header-left:has(> .icon-cpu) > .section.section > h3.tile-header-main {
+        display: block !important;
+        flex: none !important;
+        grid-column: auto !important;
+        grid-row: auto !important;
+        float: none !important;
+        margin-left: 0 !important;
+        margin-right: auto !important;
+        text-align: left !important;
+        font-size: 16px !important;
+        line-height: 1.15 !important;
+        width: max-content !important;
+        max-width: 100% !important;
+        white-space: nowrap !important;
+        overflow: visible !important;
+    }
+
+    table.dashboard .tile-header-left.tile-header-left:has(> .icon-cpu) > .section.section > :not(h3.tile-header-main) {
+        display: inline !important;
+        width: auto !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+        white-space: normal !important;
+        text-wrap: wrap !important;
+        text-overflow: clip !important;
+        overflow: visible !important;
+        overflow-wrap: anywhere !important;
+        word-break: normal !important;
+        line-height: 1.15 !important;
     }
 }
 /* ThemeEffects:dashboard-title-height-unification-final:end */
