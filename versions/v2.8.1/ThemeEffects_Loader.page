@@ -493,11 +493,11 @@ if ($ucwc_cursor_css_val !== '') {
     $cur_js = json_encode($fx_mouse_cursor);
     $val_js = json_encode($ucwc_cursor_css_val);
     echo "<!-- ThemeEffects:cursor-critical -->\n";
-    echo '<style id="ucwc-cursor-critical">\n';
-    echo 'html.ucwc-cursor-custom,html.ucwc-cursor-custom body,html.ucwc-cursor-' . $cur_esc . ',html.ucwc-cursor-' . $cur_esc . ' body{--ucwc-cursor:' . $val_css . ';cursor:var(--ucwc-cursor,auto)!important}\n';
-    echo 'html.ucwc-cursor-custom body *,html.ucwc-cursor-custom body *::before,html.ucwc-cursor-custom body *::after,body.ucwc-cursor-custom,body.ucwc-cursor-custom *{cursor:var(--ucwc-cursor,auto)!important}\n';
-    echo 'html.ucwc-cursor-custom input:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),html.ucwc-cursor-custom textarea,html.ucwc-cursor-custom [contenteditable="true"]{cursor:text!important}\n';
-    echo '</style>\n';
+    echo '<style id="ucwc-cursor-critical">' . "\n";
+    echo 'html.ucwc-cursor-custom,html.ucwc-cursor-custom body,html.ucwc-cursor-' . $cur_esc . ',html.ucwc-cursor-' . $cur_esc . ' body{--ucwc-cursor:' . $val_css . ';cursor:var(--ucwc-cursor,auto)!important}' . "\n";
+    echo 'html.ucwc-cursor-custom body *,html.ucwc-cursor-custom body *::before,html.ucwc-cursor-custom body *::after,body.ucwc-cursor-custom,body.ucwc-cursor-custom *{cursor:var(--ucwc-cursor,auto)!important}' . "\n";
+    echo 'html.ucwc-cursor-custom input:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),html.ucwc-cursor-custom textarea,html.ucwc-cursor-custom [contenteditable="true"]{cursor:text!important}' . "\n";
+    echo '</style>' . "\n";
     echo '<script id="ucwc-cursor-boot">(function(){try{';
     echo 'var cur=' . $cur_js . ';';
     echo 'var val=' . $val_js . ';';
@@ -507,7 +507,7 @@ if ($ucwc_cursor_css_val !== '') {
     echo 'try{r.style.setProperty("--ucwc-cursor",val);r.style.setProperty("cursor",val,"important")}catch(e0){}';
     echo 'function mirror(){var b=document.body;if(!b||!b.classList)return;["ucwc-cursor-system","ucwc-cursor-neon3d","ucwc-cursor-holo","ucwc-cursor-cyber","ucwc-cursor-crystal","ucwc-cursor-upload","ucwc-cursor-custom"].forEach(function(c){b.classList.remove(c)});b.classList.add("ucwc-cursor-"+cur,"ucwc-cursor-custom");try{b.style.setProperty("cursor",val,"important")}catch(e1){}}';
     echo 'if(document.body)mirror();else{try{var mo=new MutationObserver(function(){if(document.body){mirror();mo.disconnect()}});mo.observe(r,{childList:true})}catch(e2){document.addEventListener("DOMContentLoaded",mirror)}}';
-    echo '}catch(e){}})();</script>\n';
+    echo '}catch(e){}})();</script>' . "\n";
 }
 
 $settings = parse_plugin_cfg("theme.effects");
