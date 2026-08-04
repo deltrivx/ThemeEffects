@@ -2,13 +2,13 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "theme.effects">
 <!ENTITY author    "deltrivx">
-<!ENTITY version   "v2.8.1">
+<!ENTITY version   "v2.8.2">
 	<!ENTITY launch    "Settings/ThemeEffects">
 	<!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 	<!ENTITY flash     "/boot/config/plugins/&name;">
 	<!ENTITY github    "deltrivx/ThemeEffects">
 	<!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/theme.effects.plg">
-	<!ENTITY ver       "v2.8.1">
+	<!ENTITY ver       "v2.8.2">
 	<!ENTITY installSH "https://github.com/&github;/releases/download/&ver;/install.sh">
 	]>
 	<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" icon="magic" support="https://github.com/&github;">
@@ -16,14 +16,19 @@
 	<!-- CHANGES in CDATA: bare & in notes must not break simplexml_load_file -->
 	<CHANGES>
 	<![CDATA[
-		## Theme Effects
-		### v2.8.1
-		- 统一 PC 与移动端 Dashboard 卡片标题、摘要和控件排列，修复遮挡、重叠与异常空白
-		- 修复 Dashboard 内容区域纵向对齐，保持原生表格结构和横向布局
-		- 恢复 Docker/VM 正式版原生浮动排列、固定内容宽度、间距和停止项筛选
-		- 修复移动端 Docker/VM 两列排列，以及容器图标、名称和状态行显示
-		- 优化接口、用户、共享、系统卡片标题控件和 Dashboard 自定义下拉菜单
-		- ThemeMusic 继续由独立插件维护，不包含音乐运行代码
+			## Theme Effects
+			### v2.8.2
+			- 新增独立滚动条全局颜色和页面覆盖设置
+			- 修复颜色块选择后点击应用颜色被还原
+			- 分离字体与滚动条配置保存，避免分段互相覆盖
+			### v2.8.1
+			- 统一 PC 与移动端 Dashboard 卡片标题、摘要和控件排列，修复遮挡、重叠与异常空白
+			- 修复 Dashboard 内容区域纵向对齐，保持原生表格结构和横向布局
+			- 恢复 Docker/VM 正式版原生浮动排列、固定内容宽度、间距和停止项筛选
+			- 修复移动端 Docker/VM 两列排列，以及容器图标、名称和状态行显示
+			- 优化接口、用户、共享、系统卡片标题控件和 Dashboard 自定义下拉菜单
+			- ThemeMusic 继续由独立插件维护，不包含音乐运行代码
+
 		### v2.7.2
 
 	- 修复历史 v2.5.1 遗留 latest 频道导致 v2.7.0 无法检测新版本

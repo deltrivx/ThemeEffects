@@ -1,12 +1,25 @@
 {
   "schema": 1,
-  "default": "v2.8.1",
-  "latest_version": "v2.8.1",
+  "default": "v2.8.2",
+  "latest_version": "v2.8.2",
   "versions": [
+    {
+      "id": "v2.8.2",
+      "label": "正式版 v2.8.2：独立滚动条颜色设置与保存修复",
+      "channel": "latest",
+      "released_at": "2026-08-05",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true,
+      "mouse_fx": true,
+      "music": false,
+      "ota": true
+    },
     {
       "id": "v2.8.1",
       "label": "正式版 v2.8.1：Dashboard 卡片布局与移动端 Docker/VM 排列修复",
-      "channel": "latest",
+      "channel": "stable",
       "released_at": "2026-08-04",
       "apps_enhancement": true,
       "particles": true,
