@@ -5770,6 +5770,7 @@ table.dashboard .tile-header-left:has(> .icon-ram) > .section > :nth-child(2) > 
 #vm_view span.outer.vms,
 table.dashboard #docker_view span.outer,
 table.dashboard #vm_view span.outer {
+    display: block;
     float: left !important;
     clear: none !important;
     /* Keep Unraid's inline display:none available to the native filter. */
