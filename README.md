@@ -2,7 +2,7 @@
 
 [![最新版本](https://img.shields.io/github/v/release/deltrivx/ThemeEffects?display_name=tag&sort=semver&label=最新版本)](https://github.com/deltrivx/ThemeEffects/releases/latest)
 [![Unraid](https://img.shields.io/badge/Unraid-6.12%2B-F15A2C?logo=unraid&logoColor=white)](https://unraid.net/)
-[![代码许可](https://img.shields.io/badge/代码许可-PolyForm%20Noncommercial%201.0.0-8a2be2)](LICENSE)
+[![代码许可](https://img.shields.io/badge/代码许可-GPL--2.0-blue)](LICENSE)
 [![文档与原创视觉](https://img.shields.io/badge/文档与原创视觉-CC%20BY--NC--SA%204.0-8a2be2)](LICENSE-ASSETS.md)
 
 面向 Unraid WebGUI 的独立视觉增强插件。Theme Effects 将壁纸、粒子、鼠标动效、指针、吉祥物、字体配色和应用页增强整合到原生设置页，并提供可回滚、可离线恢复的正式发布链路。
