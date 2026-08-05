@@ -49,7 +49,6 @@ jobs:
         run: |
           ./scripts/verify-release.sh
           if [ "$IS_TAG" = "true" ]; then
-            ./scripts/verify-release.sh "$VERSION"
             ./scripts/build-release.sh "$VERSION" existing
           else
             ./scripts/build-release.sh "$VERSION" snapshot
@@ -86,6 +85,10 @@ jobs:
           TITLE: ${{ needs.verify.outputs.title }}
           PRERELEASE: ${{ needs.verify.outputs.prerelease }}
         run: |
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "Release $VERSION 已存在，保留既有标题、正文与资产。"
+            exit 0
+          fi
           awk -v version="$VERSION" '
             $0 ~ "^## " version "([[:space:]]|$)" {capture=1; next}
             capture && /^## / {exit}
@@ -100,9 +103,4 @@ jobs:
           else
             flags+=(--latest)
           fi
-          if gh release view "$VERSION" >/dev/null 2>&1; then
-            gh release edit "$VERSION" "${flags[@]}"
-            gh release upload "$VERSION" "${assets[@]}" --clobber
-          else
-            gh release create "$VERSION" "${assets[@]}" "${flags[@]}"
-          fi
+          gh release create "$VERSION" "${assets[@]}" "${flags[@]}"
