@@ -107,7 +107,7 @@ sh /tmp/theme-effects-install.sh install v2.8.2 full
 
 ## 许可证
 
-- 程序源代码采用 [PolyForm Noncommercial License 1.0.0](LICENSE)：允许个人与非商业组织在非商业目的下使用、修改和分发；任何商业使用均须事先取得作者书面授权。
+- 程序源代码采用 [GNU GPL-2.0](LICENSE)：允许用户使用、研究、修改和分发程序；分发修改版本时须遵守 GPL-2.0 的相同许可条件。
 - 原创文档、截图和明确标注的原创视觉资产采用 [CC BY-NC-SA 4.0](LICENSE-ASSETS.md)。
 - 第三方角色、商标、名称及来源不明的媒体文件不包含在上述视觉资产授权中，详见 [NOTICE](NOTICE)。
 
