@@ -14,7 +14,6 @@ jobs:
   verify:
     outputs:
       version: ${{ steps.metadata.outputs.version }}
-      title: ${{ steps.metadata.outputs.title }}
       prerelease: ${{ steps.metadata.outputs.prerelease }}
     runs-on: ubuntu-latest
     steps:
@@ -39,7 +38,6 @@ jobs:
           if item is None:
               raise SystemExit(f"版本索引缺少目标版本：{version}")
           print(f"version={version}")
-          print(f"title={item['label']}")
           print(f"prerelease={'true' if re.search(r'-(?:beta|Beta)[0-9]*$', version) else 'false'}")
           PY
       - name: 构建并校验目标版本
@@ -82,7 +80,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.verify.outputs.version }}
-          TITLE: ${{ needs.verify.outputs.title }}
           PRERELEASE: ${{ needs.verify.outputs.prerelease }}
         run: |
           if gh release view "$VERSION" >/dev/null 2>&1; then
@@ -97,7 +94,7 @@ jobs:
           assets=()
           while IFS= read -r -d '' asset; do assets+=("$asset"); done < <(find release-assets -maxdepth 1 -type f -print0)
           test "${#assets[@]}" -gt 0
-          flags=(--target "$GITHUB_SHA" --title "$TITLE" --notes-file release-notes.md)
+          flags=(--target "$GITHUB_SHA" --title "$VERSION" --notes-file release-notes.md)
           if [ "$PRERELEASE" = "true" ]; then
             flags+=(--prerelease)
           else
