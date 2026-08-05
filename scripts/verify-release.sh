@@ -31,8 +31,24 @@ match = re.search(r'<!ENTITY\s+version\s+"([^"]+)">', plg)
 assert match and match.group(1) == ids[0], 'PLG 版本与索引不一致'
 assert ids[0] in (root / 'README.md').read_text(), 'README 未声明当前版本'
 assert re.search(r'^##\s+' + re.escape(ids[0]) + r'\b', (root / 'CHANGELOG.md').read_text(), re.M), 'CHANGELOG 缺少当前版本'
+releases = (root / 'RELEASES.md').read_text()
+current = re.search(r'^\*\*Current stable release:\*\* \[([^]]+)\]', releases, re.M)
+assert current and current.group(1) == index['latest_version'], 'RELEASES 当前稳定版本与索引不一致'
+stable_section = re.search(r'^## Stable Releases\n\n(.*?)(?=^## )', releases, re.M | re.S)
+assert stable_section, 'RELEASES 缺少稳定版登记表'
+registered = set(re.findall(r'\[([^]]+)\]\(https://github\.com/deltrivx/ThemeEffects/releases/tag/[^)]+\)', stable_section.group(1)))
+stable_ids = {item['id'] for item in index['versions'] if not re.search(r'-(?:beta|Beta)[0-9]*$', item['id'])}
+assert registered == stable_ids, f'RELEASES 稳定版登记与索引不一致：登记缺少 {sorted(stable_ids - registered)}；索引缺少 {sorted(registered - stable_ids)}'
 print(f'当前版本：{ids[0]}；保留 2.x 版本：{len(ids)}')
 PY
+
+if [ -n "$VERSION" ]; then
+  VERSION="$VERSION" python3 - <<'PY'
+import json, os
+ids = {item['id'] for item in json.load(open('versions/index.json', encoding='utf-8'))['versions']}
+assert os.environ['VERSION'] in ids, f"版本索引缺少目标版本：{os.environ['VERSION']}"
+PY
+fi
 
 grep -q 'data.latest.id === latestId' assets/ucwc-theme-fx.js || {
   echo "前端未优先使用 latest_version" >&2

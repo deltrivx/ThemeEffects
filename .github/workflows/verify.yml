@@ -3,8 +3,7 @@ name: 发布完整性检查
 on:
   push:
     branches: [main]
-    tags:
-      - "v*"
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
 
@@ -13,9 +12,97 @@ permissions:
 
 jobs:
   verify:
+    outputs:
+      version: ${{ steps.metadata.outputs.version }}
+      title: ${{ steps.metadata.outputs.title }}
+      prerelease: ${{ steps.metadata.outputs.prerelease }}
     runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库（包含正式版本 tags）
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: 解析发布版本与索引元数据
+        id: metadata
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          import os
+          import re
+
+          index = json.load(open("versions/index.json", encoding="utf-8"))
+          version = os.environ["REF_NAME"] if os.environ["EVENT_NAME"] == "push" and os.environ["REF_NAME"].startswith("v") else index["latest_version"]
+          item = next((item for item in index["versions"] if item.get("id") == version), None)
+          if item is None:
+              raise SystemExit(f"版本索引缺少目标版本：{version}")
+          print(f"version={version}")
+          print(f"title={item['label']}")
+          print(f"prerelease={'true' if re.search(r'-(?:beta|Beta)[0-9]*$', version) else 'false'}")
+          PY
+      - name: 构建并校验目标版本
+        env:
+          VERSION: ${{ steps.metadata.outputs.version }}
+          IS_TAG: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+        run: |
+          ./scripts/verify-release.sh
+          if [ "$IS_TAG" = "true" ]; then
+            ./scripts/verify-release.sh "$VERSION"
+            ./scripts/build-release.sh "$VERSION" existing
+          else
+            ./scripts/build-release.sh "$VERSION" snapshot
+            git diff --exit-code -- "versions/$VERSION"
+          fi
+          ./scripts/verify-release.sh "$VERSION"
+      - name: 保存构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: ThemeEffects-${{ steps.metadata.outputs.version }}
+          path: dist/${{ steps.metadata.outputs.version }}/
+          if-no-files-found: error
+
+  release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: 检出仓库
         uses: actions/checkout@v4
-      - name: 校验代码、版本清单、PLG 与文档
-        run: ./scripts/verify-release.sh
+        with:
+          fetch-depth: 0
+      - name: 下载已验证产物
+        uses: actions/download-artifact@v4
+        with:
+          name: ThemeEffects-${{ needs.verify.outputs.version }}
+          path: release-assets
+      - name: 创建或更新 GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.verify.outputs.version }}
+          TITLE: ${{ needs.verify.outputs.title }}
+          PRERELEASE: ${{ needs.verify.outputs.prerelease }}
+        run: |
+          awk -v version="$VERSION" '
+            $0 ~ "^## " version "([[:space:]]|$)" {capture=1; next}
+            capture && /^## / {exit}
+            capture {print}
+          ' CHANGELOG.md > release-notes.md
+          assets=()
+          while IFS= read -r -d '' asset; do assets+=("$asset"); done < <(find release-assets -maxdepth 1 -type f -print0)
+          test "${#assets[@]}" -gt 0
+          flags=(--target "$GITHUB_SHA" --title "$TITLE" --notes-file release-notes.md)
+          if [ "$PRERELEASE" = "true" ]; then
+            flags+=(--prerelease)
+          else
+            flags+=(--latest)
+          fi
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            gh release edit "$VERSION" "${flags[@]}"
+            gh release upload "$VERSION" "${assets[@]}" --clobber
+          else
+            gh release create "$VERSION" "${assets[@]}" "${flags[@]}"
+          fi
