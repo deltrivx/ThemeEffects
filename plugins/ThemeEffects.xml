@@ -1,0 +1,12 @@
+<Plugin>
+  <Name>Theme Effects</Name>
+  <Overview>Unraid WebGUI visual enhancement plugin with themes, wallpapers, particles, mouse effects, cursors, mascots, fonts, colors, responsive layouts, and Community Applications page enhancements.</Overview>
+  <PluginURL>https://raw.githubusercontent.com/deltrivx/ThemeEffects/main/theme.effects.plg</PluginURL>
+  <PluginAuthor>deltrivx</PluginAuthor>
+  <Support>https://github.com/deltrivx/ThemeEffects/issues</Support>
+  <Project>https://github.com/deltrivx/ThemeEffects</Project>
+  <ReadMe>https://raw.githubusercontent.com/deltrivx/ThemeEffects/main/PLUGIN-README.md</ReadMe>
+  <Category>Tools:Utilities</Category>
+  <MinVer>6.12.0</MinVer>
+  <License>GPLv2</License>
+</Plugin>
