@@ -1,6 +1,6 @@
 # Theme Effects
 
-[简体中文](README.md) | **English**
+[简体中文](README.md) | **English** | [Release Index](RELEASES.md)
 
 [![Latest Release](https://img.shields.io/github/v/release/deltrivx/ThemeEffects?display_name=tag&sort=semver&label=latest)](https://github.com/deltrivx/ThemeEffects/releases/latest)
 [![Unraid](https://img.shields.io/badge/Unraid-6.12%2B-F15A2C?logo=unraid&logoColor=white)](https://unraid.net/)
