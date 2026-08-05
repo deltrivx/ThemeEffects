@@ -1,5 +1,7 @@
 # Theme Effects · 主题特效
 
+[English](README.en.md) | **简体中文**
+
 [![最新版本](https://img.shields.io/github/v/release/deltrivx/ThemeEffects?display_name=tag&sort=semver&label=最新版本)](https://github.com/deltrivx/ThemeEffects/releases/latest)
 [![Unraid](https://img.shields.io/badge/Unraid-6.12%2B-F15A2C?logo=unraid&logoColor=white)](https://unraid.net/)
 [![代码许可](https://img.shields.io/badge/代码许可-GPL--2.0-blue)](LICENSE)
