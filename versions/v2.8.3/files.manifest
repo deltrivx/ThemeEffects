@@ -39,8 +39,8 @@
     },
     {
       "path": "assets/hutao.gif",
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "size": 0
+      "sha256": "229e9c30e83abf766003722089e7bb9c61861a3ab5bb3f9ae4c8910fe4037bdd",
+      "size": 3431327
     },
     {
       "path": "assets/ucwc-mouse-fx.js",
