@@ -251,6 +251,21 @@ file_size() {
   wc -c < "$1" 2>/dev/null | tr -d ' \t\r\n'
 }
 
+verify_download() {
+  _path=$1
+  _rel=$2
+  _expect_sha=$(manifest_get "$_rel" sha256)
+  _expect_sz=$(manifest_get "$_rel" size)
+  [ -n "$_expect_sha" ] || return 0
+  _actual_sha=$(file_sha256 "$_path")
+  _actual_sz=$(file_size "$_path")
+  [ "$_actual_sha" = "$_expect_sha" ] && [ "$_actual_sz" = "$_expect_sz" ] || {
+    ucwc_log "文件校验失败：$_rel"
+    rm -f -- "$_path"
+    return 1
+  }
+}
+
 # Map package-relative path → local persist path used for OTA compare
 local_path_for() {
   case "$1" in
@@ -289,7 +304,6 @@ fetch_pkg() {
   mkdir -p "$(dirname "$_dest")"
 
   _expect_sha=$(manifest_get "$_rel" sha256)
-  _expect_sz=$(manifest_get "$_rel" size)
   _local=$(local_path_for "$_rel")
 
   if [ "$INSTALL_MODE" = "ota" ] && [ -n "$_local" ] && [ -f "$_local" ]; then
@@ -299,18 +313,6 @@ fetch_pkg() {
       if [ -n "$_cur" ] && [ "$_cur" = "$_expect_sha" ]; then
         _skip=1
       fi
-    else
-      # 无 sha：用清单 size 或 HEAD Content-Length 粗比对
-      if [ -z "$_expect_sz" ] || [ "$_expect_sz" = "0" ] || [ "$_expect_sz" = "null" ]; then
-        _expect_sz=$(ucwc_curl --max-time 20 -I "$_url" 2>/dev/null \
-          | tr -d '\r' | awk 'BEGIN{IGNORECASE=1} /^Content-Length:/ {print $2; exit}')
-      fi
-      if [ -n "$_expect_sz" ] && [ "$_expect_sz" != "0" ]; then
-        _csz=$(file_size "$_local")
-        if [ "$_csz" = "$_expect_sz" ]; then
-          _skip=1
-        fi
-      fi
     fi
     if [ "$_skip" = "1" ]; then
       ucwc_log "OTA 跳过（未变）：$_label"
@@ -318,6 +320,7 @@ fetch_pkg() {
       cp -a "$_local" "$_dest"
       return 0
     fi
+    ucwc_log "OTA 重新安装（哈希不匹配或缺少清单）：$_label"
   fi
 
   OTA_FETCHED=$(( ${OTA_FETCHED:-0} + 1 ))
@@ -330,9 +333,10 @@ fetch_pkg() {
       fi
     fi
     cp -a "$_source" "$_dest"
-    return 0
+    verify_download "$_dest" "$_rel"
+    return $?
   fi
-  download -o "$_dest" "$_url"
+  download -o "$_dest" "$_url" && verify_download "$_dest" "$_rel"
 }
 
 
@@ -675,17 +679,17 @@ install_version() {
   cleanup_theme_effects_residue
   purge_obsolete_music_residue
 
-  # 清单：用于 OTA 哈希比对；缺失时 OTA 退化为「有本地同名则按 size 试跳，否则下载」
+  # 清单：用于 OTA 哈希比对；没有有效 SHA256 时不复用本地文件。
   progress 22 "拉取清单" "files.manifest（OTA 差异比对）"
   if download -o "$tmp/files.manifest" "$release_base/files.manifest" \
     || download -o "$tmp/files.manifest" "$base/files.manifest?_ts=$(date +%s)"; then
     MANIFEST_JSON=$(cat "$tmp/files.manifest" 2>/dev/null || true)
     case "$MANIFEST_JSON" in
       "{"*) ucwc_log "已加载文件清单（OTA 可用 sha256 比对）" ;;
-      *) MANIFEST_JSON=""; ucwc_log "清单无效，OTA 将仅按本地存在性/大小尝试跳过" ;;
+      *) MANIFEST_JSON=""; ucwc_log "清单无效，OTA 将重新下载所有运行文件" ;;
     esac
   else
-    ucwc_log "无 files.manifest（旧包），OTA 将尽量复用同尺寸本地文件"
+    ucwc_log "无 files.manifest（旧包），OTA 将重新下载所有运行文件"
   fi
 
   # Prefer one checksummed Release archive. After the archive-level checksum,
@@ -752,9 +756,9 @@ install_version() {
       mkdir -p "$tmp/$dir"
       if fetch_pkg "$tmp/$f" "$base/$f" "$f" "$bn" "${ARCHIVE_DIR:+$ARCHIVE_DIR/$f}"; then
         :
-      elif download -o "$tmp/$f" "$REPO_RAW/$f"; then
+      elif download -o "$tmp/$f" "$REPO_RAW/$f" && verify_download "$tmp/$f" "$f"; then
         OTA_FETCHED=$((OTA_FETCHED + 1))
-      elif download -o "$tmp/$f" "$REPO_RAW/assets/$bn" 2>/dev/null; then
+      elif download -o "$tmp/$f" "$REPO_RAW/assets/$bn" 2>/dev/null && verify_download "$tmp/$f" "$f"; then
         OTA_FETCHED=$((OTA_FETCHED + 1))
       else
         ucwc_log "警告：未找到 $f，相关 WebUI 功能可能不可用。"
