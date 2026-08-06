@@ -10,7 +10,8 @@ This page is the canonical version index for Theme Effects. GitHub's Releases si
 
 | Version | Published | Status |
 |---|---|---|
-| [v2.8.2](https://github.com/deltrivx/ThemeEffects/releases/tag/v2.8.2) | 2026-08-04 | Current stable |
+| [v2.8.3](https://github.com/deltrivx/ThemeEffects/releases/tag/v2.8.3) | 2026-08-06 | Current stable |
+| [v2.8.2](https://github.com/deltrivx/ThemeEffects/releases/tag/v2.8.2) | 2026-08-04 |  |
 | [v2.8.1](https://github.com/deltrivx/ThemeEffects/releases/tag/v2.8.1) | 2026-08-04 |  |
 | [v2.7.4](https://github.com/deltrivx/ThemeEffects/releases/tag/v2.7.4) | 2026-08-01 |  |
 | [v2.7.3](https://github.com/deltrivx/ThemeEffects/releases/tag/v2.7.3) | 2026-08-01 |  |
