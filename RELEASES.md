@@ -4,7 +4,7 @@
 
 This page is the canonical version index for Theme Effects. GitHub's Releases sidebar is ordered by publication date; this page is ordered by semantic version so later backfilled releases do not make version order look inconsistent.
 
-**Current stable release:** [v2.8.2](https://github.com/deltrivx/ThemeEffects/releases/tag/v2.8.2)
+**Current stable release:** [v2.8.3](https://github.com/deltrivx/ThemeEffects/releases/tag/v2.8.3)
 
 ## Stable Releases
 

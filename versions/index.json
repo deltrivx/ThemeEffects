@@ -1,12 +1,25 @@
 {
   "schema": 1,
-  "default": "v2.8.2",
-  "latest_version": "v2.8.2",
+  "default": "v2.8.3",
+  "latest_version": "v2.8.3",
   "versions": [
+    {
+      "id": "v2.8.3",
+      "label": "正式版 v2.8.3：恢复 Dashboard 各卡片原生标题与内容显示",
+      "channel": "latest",
+      "released_at": "2026-08-06",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true,
+      "mouse_fx": true,
+      "music": false,
+      "ota": true
+    },
     {
       "id": "v2.8.2",
       "label": "正式版 v2.8.2：独立滚动条颜色设置与保存修复",
-      "channel": "latest",
+      "channel": "stable",
       "released_at": "2026-08-05",
       "apps_enhancement": true,
       "particles": true,

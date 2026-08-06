@@ -2,13 +2,13 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "theme.effects">
 <!ENTITY author    "deltrivx">
-<!ENTITY version   "v2.8.2">
+<!ENTITY version   "v2.8.3">
 	<!ENTITY launch    "Settings/ThemeEffects">
 	<!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 	<!ENTITY flash     "/boot/config/plugins/&name;">
 	<!ENTITY github    "deltrivx/ThemeEffects">
 	<!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/theme.effects.plg">
-	<!ENTITY ver       "v2.8.2">
+	<!ENTITY ver       "v2.8.3">
 	<!ENTITY installSH "https://github.com/&github;/releases/download/&ver;/install.sh">
 	]>
 	<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" icon="magic" support="https://github.com/&github;">
