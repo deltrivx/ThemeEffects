@@ -1,12 +1,25 @@
 {
   "schema": 1,
-  "default": "v2.8.3",
-  "latest_version": "v2.8.3",
+  "default": "v2.8.4",
+  "latest_version": "v2.8.4",
   "versions": [
+    {
+      "id": "v2.8.4",
+      "label": "正式版 v2.8.4：Dashboard 卡片布局与版本菜单修复",
+      "channel": "latest",
+      "released_at": "2026-08-07",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true,
+      "mouse_fx": true,
+      "music": false,
+      "ota": true
+    },
     {
       "id": "v2.8.3",
       "label": "正式版 v2.8.3：恢复 Dashboard 各卡片原生标题与内容显示",
-      "channel": "latest",
+      "channel": "stable",
       "released_at": "2026-08-06",
       "apps_enhancement": true,
       "particles": true,

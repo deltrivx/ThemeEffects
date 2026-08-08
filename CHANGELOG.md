@@ -1,3 +1,16 @@
+## v2.8.4 - 2026-08-07
+
+### 概述
+**正式版 v2.8.4**：修复 Dashboard 卡片布局、切换控件与 ThemeEffects 版本菜单。
+
+### 变更
+- 以原生 Tower 卡片为基准，统一 Dashboard 图标、两行标题摘要和第一行切换控件布局。
+- 移除 Tower 标题栏重复时钟，修复 Compose、Docker、VM、共享等卡片的标题与状态显示。
+- 将 Docker/VM 卡片底部重复空余由 40px 恢复为正常 20px，并保留项目间原生行距。
+- 修复共享卡片 SMB/NFS 控件前方拉伸空余，保持标题、箭头和控件之间 6px 间距。
+- 对齐 ThemeEffects 版本小窗与系统版本菜单，显示远程更新状态并增加 GitHub Issues 反馈入口。
+- 保持 ThemeMusic 与 ThemeEffects 独立，不包含音乐运行代码。
+
 ## v2.8.3 - 2026-08-06
 
 ### 概述

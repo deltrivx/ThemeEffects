@@ -2,13 +2,13 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "theme.effects">
 <!ENTITY author    "deltrivx">
-<!ENTITY version   "v2.8.3">
+<!ENTITY version   "v2.8.4">
 	<!ENTITY launch    "Settings/ThemeEffects">
 	<!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 	<!ENTITY flash     "/boot/config/plugins/&name;">
 	<!ENTITY github    "deltrivx/ThemeEffects">
 	<!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/theme.effects.plg">
-	<!ENTITY ver       "v2.8.3">
+	<!ENTITY ver       "v2.8.4">
 	<!ENTITY installSH "https://github.com/&github;/releases/download/&ver;/install.sh">
 	]>
 	<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" icon="magic" support="https://github.com/&github;">
@@ -17,6 +17,12 @@
 	<CHANGES>
 	<![CDATA[
 			## Theme Effects
+			### v2.8.4
+			- 修复 Dashboard 卡片标题、图标、两行摘要和切换控件对齐
+			- 修复 Docker/VM 内容区底部重复空余，并保持原生项目间距
+			- 修复共享卡片 SMB/NFS 控件前方空余与视觉不统一
+			- 对齐 ThemeEffects 版本小窗与系统版本菜单，新增更新状态和 Issues 反馈入口
+			- ThemeMusic 保持独立，不包含音乐运行代码
 			### v2.8.2
 			- 新增独立滚动条全局颜色和页面覆盖设置
 			- 修复颜色块选择后点击应用颜色被还原
