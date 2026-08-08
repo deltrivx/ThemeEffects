@@ -68,6 +68,7 @@
       if (wanted && !cl.contains(wanted)) cl.add(wanted);
       if (wanted === "ucwc-apps") {
         window.setTimeout(function () {
+          compactDesktopSearchArea();
           bootSuggestions();
           ensureDesktopMenuVisible();
           reparentCaCardBadges(document);
@@ -89,6 +90,26 @@
     } catch (e) {
       return window.innerWidth <= 767;
     }
+  }
+
+  function compactDesktopSearchArea() {
+    if (!isAppsPage() || isMobileAppsViewport()) return;
+    try {
+      var holder = document.querySelector(".searchAreaHolder");
+      var area = holder && holder.querySelector(".searchArea");
+      if (!area) area = document.querySelector(".searchArea");
+      if (!area) return;
+      if (holder) {
+        holder.style.setProperty("display", "block", "important");
+        holder.style.setProperty("width", "100%", "important");
+      }
+      area.style.setProperty("display", "inline-flex", "important");
+      area.style.setProperty("flex", "0 0 auto", "important");
+      area.style.setProperty("width", "max-content", "important");
+      area.style.setProperty("min-width", "max-content", "important");
+      area.style.setProperty("max-width", "none", "important");
+      area.style.setProperty("align-self", "flex-start", "important");
+    } catch (e) {}
   }
 
   function scheduleSync() {
@@ -286,6 +307,9 @@
     );
     window.addEventListener("popstate", scheduleSync);
     window.addEventListener("hashchange", scheduleSync);
+    window.addEventListener("resize", function () {
+      if (isAppsPage()) compactDesktopSearchArea();
+    }, { passive: true });
     try {
       var menu = document.getElementById("menu") || document.querySelector("#menu");
       if (menu && window.MutationObserver) {
@@ -381,6 +405,7 @@
 
   function bootSuggestions() {
     if (!isAppsPage()) return false;
+    compactDesktopSearchArea();
     var box = searchBox();
     if (!box) return false;
     bindSuggestionEvents(box);
