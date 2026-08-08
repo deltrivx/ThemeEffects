@@ -2283,6 +2283,32 @@ body.ucwc-users .user-list:after {
 
 /* Apps perf v4 overrides removed in v5 */
 
+/* ===== ThemeEffects:apps-search-compact-pc-v2:start ===== */
+/* CA's native rule sets .searchArea min-width:100%, which makes the
+   translucent search surface span the entire desktop viewport.  The holder
+   remains the viewport-scoped scroll container; only the surface itself is
+   shrink-wrapped to its controls. */
+@media (min-width: 768px) {
+    body.ucwc-apps .searchAreaHolder {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    body.ucwc-apps .searchArea,
+    body.ucwc-apps .searchArea.onlyShowWithFeed {
+        display: inline-flex !important;
+        flex: 0 0 auto !important;
+        width: max-content !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        align-self: flex-start !important;
+    }
+    body.ucwc-apps .searchArea > * {
+        flex: 0 0 auto !important;
+    }
+}
+/* ===== ThemeEffects:apps-search-compact-pc-v2:end ===== */
+
 
 /* v5: Apps list paint cheap (minimal :has, no continuous filters) */
 body.ucwc-apps .caMenuItem,
@@ -5437,3 +5463,22 @@ table.dashboard > tbody > tr > td {
 }
 /* ThemeEffects:version-menu:end */
 
+/* ===== ThemeEffects:apps-search-compact-pc-v2-final:start ===== */
+@media (min-width: 768px) {
+    body.ucwc-apps .searchAreaHolder {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    body.ucwc-apps .searchArea,
+    body.ucwc-apps .searchArea.onlyShowWithFeed {
+        display: inline-flex !important;
+        flex: 0 0 auto !important;
+        width: max-content !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        align-self: flex-start !important;
+    }
+    body.ucwc-apps .searchArea > * { flex: 0 0 auto !important; }
+}
+/* ===== ThemeEffects:apps-search-compact-pc-v2-final:end ===== */
