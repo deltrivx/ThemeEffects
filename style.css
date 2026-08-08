@@ -2880,7 +2880,9 @@ body.ucwc-apps .searchAreaHolder {
 
     body.ucwc-apps .searchArea {
         width: max-content !important;
-        min-width: 100% !important;
+        /* Keep the PC search controls grouped as a compact box instead of
+           stretching the translucent surface across the whole row. */
+        min-width: 0 !important;
         max-width: none !important;
         height: 48px !important;
         min-height: 48px !important;
@@ -5436,4 +5438,3 @@ table.dashboard > tbody > tr > td {
     .ucwc-theme-changelog-content { padding: 14px 16px; }
 }
 /* ThemeEffects:version-menu:end */
-
