@@ -1,12 +1,25 @@
 {
   "schema": 1,
-  "default": "v2.8.6",
-  "latest_version": "v2.8.6",
+  "default": "v2.8.7",
+  "latest_version": "v2.8.7",
   "versions": [
+    {
+      "id": "v2.8.7",
+      "label": "正式版 v2.8.7：全局版本小窗显示实时更新进度",
+      "channel": "latest",
+      "released_at": "2026-08-08",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true,
+      "mouse_fx": true,
+      "music": false,
+      "ota": true
+    },
     {
       "id": "v2.8.6",
       "label": "正式版 v2.8.6：左上角版本小窗功能优化",
-      "channel": "latest",
+      "channel": "stable",
       "released_at": "2026-08-08",
       "apps_enhancement": true,
       "particles": true,
