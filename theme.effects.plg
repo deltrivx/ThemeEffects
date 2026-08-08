@@ -2,13 +2,13 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "theme.effects">
 <!ENTITY author    "deltrivx">
-<!ENTITY version   "v2.8.8">
+<!ENTITY version   "v2.8.9">
 	<!ENTITY launch    "Settings/ThemeEffects">
 	<!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 	<!ENTITY flash     "/boot/config/plugins/&name;">
 	<!ENTITY github    "deltrivx/ThemeEffects">
 	<!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/theme.effects.plg">
-	<!ENTITY ver       "v2.8.8">
+	<!ENTITY ver       "v2.8.9">
 	<!ENTITY installSH "https://github.com/&github;/releases/download/&ver;/install.sh">
 	]>
 	<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" icon="magic" support="https://github.com/&github;">
@@ -17,6 +17,8 @@
 	<CHANGES>
 	<![CDATA[
 		## Theme Effects
+			### v2.8.9
+			- 修复 Apps 搜索栏未遵循 Unraid 盒子模式宽度、无法与主内容区对齐的问题
 			### v2.8.8
 			- 优化全局版本信息弹窗，并撤销 Apps 搜索栏的实验性收拢修改
 			### v2.8.7

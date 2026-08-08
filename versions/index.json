@@ -1,12 +1,25 @@
 {
   "schema": 1,
-  "default": "v2.8.8",
-  "latest_version": "v2.8.8",
+  "default": "v2.8.9",
+  "latest_version": "v2.8.9",
   "versions": [
+    {
+      "id": "v2.8.9",
+      "label": "正式版 v2.8.9：Apps 搜索栏盒子模式对齐修复",
+      "channel": "latest",
+      "released_at": "2026-08-08",
+      "apps_enhancement": true,
+      "particles": true,
+      "hutao": true,
+      "theme_effects": true,
+      "mouse_fx": true,
+      "music": false,
+      "ota": true
+    },
     {
       "id": "v2.8.8",
       "label": "正式版 v2.8.8：版本信息弹窗优化与 Apps 实验性布局回退",
-      "channel": "latest",
+      "channel": "stable",
       "released_at": "2026-08-08",
       "apps_enhancement": true,
       "particles": true,

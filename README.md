@@ -9,7 +9,7 @@
 
 面向 Unraid WebGUI 的独立视觉增强插件。Theme Effects 将壁纸、粒子、鼠标动效、指针、吉祥物、字体配色和应用页增强整合到原生设置页，并提供可回滚、可离线恢复的正式发布链路。
 
-> 当前正式版：**v2.8.8** · 插件 ID：`theme.effects` · 最低 Unraid：**6.12.0**
+> 当前正式版：**v2.8.9** · 插件 ID：`theme.effects` · 最低 Unraid：**6.12.0**
 
 ## 核心能力
 
@@ -41,8 +41,8 @@ https://raw.githubusercontent.com/deltrivx/ThemeEffects/main/theme.effects.plg
 OTA 会复用哈希未变化的本地文件，只写入变化项：
 
 ```bash
-curl -fsSL https://github.com/deltrivx/ThemeEffects/releases/download/v2.8.8/install.sh -o /tmp/theme-effects-install.sh
-sh /tmp/theme-effects-install.sh install v2.8.8 ota
+curl -fsSL https://github.com/deltrivx/ThemeEffects/releases/download/v2.8.9/install.sh -o /tmp/theme-effects-install.sh
+sh /tmp/theme-effects-install.sh install v2.8.9 ota
 ```
 
 ### 方式三：终端全量修复
@@ -50,8 +50,8 @@ sh /tmp/theme-effects-install.sh install v2.8.8 ota
 全量模式重新写入版本包中的全部运行文件，适合修复损坏或被手动修改的安装：
 
 ```bash
-curl -fsSL https://github.com/deltrivx/ThemeEffects/releases/download/v2.8.8/install.sh -o /tmp/theme-effects-install.sh
-sh /tmp/theme-effects-install.sh install v2.8.8 full
+curl -fsSL https://github.com/deltrivx/ThemeEffects/releases/download/v2.8.9/install.sh -o /tmp/theme-effects-install.sh
+sh /tmp/theme-effects-install.sh install v2.8.9 full
 ```
 
 安装完成后插件默认关闭。前往 **设置 → 用户偏好 → 主题特效**，手动开启总开关后才会向 WebGUI 注入效果。
