@@ -3531,12 +3531,9 @@ body.ucwc-apps .searchArea {
         display: inline-flex !important;
         flex: 0 0 auto !important;
         align-self: flex-start !important;
-        width: fit-content !important;
-        min-width: 0 !important;
+        width: max-content !important;
+        min-width: max-content !important;
         max-width: none !important;
-    }
-    body.ucwc-apps .searchArea > * {
-        flex: 0 0 auto !important;
     }
 }
 /* ===== ThemeEffects:apps-search-compact-pc:end ===== */
