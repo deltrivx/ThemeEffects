@@ -887,14 +887,18 @@
     if (document.getElementById("ucwc-theme-update-dialog")) return;
     var latest = (data.latest && data.latest.id) || data.latest_version || "";
     if (!latest) return;
+    var hasUpdate = !!data.update_available;
+    var dialogTitle = hasUpdate ? "ThemeEffects 更新" : "版本信息";
+    var otaLabel = hasUpdate ? "OTA 升级" : "OTA 重装当前版本";
+    var fullLabel = hasUpdate ? "全量升级" : "全量重装当前版本";
     var dialog = document.createElement("div");
     dialog.id = "ucwc-theme-update-dialog";
     dialog.className = "ucwc-theme-changelog-backdrop";
     dialog.innerHTML =
       '<section class="ucwc-theme-changelog-panel" role="dialog" aria-modal="true" aria-labelledby="ucwc-theme-update-title">' +
-      '<header class="ucwc-theme-changelog-title"><h2 id="ucwc-theme-update-title">ThemeEffects 更新</h2><button class="ucwc-theme-changelog-close" type="button" aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></header>' +
-      '<div class="ucwc-theme-changelog-content"><p>当前版本：<strong>' + THEME_INFO.version + '</strong></p><p>远程版本：<strong>' + latest + '</strong></p><p>OTA 仅下载变更或缺失文件；全量会重新下载完整版本包。</p><p id="ucwc-theme-update-result" aria-live="polite"></p></div>' +
-      '<footer class="ucwc-theme-changelog-footer"><button class="ucwc-theme-info-link" type="button" data-mode="ota">OTA 升级</button><button class="ucwc-theme-info-link" type="button" data-mode="full">全量升级</button></footer>' +
+      '<header class="ucwc-theme-changelog-title"><h2 id="ucwc-theme-update-title">' + dialogTitle + '</h2><button class="ucwc-theme-changelog-close" type="button" aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></header>' +
+      '<div class="ucwc-theme-changelog-content"><p>当前版本：<strong>' + THEME_INFO.version + '</strong></p><p>远程版本：<strong>' + latest + '</strong></p><p>' + (hasUpdate ? '发现新版本，可选择 OTA 或全量升级。' : '当前已是最新版，可选择 OTA 或全量重装以修复本地文件。') + '</p><p>OTA 仅下载变更或缺失文件；全量会重新下载完整版本包。</p><p id="ucwc-theme-update-result" aria-live="polite"></p></div>' +
+      '<footer class="ucwc-theme-changelog-footer"><button class="ucwc-theme-info-link" type="button" data-mode="ota">' + otaLabel + '</button><button class="ucwc-theme-info-link" type="button" data-mode="full">' + fullLabel + '</button></footer>' +
       '</section>';
     dialog.addEventListener("click", function (event) { if (event.target === dialog) closeThemeUpdate(); });
     dialog.querySelector(".ucwc-theme-changelog-close").addEventListener("click", closeThemeUpdate);
@@ -1017,8 +1021,7 @@
   function openThemeInfoStatus() {
     if (!themeInfoUpdate) return;
     closeThemeInfo();
-    if (themeInfoUpdate.update_available) showThemeUpdate(themeInfoUpdate);
-    else showThemeChangelog();
+    showThemeUpdate(themeInfoUpdate);
   }
 
   function checkThemeUpdate() {
@@ -1099,7 +1102,7 @@
     menu.setAttribute("aria-label", "ThemeEffects " + THEME_INFO.version);
     menu.innerHTML =
       '<div class="ucwc-theme-info-heading">ThemeEffects</div>' +
-      '<button class="ucwc-theme-info-item ucwc-theme-info-link" type="button" role="menuitem" data-action="status"><span>当前版本</span><strong id="ucwc-theme-update-status">检查中…</strong></button>' +
+      '<button class="ucwc-theme-info-item ucwc-theme-info-link" type="button" role="menuitem" data-action="status"><span>版本信息</span><strong id="ucwc-theme-update-status">检查中…</strong></button>' +
       '<div class="ucwc-theme-info-separator" role="separator"></div>' +
       '<a class="ucwc-theme-info-link" role="menuitem" href="' + THEME_INFO.issuesUrl + '" target="_blank" rel="noopener noreferrer"><span class="ucwc-theme-info-link-label">提交问题反馈</span><span class="ucwc-theme-info-external">›</span></a>' +
       '<a class="ucwc-theme-info-link" role="menuitem" href="/Settings/ThemeEffects"><span class="ucwc-theme-info-link-label">打开主题设置</span><span class="ucwc-theme-info-external">›</span></a>';
