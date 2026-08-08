@@ -3520,24 +3520,6 @@ body.ucwc-apps .searchArea {
 }
 /* ===== ThemeEffects:search-spacing-scroll-fix:end ===== */
 
-/* ===== ThemeEffects:apps-search-compact-pc:start ===== */
-/* The native CA row can make searchArea a flex:1 item. Keep the PC
-   translucent box sized to its controls instead of the full holder width. */
-@media (min-width: 768px) {
-    body.ucwc-apps .searchAreaHolder {
-        display: block !important;
-    }
-    body.ucwc-apps .searchArea {
-        display: inline-flex !important;
-        flex: 0 0 auto !important;
-        align-self: flex-start !important;
-        width: max-content !important;
-        min-width: max-content !important;
-        max-width: none !important;
-    }
-}
-/* ===== ThemeEffects:apps-search-compact-pc:end ===== */
-
 /* ===== ThemeEffects:actioncentre-bar:start ===== */
 /* Action Centre bottom controls: same pill language as search-row buttons
    (dockerSearch / templateSearch / maxPerPage). No bar background. */
