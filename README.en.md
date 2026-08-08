@@ -9,7 +9,7 @@
 
 Theme Effects is an independent Unraid WebGUI visual enhancement plugin. It brings themes, wallpapers, particles, mouse effects, cursors, mascots, typography, color controls, responsive layouts, and Community Applications enhancements into the native Unraid interface.
 
-> Current release: **v2.8.5** · Plugin ID: `theme.effects` · Minimum Unraid version: **6.12.0**
+> Current release: **v2.8.6** · Plugin ID: `theme.effects` · Minimum Unraid version: **6.12.0**
 
 ## Features
 

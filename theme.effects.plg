@@ -2,13 +2,13 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "theme.effects">
 <!ENTITY author    "deltrivx">
-<!ENTITY version   "v2.8.5">
+<!ENTITY version   "v2.8.6">
 	<!ENTITY launch    "Settings/ThemeEffects">
 	<!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 	<!ENTITY flash     "/boot/config/plugins/&name;">
 	<!ENTITY github    "deltrivx/ThemeEffects">
 	<!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/theme.effects.plg">
-	<!ENTITY ver       "v2.8.5">
+	<!ENTITY ver       "v2.8.6">
 	<!ENTITY installSH "https://github.com/&github;/releases/download/&ver;/install.sh">
 	]>
 	<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" icon="magic" support="https://github.com/&github;">
@@ -17,6 +17,10 @@
 	<CHANGES>
 	<![CDATA[
 			## Theme Effects
+			### v2.8.6
+			- 修复左上角 ThemeEffects 版本小窗仍显示历史版本的问题
+			- 最新版时点击首行查看当前版本更新日志；有新版时显示远程版本并进入 OTA / 全量更新操作
+			- 移除小窗内重复的更新日志入口，不包含视觉样式、尺寸、配色或布局调整
 			### v2.8.5
 			- 放大当前版本更新日志和版本管理弹窗，使其与系统弹窗使用相同的视口级尺寸
 			- 取消更新日志和版本列表过小的固定高度，改为弹性布局和可滚动内容区
