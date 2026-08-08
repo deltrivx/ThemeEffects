@@ -3528,18 +3528,15 @@ body.ucwc-apps .searchArea {
         display: block !important;
     }
     body.ucwc-apps .searchArea {
-        display: inline-block !important;
-        flex: none !important;
+        display: inline-flex !important;
+        flex: 0 0 auto !important;
         align-self: flex-start !important;
-        width: auto !important;
+        width: fit-content !important;
         min-width: 0 !important;
         max-width: none !important;
-        white-space: nowrap !important;
     }
     body.ucwc-apps .searchArea > * {
-        display: inline-flex !important;
-        flex: none !important;
-        vertical-align: middle !important;
+        flex: 0 0 auto !important;
     }
 }
 /* ===== ThemeEffects:apps-search-compact-pc:end ===== */

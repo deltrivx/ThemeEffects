@@ -103,17 +103,14 @@
         holder.style.setProperty("display", "block", "important");
         holder.style.setProperty("width", "100%", "important");
       }
-      area.style.setProperty("display", "inline-block", "important");
-      area.style.setProperty("flex", "none", "important");
-      area.style.setProperty("width", "auto", "important");
+      area.style.setProperty("display", "inline-flex", "important");
+      area.style.setProperty("flex", "0 0 auto", "important");
+      area.style.setProperty("width", "fit-content", "important");
       area.style.setProperty("min-width", "0", "important");
       area.style.setProperty("max-width", "none", "important");
       area.style.setProperty("align-self", "flex-start", "important");
-      area.style.setProperty("white-space", "nowrap", "important");
       Array.prototype.forEach.call(area.children, function (child) {
-        child.style.setProperty("display", "inline-flex", "important");
-        child.style.setProperty("flex", "none", "important");
-        child.style.setProperty("vertical-align", "middle", "important");
+        child.style.setProperty("flex", "0 0 auto", "important");
       });
     } catch (e) {}
   }
