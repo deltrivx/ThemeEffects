@@ -3,6 +3,21 @@
   "version": "v2.8.5",
   "files": [
     {
+      "path": "PLUGIN-README.md",
+      "sha256": "e27d5f7c36067f67dce04b646359983fc1ef01b9c710506d9c7d641725a2d07d",
+      "size": 729
+    },
+    {
+      "path": "ThemeEffects.page",
+      "sha256": "7cb107cd4093f0bce781c7907ba0f616480c58d46987eef5762e2e3ab00ee196",
+      "size": 100035
+    },
+    {
+      "path": "ThemeEffects_Loader.page",
+      "sha256": "883e4032b491632369536d00208fe2312e9079df10394f9bc43a502515eb2403",
+      "size": 64435
+    },
+    {
       "path": "apps-enhancement.js",
       "sha256": "efb1ce7dd139a3828cac005047c4b17f0d8e19c37b0f9c722dbef67ecfd645b8",
       "size": 39930
@@ -48,11 +63,6 @@
       "size": 123514
     },
     {
-      "path": "PLUGIN-README.md",
-      "sha256": "e27d5f7c36067f67dce04b646359983fc1ef01b9c710506d9c7d641725a2d07d",
-      "size": 729
-    },
-    {
       "path": "style-black.css",
       "sha256": "291b82f41f59a994bf196a9be54c02a3d2e4acc2e429619fbc097a727a5c1ef4",
       "size": 97
@@ -71,16 +81,6 @@
       "path": "theme.effects.cfg",
       "sha256": "1e8730fade1a5ccbc433df58f0005997a6419007d750b91d26552c5b3f38ecd6",
       "size": 19
-    },
-    {
-      "path": "ThemeEffects.page",
-      "sha256": "7cb107cd4093f0bce781c7907ba0f616480c58d46987eef5762e2e3ab00ee196",
-      "size": 100035
-    },
-    {
-      "path": "ThemeEffects_Loader.page",
-      "sha256": "883e4032b491632369536d00208fe2312e9079df10394f9bc43a502515eb2403",
-      "size": 64435
     },
     {
       "path": "ucwc-auth-request.conf",

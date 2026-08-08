@@ -57,7 +57,7 @@ import hashlib, json, pathlib, sys
 version = sys.argv[1]
 base = pathlib.Path(sys.argv[2])
 files = []
-for path in sorted(base.rglob('*')):
+for path in sorted(base.rglob('*'), key=lambda path: path.relative_to(base).as_posix()):
     if not path.is_file() or path.name == 'files.manifest':
         continue
     rel = path.relative_to(base).as_posix()
