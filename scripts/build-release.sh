@@ -63,10 +63,8 @@ for path in sorted(base.rglob('*'), key=lambda path: path.relative_to(base).as_p
     rel = path.relative_to(base).as_posix()
     data = path.read_bytes()
     files.append({'path': rel, 'sha256': hashlib.sha256(data).hexdigest(), 'size': len(data)})
-(base / 'files.manifest').write_text(
-    json.dumps({'schema': 1, 'version': version, 'files': files}, ensure_ascii=False, indent=2) + '\n',
-    encoding='utf-8',
-)
+with (base / 'files.manifest').open('w', encoding='utf-8', newline='\n') as handle:
+    handle.write(json.dumps({'schema': 1, 'version': version, 'files': files}, ensure_ascii=False, indent=2) + '\n')
 PY
 
 rm -rf "$DIST_DIR"
