@@ -1,0 +1,101 @@
+{
+  "schema": 1,
+  "version": "v2.8.8",
+  "files": [
+    {
+      "path": "PLUGIN-README.md",
+      "sha256": "e27d5f7c36067f67dce04b646359983fc1ef01b9c710506d9c7d641725a2d07d",
+      "size": 729
+    },
+    {
+      "path": "ThemeEffects.page",
+      "sha256": "7cb107cd4093f0bce781c7907ba0f616480c58d46987eef5762e2e3ab00ee196",
+      "size": 100035
+    },
+    {
+      "path": "ThemeEffects_Loader.page",
+      "sha256": "c6f320b75533ebc190262606b5e297b07fcce5c0abc490fadb5f8babd3aa205f",
+      "size": 64456
+    },
+    {
+      "path": "apps-enhancement.js",
+      "sha256": "e1da1dfb53c8ecb0b5204129f0da22fa7604e2108c876f5b2c18767cd8bcb4cd",
+      "size": 49438
+    },
+    {
+      "path": "assets/background-1.jpg",
+      "sha256": "0a5ebe851db15cfbb130313f92ea120e4c9dfa7a1ba715f16597b8bb6730528f",
+      "size": 960008
+    },
+    {
+      "path": "assets/background-2.jpg",
+      "sha256": "bb60386f9ce4799bd299196753f7d934515c7fe489a96ef825b2b19e5767d384",
+      "size": 41066
+    },
+    {
+      "path": "assets/background.jpg",
+      "sha256": "0a5ebe851db15cfbb130313f92ea120e4c9dfa7a1ba715f16597b8bb6730528f",
+      "size": 960008
+    },
+    {
+      "path": "assets/hutao.gif",
+      "sha256": "229e9c30e83abf766003722089e7bb9c61861a3ab5bb3f9ae4c8910fe4037bdd",
+      "size": 3431327
+    },
+    {
+      "path": "assets/ucwc-mouse-fx.js",
+      "sha256": "141507aba68805647341ff6020bd9ed2cf7f4225061c3ae2e34c5c81852bca7e",
+      "size": 27826
+    },
+    {
+      "path": "assets/ucwc-particles.js",
+      "sha256": "b017ecefa1a343f1c228c8a6d1074018791e44b3ce5f1d81d3de4fd9b03a0890",
+      "size": 9803
+    },
+    {
+      "path": "assets/ucwc-theme-fx.css",
+      "sha256": "1afb21927cd314b7ec308db78b51fd2a8d83103b3ee483a27e0b1cee20aa5f7a",
+      "size": 28645
+    },
+    {
+      "path": "assets/ucwc-theme-fx.js",
+      "sha256": "ff97935df56b55210c71eea573e60ddeda45fffb3616a02122ff697eac2055f6",
+      "size": 123514
+    },
+    {
+      "path": "style-black.css",
+      "sha256": "291b82f41f59a994bf196a9be54c02a3d2e4acc2e429619fbc097a727a5c1ef4",
+      "size": 97
+    },
+    {
+      "path": "style.css",
+      "sha256": "99c1e1595fa48276c64dffb6324739bce40af5546ff1ea6a9da9cd6b1d6cb4d6",
+      "size": 193460
+    },
+    {
+      "path": "theme-effects.cfg",
+      "sha256": "8939f25ec3bfcd2fe1142244fce49652e6dde39a7f29d840feae57ea7a638556",
+      "size": 740
+    },
+    {
+      "path": "theme.effects.cfg",
+      "sha256": "1e8730fade1a5ccbc433df58f0005997a6419007d750b91d26552c5b3f38ecd6",
+      "size": 19
+    },
+    {
+      "path": "ucwc-auth-request.conf",
+      "sha256": "93d301dc794d8db3ed7f3c5793a431ab8a6d9f3c0a805650f3b96af50c9ac409",
+      "size": 521
+    },
+    {
+      "path": "ucwc-theme-fx-save.php",
+      "sha256": "c56ca7687f7364283700cfaa3a1508d8abeb3fd6f0eff3cbb18ecf616d079258",
+      "size": 55448
+    },
+    {
+      "path": "ucwc-update.php",
+      "sha256": "f58b445063ed47c0639bcefbe18b16fa3659fed30a8d6a07b1d70e9fbc015dd2",
+      "size": 43419
+    }
+  ]
+}
